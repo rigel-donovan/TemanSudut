@@ -452,25 +452,50 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                             Text('${items.length} Items:', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
                             const SizedBox(height: 8),
                             ...items.map((item) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 4.0),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Expanded(
-                                        child: Text(
-                                          '${item['quantity']}x ${item['product'] != null ? item['product']['name'] : 'Unknown'}',
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              '${item['quantity']}x ${item['product'] != null ? item['product']['name'] : 'Unknown'}',
+                                              style: const TextStyle(fontWeight: FontWeight.w500),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          Text(
+                                            AppFormat.currency(item['subtotal'] ?? 0),
+                                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                          ),
+                                        ],
                                       ),
-                                      if (item['notes'] != null)
-                                        Flexible(
-                                          child: Text(
-                                            'Note: ${item['notes']}',
-                                            style: const TextStyle(fontSize: 10, color: Colors.grey),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            textAlign: TextAlign.right,
+                                      if (item['notes'] != null && item['notes'].toString().isNotEmpty)
+                                        Container(
+                                          margin: const EdgeInsets.only(top: 4),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber[50],
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: Colors.amber[100]!),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.edit_note, size: 14, color: Colors.amber[800]),
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  item['notes'],
+                                                  style: TextStyle(fontSize: 11, color: Colors.amber[900], fontWeight: FontWeight.w500),
+                                                  maxLines: 2,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                     ],

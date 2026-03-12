@@ -396,8 +396,31 @@ class HistoryTabState extends State<HistoryTab> {
                                   Text('X${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold)),
                                 ],
                               ),
-                              if (item['notes'] != null)
-                                Text('Note : ${item['notes']}', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              if (item['notes'] != null && item['notes'].toString().isNotEmpty)
+                                Container(
+                                  margin: const EdgeInsets.only(top: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber[50],
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(color: Colors.amber[100]!),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.edit_note, size: 14, color: Colors.amber[800]),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          item['notes'],
+                                          style: TextStyle(fontSize: 11, color: Colors.amber[900], fontWeight: FontWeight.w500),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               Align(
                                 alignment: Alignment.centerRight,
                                 child: Text(AppFormat.currency(item['subtotal']), style: TextStyle(color: Colors.green[600], fontWeight: FontWeight.bold)),

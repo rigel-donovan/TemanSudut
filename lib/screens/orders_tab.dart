@@ -93,22 +93,39 @@ class OrdersTab extends StatelessWidget {
                                       ],
                                     ),
                                     SizedBox(height: 4),
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            item.notes != null && item.notes!.isNotEmpty ? 'Note : ${item.notes}' : 'Add Note', 
-                                            style: TextStyle(color: Colors.grey, fontSize: 12)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 4.0),
+                                      child: InkWell(
+                                        onTap: () => _showNoteDialog(context, cart, item),
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.grey[50],
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: Colors.grey[200]!),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.edit_note, size: 18, color: Colors.blue[700]),
+                                              SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  item.notes != null && item.notes!.isNotEmpty ? item.notes! : 'Tambah Catatan',
+                                                  style: TextStyle(
+                                                    color: item.notes != null && item.notes!.isNotEmpty ? Colors.black87 : Colors.grey[600],
+                                                    fontSize: 12,
+                                                    fontWeight: item.notes != null && item.notes!.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        InkWell(
-                                          onTap: () {
-                                            _showNoteDialog(context, cart, item);
-                                          },
-                                          child: Icon(Icons.edit, size: 14, color: Colors.grey[600]),
-                                        )
-                                      ],
+                                      ),
                                     ),
                                     SizedBox(height: 8),
                                     Row(

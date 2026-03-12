@@ -13,6 +13,7 @@ class StatsOverviewWidget extends BaseWidget
 {
     protected static ?int $sort = 1;
     protected int | string | array $columnSpan = 'full';
+    protected ?string $pollingInterval = '15s';
 
     protected function getStats(): array
     {
@@ -37,18 +38,21 @@ class StatsOverviewWidget extends BaseWidget
             ? round((($ordersToday - $ordersYesterday) / $ordersYesterday) * 100, 1)
             : ($ordersToday > 0 ? 100 : 0);
 
-        // Active products & total users
         $activeProducts = Product::where('is_active', true)->count();
         $totalUsers = User::count();
 
-        // Revenue sparkline (last 7 days)
+        $lowStockProducts = Product::where('is_active', true)->where('stock', '<=', 5)->count();
+
+        $lowStockRawMaterials = \App\Models\RawMaterial::where('is_active', true)
+            ->whereColumn('stock', '<=', 'min_stock')
+            ->count();
+
         $revenueSparkline = collect(range(6, 0))->map(fn($d) =>
             Transaction::whereDate('created_at', Carbon::today()->subDays($d))
                 ->where('payment_status', 'paid')
                 ->sum('total')
         )->toArray();
 
-        // Orders sparkline (last 7 days)
         $ordersSparkline = collect(range(6, 0))->map(fn($d) =>
             Transaction::whereDate('created_at', Carbon::today()->subDays($d))->count()
         )->toArray();
@@ -65,6 +69,16 @@ class StatsOverviewWidget extends BaseWidget
                 ->descriptionIcon($ordersChange >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color($ordersChange >= 0 ? 'success' : 'danger')
                 ->chart($ordersSparkline),
+
+            Stat::make('Stok Produk Menipis', $lowStockProducts)
+                ->description('Stok <= 5 unit')
+                ->descriptionIcon('heroicon-m-exclamation-triangle')
+                ->color($lowStockProducts > 0 ? 'danger' : 'success'),
+
+            Stat::make('Bahan Baku Menipis', $lowStockRawMaterials)
+                ->description('Mencapai batas minimum')
+                ->descriptionIcon('heroicon-m-archive-box-arrow-down')
+                ->color($lowStockRawMaterials > 0 ? 'warning' : 'success'),
 
             Stat::make('Produk Aktif', $activeProducts)
                 ->description('Total produk tersedia')
