@@ -116,7 +116,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
     XFile? selectedPhoto;
     Uint8List? photoBytes;
     bool isPickingImage = false;
-    String? selectedOrderType = order['order_type'] as String?; // pre-fill if already set
+    String? selectedOrderType = order['order_type'] as String?; 
 
     const orderTypes = [
       {'value': 'dine_in',  'label': 'Dine In',  'icon': Icons.restaurant},

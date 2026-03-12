@@ -160,7 +160,18 @@ class _StockManagementViewState extends State<_StockManagementView> {
               leading: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: product.image != null
-                    ? Image.network(product.image!, width: 50, height: 50, fit: BoxFit.cover)
+                    ? Image.network(
+                        _apiService.getImageUrl(product.image),
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
+                          child: Icon(Icons.broken_image, color: Colors.grey),
+                        ),
+                      )
                     : Container(
                         width: 50, height: 50,
                         decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),

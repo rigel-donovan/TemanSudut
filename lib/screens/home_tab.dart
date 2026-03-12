@@ -35,12 +35,28 @@ class _HomeTabState extends State<HomeTab> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     if (!_isSearching)
-                      Text('TemanSudut', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.grey[200]!, width: 1),
+                            ),
+                            child: ClipOval(
+                              child: Image.asset('res/logo.png', width: 32, height: 32, fit: BoxFit.cover),
+                            ),
+                          ),
+                          SizedBox(width: 12),
+                          Text('TemanSudut', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     _isSearching 
                       ? Expanded(
                           child: Padding(
                             padding: const EdgeInsets.only(left: 16.0),
                             child: TextField(
+                              
                               controller: _searchController,
                               autofocus: true,
                               decoration: InputDecoration(

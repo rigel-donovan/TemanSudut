@@ -38,7 +38,6 @@ class ProductController extends Controller
 
     public function update(Request $request, string $id)
     {
-        // Owner only — cashiers cannot change prices or stock
         if (auth()->user()->isCashier()) {
             return response()->json(['message' => 'Akses ditolak. Hanya owner yang bisa mengubah data produk.'], 403);
         }

@@ -1,0 +1,16 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*';
+@source '../../../../resources/views/filament/**/*';
+@source '../../../../vendor/diogogpinto/filament-auth-ui-enhancer/resources/**/*.blade.php';
+
+/* Circular Brand Logo Styling */
+.fi-logo, 
+.fi-sidebar-header img, 
+.fi-topbar img,
+.fi-simple-logo img {
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+    border: 2px solid rgb(var(--primary-500));
+}
