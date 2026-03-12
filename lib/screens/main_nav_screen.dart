@@ -41,7 +41,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     
     final bool canHistory = auth.can('view_history');
-    final bool canManagement = auth.can('manage_stock') || auth.can('manage_employees');
+    final bool canManagement = auth.can('manage_stock') || auth.can('manage_employees') || auth.can('manage_printer');
 
     _pages = [
       HomeTab(),
@@ -68,7 +68,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
     ];
 
-    // Ensure selectedIndex is within bounds
     if (_selectedIndex >= _pages.length) {
       _selectedIndex = 0;
     }

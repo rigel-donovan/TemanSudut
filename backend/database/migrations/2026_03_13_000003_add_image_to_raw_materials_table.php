@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('tables', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('status')->default('available');
-            $table->timestamps();
+        Schema::table('raw_materials', function (Blueprint $table) {
+            $table->string('image')->nullable()->after('min_stock');
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('tables');
+        Schema::table('raw_materials', function (Blueprint $table) {
+            $table->dropColumn('image');
+        });
     }
 };

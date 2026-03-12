@@ -29,14 +29,10 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200 dark:divide-white/10">
                         @php
-                            $featureList = [
-                                'print_receipt'     => 'Cetak Struk',
-                                'view_history'      => 'Lihat Riwayat Transaksi',
-                                'manage_employees'  => 'Kelola Karyawan',
-                                'manage_products'   => 'Kelola Produk',
-                                'open_shift'        => 'Buka / Tutup Kasir',
-                                'access_management' => 'Akses Menu Management',
-                            ];
+                            $featureList = [];
+                            foreach (\Database\Seeders\RolePermissionSeeder::$features as $key => $config) {
+                                $featureList[$key] = $config['label'];
+                            }
                         @endphp
 
                         @foreach ($featureList as $key => $label)

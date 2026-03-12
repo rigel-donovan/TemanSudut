@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/category.dart';
 import '../models/product.dart';
 import '../models/table_model.dart';
+import '../models/raw_material.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -291,6 +292,29 @@ class ApiService {
       return response.statusCode == 200 && response.data['status'] == 'success';
     } catch (e) {
       print('Failed to close shift: $e');
+      return false;
+    }
+  }
+
+  // ---- Raw Materials ----
+
+  Future<List<RawMaterial>> getRawMaterials() async {
+    try {
+      final response = await _dio.get('/raw-materials');
+      List<dynamic> data = response.data;
+      return data.map((json) => RawMaterial.fromJson(json)).toList();
+    } catch (e) {
+      print('Failed to load raw materials: $e');
+      return [];
+    }
+  }
+
+  Future<bool> updateRawMaterial(int id, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put('/raw-materials/$id', data: data);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Failed to update raw material: $e');
       return false;
     }
   }

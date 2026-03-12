@@ -38,8 +38,8 @@ class ProductController extends Controller
 
     public function update(Request $request, string $id)
     {
-        if (auth()->user()->isCashier()) {
-            return response()->json(['message' => 'Akses ditolak. Hanya owner yang bisa mengubah data produk.'], 403);
+        if (!\App\Models\RolePermission::isAllowed('manage_stock', auth()->user()->role)) {
+            return response()->json(['message' => 'Akses ditolak. Anda tidak memiliki izin untuk mengelola stok.'], 403);
         }
 
         $product = Product::find($id);

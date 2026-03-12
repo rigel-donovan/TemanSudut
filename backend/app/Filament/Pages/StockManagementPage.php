@@ -23,9 +23,10 @@ class StockManagementPage extends Page implements HasTable
     use InteractsWithTable;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
-    protected static ?string $navigationLabel = 'Stock Management';
-    protected static ?string $title = 'Stock Management';
-    protected static ?int $navigationSort = 6;
+    protected static \UnitEnum|string|null $navigationGroup = 'Stock Management';
+    protected static ?string $navigationLabel = 'Stok Produk';
+    protected static ?string $title = 'Stok Produk';
+    protected static ?int $navigationSort = 1;
 
     public function getView(): string
     {

@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\TransactionController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\RawMaterialController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -68,4 +69,8 @@ Route::get('/images/{path}', function ($path) {
     Route::post('/users', [\App\Http\Controllers\Api\UserController::class, 'store']);
     Route::put('/users/{id}', [\App\Http\Controllers\Api\UserController::class, 'update']);
     Route::delete('/users/{id}', [\App\Http\Controllers\Api\UserController::class, 'destroy']);
+
+    // Raw Materials
+    Route::get('/raw-materials', [RawMaterialController::class, 'index']);
+    Route::put('/raw-materials/{id}', [RawMaterialController::class, 'update']);
 });
