@@ -494,7 +494,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                     // Print Receipt Button for Owners (if not pending)
                                     Consumer<AuthProvider>(
                                       builder: (context, auth, _) {
-                                        if (auth.isOwner && status != 'pending') {
+                                        if (auth.can('print_receipt') && status != 'pending') {
                                           return Padding(
                                             padding: const EdgeInsets.only(right: 8.0),
                                             child: IconButton(

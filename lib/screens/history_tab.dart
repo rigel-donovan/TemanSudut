@@ -275,7 +275,7 @@ class HistoryTabState extends State<HistoryTab> {
                 ),
                 Consumer<AuthProvider>(
                   builder: (context, auth, _) {
-                    if (auth.isOwner) {
+                    if (auth.can('print_receipt')) {
                       return IconButton(
                         icon: Icon(Icons.print, size: 18, color: Colors.blue[600]),
                         tooltip: 'Cetak Struk',
