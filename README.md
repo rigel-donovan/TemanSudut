@@ -1,4 +1,4 @@
-# kasir_android
+# TemanSudut
 
 A new Flutter project.
 
