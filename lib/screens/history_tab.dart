@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -51,8 +52,10 @@ class HistoryTabState extends State<HistoryTab> {
   }
 
   Future<void> _downloadFile(String format) async {
-    final url = Uri.parse('${ApiService.baseUrl}/transactions/export/$format?filter=$_selectedFilter');
-    if (!await launchUrl(url)) {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token') ?? '';
+    final url = Uri.parse('${ApiService.baseUrl}/transactions/export/$format?filter=$_selectedFilter&token=$token');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       PopupNotification.show(context, title: 'Gagal Export', message: 'Tidak bisa membuka link export.', type: PopupType.error);
     }
   }

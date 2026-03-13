@@ -43,7 +43,10 @@ Route::get('/images/{path}', function ($path) {
     Route::get('/tables', [TableController::class, 'index']);
     Route::get('/tables/available', [TableController::class, 'available']);
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/transactions/export/excel', [TransactionController::class, 'exportExcel']);
+Route::get('/transactions/export/pdf', [TransactionController::class, 'exportPdf']);
+
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'me']);
     
@@ -58,8 +61,6 @@ Route::get('/images/{path}', function ($path) {
     Route::put('/transactions/{id}/status', [TransactionController::class, 'updateStatus']);
     Route::post('/transactions/{id}/status', [TransactionController::class, 'updateStatus']);
     Route::get('/transactions/history', [TransactionController::class, 'history']);
-    Route::get('/transactions/export/excel', [TransactionController::class, 'exportExcel']);
-    Route::get('/transactions/export/pdf', [TransactionController::class, 'exportPdf']);
     
     // Products (update = owner only, enforced in controller)
     Route::put('/products/{id}', [ProductController::class, 'update']);

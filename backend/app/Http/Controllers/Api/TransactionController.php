@@ -119,10 +119,30 @@ class TransactionController extends Controller
         return response()->json($transactions);
     }
 
+    private function resolveUser(Request $request)
+    {
+        $user = auth('sanctum')->user();
+        
+        if (!$user && $request->filled('token')) {
+            $token = \Laravel\Sanctum\PersonalAccessToken::findToken($request->token);
+            if ($token) {
+                $user = $token->tokenable;
+            }
+        }
+        
+        return $user;
+    }
+
     public function exportExcel(Request $request)
     {
+        $user = $this->resolveUser($request);
+        
+        if (!$user) {
+            return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
+        }
+
         // Owner only
-        if (auth()->user()->isCashier()) {
+        if ($user->isCashier()) {
             return response()->json(['message' => 'Akses ditolak. Hanya owner yang bisa export.'], 403);
         }
 
@@ -132,13 +152,40 @@ class TransactionController extends Controller
 
     public function exportPdf(Request $request)
     {
+        $user = $this->resolveUser($request);
+        
+        if (!$user) {
+            return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
+        }
+
         // Owner only
-        if (auth()->user()->isCashier()) {
+        if ($user->isCashier()) {
             return response()->json(['message' => 'Akses ditolak. Hanya owner yang bisa export.'], 403);
         }
 
         $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->get();
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.history_pdf', ['transactions' => $transactions]);
+        
+        $totalProcessed = $transactions->sum('total');
+        $startDate = $transactions->min('created_at');
+        $endDate = $transactions->max('created_at');
+        $generatedOn = now();
+
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.history_pdf', [
+            'transactions' => $transactions,
+            'totalProcessed' => $totalProcessed,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'generatedOn' => $generatedOn,
+            'logoBase64' => $logoBase64,
+            'totalCount' => $transactions->count(),
+        ]);
         return $pdf->download('history_transactions.pdf');
     }
 
