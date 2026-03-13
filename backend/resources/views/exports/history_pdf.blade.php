@@ -98,7 +98,7 @@
                     <span class="label">Periode Transaksi</span>
                     <span class="value">
                         @if($startDate && $endDate)
-                            {{ $startDate->translatedFormat('d F Y') }} — {{ $endDate->translatedFormat('d F Y') }}
+                            {{ $startDate->translatedFormat('d F Y') }}
                         @else
                             Semua Transaksi
                         @endif

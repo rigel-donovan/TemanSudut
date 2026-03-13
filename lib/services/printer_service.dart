@@ -17,4 +17,5 @@ abstract class PrinterService {
   });
 
   Future<void> printTest();
+  Future<void> downloadReceiptPdf(int transactionId);
 }

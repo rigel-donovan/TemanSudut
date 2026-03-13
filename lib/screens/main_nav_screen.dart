@@ -50,7 +50,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
       ActiveOrdersTab(
         key: _activeOrdersKey, 
         onNavigateToHistory: canHistory ? () {
-          // Find index of HistoryTab
           int idx = _pages.indexWhere((p) => p is HistoryTab);
           if (idx != -1) _onItemTapped(idx);
         } : null
@@ -204,7 +203,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuka kasir. Coba lagi.'), backgroundColor: Colors.red));
                     } else {
                       _cashController.clear();
-                      // Show stock alert after opening shift
                       showDialog(
                         context: context,
                         builder: (context) => const StockAlertDialog(

@@ -284,21 +284,70 @@ class HistoryTabState extends State<HistoryTab> {
                         tooltip: 'Cetak Struk',
                         padding: EdgeInsets.zero,
                         constraints: BoxConstraints(),
-                        onPressed: () async {
-                          if (await _printerService.isConnected) {
-                            try {
-                              await _printerService.printReceipt(
-                                transaction: transaction, 
-                                items: transaction['items'] ?? [], 
-                                isHistory: true
+                        onPressed: () {
+                          showModalBottomSheet(
+                            context: context,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+                            builder: (context) {
+                              return SafeArea(
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.all(16.0),
+                                      child: Text('Opsi Cetak Struk', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                    ),
+                                    ListTile(
+                                      leading: Icon(Icons.bluetooth, color: Colors.blue),
+                                      title: Text('Cetak Struk (Bluetooth)'),
+                                      subtitle: Text('Direct ke printer thermal bluetooth'),
+                                      onTap: () async {
+                                        final messenger = ScaffoldMessenger.of(context);
+                                        Navigator.pop(context);
+                                        if (await _printerService.isConnected) {
+                                          if (!mounted) return;
+                                          try {
+                                            await _printerService.printReceipt(
+                                              transaction: transaction, 
+                                              items: transaction['items'] ?? [], 
+                                              isHistory: true
+                                            );
+                                            messenger.showSnackBar(SnackBar(content: Text('Mencetak struk (Bluetooth)...')));
+                                          } catch (e) {
+                                            messenger.showSnackBar(SnackBar(content: Text('Gagal mencetak: $e')));
+                                          }
+                                        } else {
+                                          messenger.showSnackBar(SnackBar(
+                                            content: Text('Printer belum terhubung!'), 
+                                            backgroundColor: Colors.red,
+                                            action: SnackBarAction(label: 'Settings', textColor: Colors.white, onPressed: () {
+                                              Navigator.pushNamed(context, '/printer_settings');
+                                            }),
+                                          ));
+                                        }
+                                      },
+                                    ),
+                                    ListTile(
+                                      leading: Icon(Icons.picture_as_pdf, color: Colors.red),
+                                      title: Text('Cetak Struk (PDF 80mm)'),
+                                      subtitle: Text('Format PDF untuk printer kasir meja'),
+                                      onTap: () async {
+                                        final messenger = ScaffoldMessenger.of(context);
+                                        Navigator.pop(context);
+                                        try {
+                                          await _printerService.downloadReceiptPdf(transaction['id']);
+                                          messenger.showSnackBar(SnackBar(content: Text('Membuka struk PDF...')));
+                                        } catch (e) {
+                                          messenger.showSnackBar(SnackBar(content: Text('Gagal membuat PDF: $e'), backgroundColor: Colors.red));
+                                        }
+                                      },
+                                    ),
+                                    SizedBox(height: 8),
+                                  ],
+                                ),
                               );
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Mencetak riwayat pesanan...')));
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mencetak: $e')));
                             }
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Printer belum terhubung!'), backgroundColor: Colors.red));
-                          }
+                          );
                         },
                       );
                     }

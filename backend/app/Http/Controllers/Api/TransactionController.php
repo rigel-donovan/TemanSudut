@@ -189,6 +189,35 @@ class TransactionController extends Controller
         return $pdf->download('history_transactions.pdf');
     }
 
+    public function exportReceiptPdf(Request $request, $id)
+    {
+        $user = $this->resolveUser($request);
+        
+        if (!$user) {
+            return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
+        }
+
+        $transaction = Transaction::with(['items.product', 'user', 'table'])->findOrFail($id);
+
+        $logoPath = public_path('images/logo.png');
+        $logoBase64 = '';
+        if (file_exists($logoPath)) {
+            $logoData = file_get_contents($logoPath);
+            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+        }
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.receipt_80mm', [
+            'transaction' => $transaction,
+            'logoBase64' => $logoBase64,
+        ]);
+
+        // Custom paper size for thermal printer (80mm width)
+        // 80mm is approx 226.77 points. Height can be dynamic or set large.
+        $pdf->setPaper([0, 0, 226.77, 800], 'portrait');
+
+        return $pdf->stream('receipt-'.$id.'.pdf');
+    }
+
     public function activeOrders()
     {
         $transactions = Transaction::with(['items.product', 'table', 'user'])

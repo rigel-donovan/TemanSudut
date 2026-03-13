@@ -28,7 +28,6 @@ class PopupNotification {
 
       overlay.insert(entry);
     } catch (_) {
-      // Context may be deactivated after tab switch — silently skip
       debugPrint('PopupNotification: context no longer active, skipping.');
     }
   }

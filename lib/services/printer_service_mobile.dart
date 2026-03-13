@@ -48,6 +48,17 @@ class PrinterServiceMobile implements PrinterService {
   }
 
   @override
+  Future<void> downloadReceiptPdf(int transactionId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token') ?? '';
+    final url = Uri.parse('${ApiService.baseUrl}/transactions/$transactionId/receipt?token=$token');
+    
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+
+  @override
   Future<void> printReceipt({
     required Map<String, dynamic> transaction,
     required List<dynamic> items,
@@ -59,42 +70,55 @@ class PrinterServiceMobile implements PrinterService {
     }
 
     final profile = await CapabilityProfile.load();
+    // Default to 80mm if possible, or 58mm if that's what's connected.
+    // For now we use mm58 as it's the most common small thermal, 
+    // but the layout will be designed to work on both.
     final generator = Generator(PaperSize.mm58, profile);
     List<int> bytes = [];
 
-    // Header
+    // Header - Professional Look
     bytes += generator.text(
-      'KASIR ANDROID POS',
+      'SUDUT KOPI',
       styles: PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2),
+    );
+    bytes += generator.text(
+      'Official Store Teman Sudut',
+      styles: PosStyles(align: PosAlign.center, bold: true),
     );
     bytes += generator.text(
       'Jl. Contoh Alamat Resto No.123',
       styles: PosStyles(align: PosAlign.center),
     );
+    bytes += generator.text(
+      'Telp: 08123456789',
+      styles: PosStyles(align: PosAlign.center),
+    );
     bytes += generator.feed(1);
+    bytes += generator.hr(ch: '=');
 
     // Meta Info
-    bytes += generator.text('No. Order: INV-${transaction['id']}');
-    bytes += generator.text('Tanggal: ${transaction['created_at']}');
-    bytes += generator.text('Kasir: ${transaction['user']?['name'] ?? 'Unknown'}');
+    bytes += generator.row([
+      PosColumn(text: 'Tgl: ${transaction['created_at'].toString().substring(0, 10)}', width: 6),
+      PosColumn(text: 'Jam: ${transaction['created_at'].toString().substring(11, 16)}', width: 6, styles: PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'No: INV-${transaction['id']}', width: 6),
+      PosColumn(text: 'Kasir: ${transaction['user']?['name'] ?? 'Staff'}', width: 6, styles: PosStyles(align: PosAlign.right)),
+    ]);
     bytes += generator.text('Pelanggan: ${transaction['customer_name'] ?? 'Guest'}');
-    bytes += generator.text('Tipe: ${transaction['order_type'] == 'dine_in' ? 'Makan di Tempat' : 'Bawa Pulang'}');
-    if (transaction['table'] != null) {
-      bytes += generator.text('Meja: ${transaction['table']['table_number']}');
-    }
     
     bytes += generator.hr();
 
-    // Items List
+    // Items List - More professional row alignment
     for (var item in items) {
       String name = item['product']['name'];
       int qty = int.tryParse(item['quantity'].toString()) ?? 1;
       double price = double.tryParse(item['unit_price'].toString()) ?? 0;
       double subtotal = double.tryParse(item['subtotal'].toString()) ?? (price * qty);
 
+      bytes += generator.text(name, styles: PosStyles(bold: true));
       bytes += generator.row([
-        PosColumn(text: '$qty x', width: 2),
-        PosColumn(text: name, width: 5),
+        PosColumn(text: '  $qty x ${AppFormat.currency(price)}', width: 7),
         PosColumn(text: AppFormat.currency(subtotal), width: 5, styles: PosStyles(align: PosAlign.right)),
       ]);
     }
@@ -107,27 +131,36 @@ class PrinterServiceMobile implements PrinterService {
     double txTotal = double.tryParse(transaction['total'].toString()) ?? 0;
 
     bytes += generator.row([
-      PosColumn(text: 'Subtotal:', width: 6),
+      PosColumn(text: 'Subtotal', width: 6),
       PosColumn(text: AppFormat.currency(txSubtotal), width: 6, styles: PosStyles(align: PosAlign.right)),
     ]);
     if (txTax > 0) {
       bytes += generator.row([
-        PosColumn(text: 'Pajak:', width: 6),
+        PosColumn(text: 'Pajak (PPN)', width: 6),
         PosColumn(text: AppFormat.currency(txTax), width: 6, styles: PosStyles(align: PosAlign.right)),
       ]);
     }
+    
     bytes += generator.row([
-      PosColumn(text: 'TOTAL:', width: 6, styles: PosStyles(bold: true)),
-      PosColumn(text: AppFormat.currency(txTotal), width: 6, styles: PosStyles(align: PosAlign.right, bold: true)),
+      PosColumn(text: 'TOTAL', width: 6, styles: PosStyles(bold: true, height: PosTextSize.size1, width: PosTextSize.size1)),
+      PosColumn(text: AppFormat.currency(txTotal), width: 6, styles: PosStyles(align: PosAlign.right, bold: true, height: PosTextSize.size1, width: PosTextSize.size1)),
     ]);
-    bytes += generator.text('Pembayaran: ${transaction['payment_method'].toString().toUpperCase()}', styles: PosStyles(align: PosAlign.right));
+    
+    bytes += generator.feed(1);
+    bytes += generator.text('Bayar (${transaction['payment_method'].toString().toUpperCase()})', styles: PosStyles(align: PosAlign.right));
+    bytes += generator.text('Kembali: Rp 0', styles: PosStyles(align: PosAlign.right));
 
-    bytes += generator.feed(2);
+    bytes += generator.feed(1);
+    bytes += generator.hr(ch: '-');
     bytes += generator.text(
-      isHistory ? '*** SALINAN (COPY) ***' : 'Terima Kasih Atas Kunjungan Anda!',
+      'Terima Kasih Telah Berbelanja',
       styles: PosStyles(align: PosAlign.center, bold: true),
     );
-    bytes += generator.feed(2);
+    bytes += generator.text(
+      isHistory ? '*** SALINAN (COPY) ***' : 'SUDUT KOPI POS SYSTEM',
+      styles: PosStyles(align: PosAlign.center, fontType: PosFontType.fontB),
+    );
+    bytes += generator.feed(3);
     bytes += generator.cut();
 
     bluetooth.writeBytes(Uint8List.fromList(bytes));

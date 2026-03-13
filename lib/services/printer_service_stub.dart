@@ -1,4 +1,7 @@
 import 'dart:async';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'api_service.dart';
 import 'printer_service.dart';
 
 PrinterService getPrinterService() => PrinterServiceStub();
@@ -68,6 +71,18 @@ class PrinterServiceStub implements PrinterService {
       print('Mock: Paper Cut');
     } else {
       throw Exception('Printer not connected');
+    }
+  }
+
+  @override
+  Future<void> downloadReceiptPdf(int transactionId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('auth_token') ?? '';
+    final url = Uri.parse('${ApiService.baseUrl}/transactions/$transactionId/receipt?token=$token');
+    
+    print('Mock: Launching Receipt PDF URL: $url');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
     }
   }
 }
