@@ -70,20 +70,15 @@ class StatsOverviewWidget extends BaseWidget
                 ->color($ordersChange >= 0 ? 'success' : 'danger')
                 ->chart($ordersSparkline),
 
-            Stat::make('Stok Produk Menipis', $lowStockProducts)
-                ->description('Stok <= 5 unit')
-                ->descriptionIcon('heroicon-m-exclamation-triangle')
+            Stat::make('Total Produk', $activeProducts)
+                ->description($lowStockProducts > 0 ? "$lowStockProducts stok menipis" : "Semua stok aman")
+                ->descriptionIcon($lowStockProducts > 0 ? 'heroicon-m-exclamation-triangle' : 'heroicon-m-check-circle')
                 ->color($lowStockProducts > 0 ? 'danger' : 'success'),
 
-            Stat::make('Bahan Baku Menipis', $lowStockRawMaterials)
-                ->description('Mencapai batas minimum')
-                ->descriptionIcon('heroicon-m-archive-box-arrow-down')
+            Stat::make('Total Bahan Baku', \App\Models\RawMaterial::where('is_active', true)->count())
+                ->description($lowStockRawMaterials > 0 ? "$lowStockRawMaterials stok menipis" : "Semua stok aman")
+                ->descriptionIcon($lowStockRawMaterials > 0 ? 'heroicon-m-archive-box-arrow-down' : 'heroicon-m-check-circle')
                 ->color($lowStockRawMaterials > 0 ? 'warning' : 'success'),
-
-            Stat::make('Produk Aktif', $activeProducts)
-                ->description('Total produk tersedia')
-                ->descriptionIcon('heroicon-m-shopping-bag')
-                ->color('warning'),
 
             Stat::make('Total Pengguna', $totalUsers)
                 ->description('Kasir & Owner')
