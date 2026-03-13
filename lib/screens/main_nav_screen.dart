@@ -12,6 +12,7 @@ import 'active_orders_tab.dart';
 import '../widgets/custom_drawer.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
+import '../widgets/stock_alert_dialog.dart';
 
 class MainNavScreen extends StatefulWidget {
   @override
@@ -203,6 +204,14 @@ class _MainNavScreenState extends State<MainNavScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuka kasir. Coba lagi.'), backgroundColor: Colors.red));
                     } else {
                       _cashController.clear();
+                      // Show stock alert after opening shift
+                      showDialog(
+                        context: context,
+                        builder: (context) => const StockAlertDialog(
+                          title: 'Kasir Dibuka',
+                          message: 'Shift telah dimulai. Berikut adalah ringkasan stok saat ini:',
+                        ),
+                      );
                     }
                   }
                 },

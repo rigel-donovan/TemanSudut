@@ -8,6 +8,7 @@ class Product {
   final double price;
   final int stock;
   final String? image;
+  final bool isActive;
   final Category? category;
 
   Product({
@@ -17,6 +18,7 @@ class Product {
     required this.description,
     required this.price,
     required this.stock,
+    this.isActive = true,
     this.image,
     this.category,
   });
@@ -24,11 +26,12 @@ class Product {
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
-      categoryId: json['category_id'],
-      name: json['name'],
+      categoryId: json['category_id'] ?? 0,
+      name: json['name'] ?? 'Unknown',
       description: json['description'] ?? '',
-      price: double.parse(json['price'].toString()),
-      stock: json['stock'],
+      price: double.tryParse(json['price'].toString()) ?? 0.0,
+      stock: int.tryParse(json['stock'].toString()) ?? 0,
+      isActive: json['is_active'] == 1 || json['is_active'] == true || json['is_active'] == "1",
       image: json['image'],
       category: json['category'] != null ? Category.fromJson(json['category']) : null,
     );

@@ -12,7 +12,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with('category');
+        $query = Product::with('category')->where('is_active', true);
         
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);

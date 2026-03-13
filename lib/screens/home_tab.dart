@@ -5,6 +5,7 @@ import '../models/product.dart';
 import '../utils/app_format.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import '../widgets/stock_alert_dialog.dart';
 
 class HomeTab extends StatefulWidget {
   @override
@@ -333,6 +334,14 @@ class _HomeTabState extends State<HomeTab> {
                       setState(() => _isClosing = false);
                       if (success) {
                         Navigator.pop(context);
+                        // Show stock alert after closing shift
+                        showDialog(
+                          context: context,
+                          builder: (context) => const StockAlertDialog(
+                            title: 'Kasir Ditutup',
+                            message: 'Shift telah berakhir. Silakan cek ringkasan stok terakhir:',
+                          ),
+                        );
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menutup sesi kasir'), backgroundColor: Colors.red));
                       }
