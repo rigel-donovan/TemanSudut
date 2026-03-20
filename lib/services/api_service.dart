@@ -10,7 +10,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'http://localhost:8000/api';
+  static const String baseUrl = 'http://172.20.10.2:8000/api';
   late final Dio _dio;
 
   ApiService._internal() {
@@ -46,19 +46,16 @@ class ApiService {
 
   String getImageUrl(String? path) {
     if (path == null || path.isEmpty) return '';
-    
-    // If it's a full URL, try to extract the storage path
+
     if (path.startsWith('http')) {
       final storagePrefix = '/storage/';
       int index = path.indexOf(storagePrefix);
       if (index != -1) {
-        // Convert http://.../storage/path/to/file.jpg -> baseUrl/images/path/to/file.jpg
         return '$baseUrl/images/${path.substring(index + storagePrefix.length)}';
       }
-      return path; // Return as is if not a storage URL
+      return path;
     }
-    
-    // If it's just a filename or relative path
+
     return '$baseUrl/images/$path';
   }
 
@@ -131,7 +128,7 @@ class ApiService {
     try {
       Response response;
       if (photo != null) {
-        // Read bytes and encode as base64 (works on web and mobile)
+        // Read bytes and encode as base64
         final xfile = photo as dynamic;
         final bytes = await xfile.readAsBytes();
         final base64Image = base64Encode(bytes);
