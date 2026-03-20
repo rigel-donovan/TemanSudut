@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:camera/camera.dart';
 import 'dart:typed_data';
 import 'dart:async';
@@ -8,6 +7,7 @@ import '../widgets/popup_notification.dart';
 import '../utils/app_format.dart';
 import '../providers/auth_provider.dart';
 import '../services/printer_service.dart';
+import '../widgets/camera_dialog.dart';
 import 'package:provider/provider.dart';
 
 class ActiveOrdersTab extends StatefulWidget {
@@ -22,7 +22,6 @@ class ActiveOrdersTab extends StatefulWidget {
 class ActiveOrdersTabState extends State<ActiveOrdersTab> {
   final ApiService _apiService = ApiService();
   final PrinterService _printerService = PrinterService();
-  final ImagePicker _picker = ImagePicker();
   List<dynamic> _activeOrders = [];
   bool _isLoading = true;
 
@@ -47,12 +46,14 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
     });
   }
 
-  Future<void> _markAsCompleted(dynamic order, {XFile? photo, String? orderType}) async {
+  Future<void> _markAsCompleted(dynamic order, {XFile? photo, String? orderType, double? amountReceived, double? changeAmount}) async {
     final success = await _apiService.updateTransactionStatus(
       order['id'],
       'completed',
       photo: photo,
       orderType: orderType,
+      amountReceived: amountReceived,
+      changeAmount: changeAmount,
     );
     if (!mounted) return;
     if (success) {
@@ -77,40 +78,6 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
     }
   }
 
-  Future<XFile?> _captureWithCamera(BuildContext context) async {
-    final cameras = await availableCameras();
-    if (cameras.isEmpty) return null;
-
-    final camera = cameras.firstWhere(
-      (c) => c.lensDirection == CameraLensDirection.back,
-      orElse: () => cameras.first,
-    );
-
-    final controller = CameraController(
-      camera,
-      ResolutionPreset.medium,
-      enableAudio: false,
-    );
-
-    try {
-      await controller.initialize();
-    } catch (e) {
-      debugPrint('Camera init error: $e');
-      controller.dispose();
-      return null;
-    }
-
-    final XFile? result = await showDialog<XFile?>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => _CameraDialog(controller: controller),
-    );
-
-    // Wait for dialog pop animation to finish before disposing
-    await Future.delayed(const Duration(milliseconds: 500));
-    await controller.dispose();
-    return result;
-  }
 
   void _showCompletionDialog(dynamic order) {
     XFile? selectedPhoto;
@@ -121,7 +88,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
     const orderTypes = [
       {'value': 'dine_in',  'label': 'Dine In',  'icon': Icons.restaurant},
       {'value': 'take_away','label': 'Take Away', 'icon': Icons.shopping_bag_outlined},
-      {'value': 'online',   'label': 'Online',    'icon': Icons.delivery_dining},
+      {'value': 'online',    'label': 'Online',    'icon': Icons.delivery_dining},
     ];
 
     showDialog(
@@ -130,21 +97,11 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
       builder: (dialogCtx) {
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
-            Future<void> pickImage(ImageSource source) async {
+            Future<void> capturePhoto() async {
               if (isPickingImage) return;
               setDialogState(() => isPickingImage = true);
               try {
-                XFile? img;
-                if (source == ImageSource.camera) {
-                  // Use robust camera logic for live preview
-                  img = await _captureWithCamera(dialogCtx);
-                } else {
-                  img = await _picker.pickImage(
-                    source: source,
-                    imageQuality: 70,
-                  );
-                }
-
+                final img = await CameraHelper.captureWithCamera(dialogCtx);
                 if (img != null) {
                   final bytes = await img.readAsBytes();
                   setDialogState(() {
@@ -153,7 +110,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                   });
                 }
               } catch (e) {
-                debugPrint('Image pick error: $e');
+                debugPrint('Camera capture error: $e');
               } finally {
                 setDialogState(() => isPickingImage = false);
               }
@@ -170,29 +127,23 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Header
                       Row(
                         children: [
                           Icon(Icons.check_circle_outline, color: Colors.green[600], size: 22),
                           const SizedBox(width: 8),
-                          const Text('Selesaikan Orderan',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                          const Text('Selesaikan Orderan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        'Order #${order['id']} – ${order['customer_name'] ?? 'Tamu'}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                      ),
+                      Text('Order #${order['id']} – ${order['customer_name'] ?? 'Tamu'}',
+                          style: TextStyle(fontSize: 13, color: Colors.grey[700])),
                       const SizedBox(height: 20),
 
-                      // Order Type Selector
                       Row(
                         children: [
                           const Icon(Icons.storefront_outlined, size: 16, color: Colors.black87),
                           const SizedBox(width: 6),
-                          const Text('Tipe Order (Wajib)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          const Text('Tipe Order (Wajib)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         ],
                       ),
                       const SizedBox(height: 10),
@@ -209,28 +160,13 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                 decoration: BoxDecoration(
                                   color: isSelected ? Colors.black : Colors.grey[100],
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                    color: isSelected ? Colors.black : Colors.grey[300]!,
-                                    width: isSelected ? 2 : 1,
-                                  ),
+                                  border: Border.all(color: isSelected ? Colors.black : Colors.grey[300]!, width: isSelected ? 2 : 1),
                                 ),
                                 child: Column(
-                                  mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(
-                                      type['icon'] as IconData,
-                                      size: 20,
-                                      color: isSelected ? Colors.white : Colors.black54,
-                                    ),
+                                    Icon(type['icon'] as IconData, size: 20, color: isSelected ? Colors.white : Colors.black54),
                                     const SizedBox(height: 4),
-                                    Text(
-                                      type['label'] as String,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: isSelected ? Colors.white : Colors.black87,
-                                      ),
-                                    ),
+                                    Text(type['label'] as String, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : Colors.black87)),
                                   ],
                                 ),
                               ),
@@ -240,110 +176,51 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Photo section label
                       Row(
                         children: [
                           const Icon(Icons.camera_alt, size: 16, color: Colors.black87),
                           const SizedBox(width: 6),
-                          const Text('Foto Bukti (Wajib)',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          const Text('Foto Bukti (Wajib)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         ],
                       ),
                       const SizedBox(height: 12),
 
-                      // Photo preview OR picker buttons
                       if (photoBytes != null)
                         Stack(
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.memory(
-                                photoBytes!,
-                                height: 180,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                              ),
+                              child: Image.memory(photoBytes!, height: 180, width: double.infinity, fit: BoxFit.cover),
                             ),
                             Positioned(
                               top: 6,
                               right: 6,
                               child: GestureDetector(
-                                onTap: () => setDialogState(() {
-                                  selectedPhoto = null;
-                                  photoBytes = null;
-                                }),
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xAA000000),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.close, color: Colors.white, size: 18),
-                                ),
+                                onTap: () => setDialogState(() { selectedPhoto = null; photoBytes = null; }),
+                                child: Container(padding: const EdgeInsets.all(4), decoration: const BoxDecoration(color: Color(0xAA000000), shape: BoxShape.circle), child: const Icon(Icons.close, color: Colors.white, size: 18)),
                               ),
                             ),
                           ],
                         )
                       else if (isPickingImage)
                         Container(
-                          height: 100,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircularProgressIndicator(color: Colors.black54),
-                                SizedBox(height: 8),
-                                Text('Mengambil foto...', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                              ],
-                            ),
-                          ),
+                          height: 100, width: double.infinity,
+                          decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(12)),
+                          child: const Center(child: Column(mainAxisSize: MainAxisSize.min, children: [CircularProgressIndicator(color: Colors.black54), SizedBox(height: 8), Text('Mengambil foto...', style: TextStyle(color: Colors.grey, fontSize: 12))])),
                         )
                       else
                         Row(
                           children: [
-                            Expanded(
-                              child: Material(
-                                color: Colors.grey[50],
-                                borderRadius: BorderRadius.circular(12),
-                                child: InkWell(
-                                  onTap: () => pickImage(ImageSource.camera),
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    height: 100,
-                                    decoration: BoxDecoration(
-                                      border: Border.all(color: Colors.grey[300]!),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.camera_alt_outlined, size: 32, color: Colors.black87),
-                                        SizedBox(height: 8),
-                                        Text('Ambil Foto Kamera', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
+                            Expanded(child: Material(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), child: InkWell(onTap: capturePhoto, child: Container(height: 100, decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(12)), child: const Column(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.camera_alt_outlined, size: 32, color: Colors.black87), SizedBox(height: 8), Text('Ambil Foto Kamera', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold))]))))),
                           ],
                         ),
 
                       const SizedBox(height: 24),
 
-                      // Action buttons
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(dialogCtx),
-                            child: Text('Batal', style: TextStyle(color: Colors.grey[600])),
-                          ),
+                          TextButton(onPressed: () => Navigator.pop(dialogCtx), child: Text('Batal', style: TextStyle(color: Colors.grey[600]))),
                           const SizedBox(width: 8),
                           ElevatedButton(
                             onPressed: (photoBytes == null || selectedOrderType == null)
@@ -352,14 +229,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                     Navigator.pop(dialogCtx);
                                     _markAsCompleted(order, photo: selectedPhoto, orderType: selectedOrderType);
                                   },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              disabledBackgroundColor: Colors.grey[300],
-                              disabledForegroundColor: Colors.grey[500],
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, disabledBackgroundColor: Colors.grey[300], disabledForegroundColor: Colors.grey[500], padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                             child: const Text('Ya, Selesai'),
                           ),
                         ],
@@ -442,12 +312,44 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                     style: TextStyle(
                                       color: status == 'pending' ? Colors.orange[800] : Colors.blue[800],
                                       fontSize: 10,
-                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
+                            if (order['completion_photo'] != null && order['completion_photo'].toString().isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12.0),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Builder(builder: (context) {
+                                    final String photoUrl = ApiService().getImageUrl(order['completion_photo']);
+                                    
+                                    return Image.network(
+                                      photoUrl,
+                                      height: 150,
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (ctx, err, stack) => Container(
+                                        height: 150,
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[100],
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: const Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.broken_image_outlined, color: Colors.grey, size: 32),
+                                            SizedBox(height: 4),
+                                            Text('Foto tidak tersedia', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
                             const SizedBox(height: 12),
                             Text('${items.length} Items:', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
                             const SizedBox(height: 8),
@@ -516,7 +418,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                 const SizedBox(width: 8),
                                 Row(
                                   children: [
-                                    // Print Receipt Button for Owners (if not pending)
+                                    // Print Receipt Button for Owners
                                     Consumer<AuthProvider>(
                                       builder: (context, auth, _) {
                                         if (auth.can('print_receipt') && status != 'pending') {

@@ -129,6 +129,8 @@ class PrinterServiceMobile implements PrinterService {
     double txSubtotal = double.tryParse(transaction['subtotal'].toString()) ?? 0;
     double txTax = double.tryParse(transaction['tax'].toString()) ?? 0;
     double txTotal = double.tryParse(transaction['total'].toString()) ?? 0;
+    double txReceived = double.tryParse(transaction['amount_received']?.toString() ?? '') ?? txTotal;
+    double txChange = double.tryParse(transaction['change_amount']?.toString() ?? '') ?? 0;
 
     bytes += generator.row([
       PosColumn(text: 'Subtotal', width: 6),
@@ -147,8 +149,14 @@ class PrinterServiceMobile implements PrinterService {
     ]);
     
     bytes += generator.feed(1);
-    bytes += generator.text('Bayar (${transaction['payment_method'].toString().toUpperCase()})', styles: PosStyles(align: PosAlign.right));
-    bytes += generator.text('Kembali: Rp 0', styles: PosStyles(align: PosAlign.right));
+    bytes += generator.row([
+      PosColumn(text: 'Bayar (${transaction['payment_method'].toString().toUpperCase()})', width: 7),
+      PosColumn(text: AppFormat.currency(txReceived), width: 5, styles: PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.row([
+      PosColumn(text: 'Kembali', width: 6),
+      PosColumn(text: AppFormat.currency(txChange), width: 6, styles: PosStyles(align: PosAlign.right)),
+    ]);
 
     bytes += generator.feed(1);
     bytes += generator.hr(ch: '-');

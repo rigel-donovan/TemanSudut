@@ -24,6 +24,10 @@ class TransactionController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.notes' => 'nullable|string',
+            'amount_received' => 'nullable|numeric',
+            'change_amount' => 'nullable|numeric',
+            'completion_photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
+            'completion_photo_base64' => 'nullable|string',
         ]);
 
         try {
@@ -54,7 +58,7 @@ class TransactionController extends Controller
             $total = $subtotal + $tax;
 
             $transaction = Transaction::create([
-                'user_id' => auth()->id(), // Track which cashier created the order
+                'user_id' => auth()->id(), 
                 'order_type' => $validated['order_type'],
                 'customer_name' => $validated['customer_name'] ?? null,
                 'subtotal' => $subtotal,
@@ -64,7 +68,40 @@ class TransactionController extends Controller
                 'payment_status' => 'unpaid',
                 'kitchen_status' => 'pending',
                 'notes' => $validated['notes'] ?? null,
+                'amount_received' => $validated['amount_received'] ?? null,
+                'change_amount' => $validated['change_amount'] ?? null,
             ]);
+
+            // Handle Photo Saving
+            \Log::info('Transaction Store - Photo Check', [
+                'has_file' => $request->hasFile('completion_photo'),
+                'has_base64' => $request->filled('completion_photo_base64'),
+                'base64_len' => strlen($request->input('completion_photo_base64', ''))
+            ]);
+
+            if ($request->hasFile('completion_photo')) {
+                File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
+                $path = $request->file('completion_photo')->store('completion_photos', 'public');
+                $url = url(\Storage::disk('public')->url($path));
+                $transaction->update(['completion_photo' => $url]);
+                \Log::info('Transaction Store - Photo Saved from File', ['url' => $url]);
+            } elseif ($request->filled('completion_photo_base64')) {
+                $imageData = $request->completion_photo_base64;
+                if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
+                    $imageData = substr($imageData, strpos($imageData, ',') + 1);
+                    $type = strtolower($type[1]);
+                } else {
+                    $type = 'jpg';
+                }
+                $imageData = base64_decode($imageData);
+                $fileName = 'completion_' . $transaction->id . '_' . time() . '.' . $type;
+                File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
+                $path = 'completion_photos/' . $fileName;
+                \Storage::disk('public')->put($path, $imageData);
+                $url = url(\Storage::disk('public')->url($path));
+                $transaction->update(['completion_photo' => $url]);
+                \Log::info('Transaction Store - Photo Saved from Base64', ['url' => $url, 'file' => $fileName]);
+            }
 
             foreach ($items as $item) {
                 $item['transaction_id'] = $transaction->id;
@@ -72,11 +109,18 @@ class TransactionController extends Controller
             }
 
             // Audit Log
+            \Log::info('Transaction Store - Finalizing', [
+                'transaction_id' => $transaction->id,
+                'has_photo' => !empty($transaction->completion_photo),
+                'photo_url' => $transaction->completion_photo,
+            ]);
+
             ActivityLog::log('order_created', 'Pesanan #' . $transaction->id . ' dibuat oleh ' . (auth()->user()->name ?? 'System'), [
                 'transaction_id' => $transaction->id,
                 'total' => $total,
                 'customer_name' => $validated['customer_name'] ?? 'Tamu',
                 'items_count' => count($items),
+                'has_photo' => !empty($transaction->completion_photo),
             ]);
 
             DB::commit();
@@ -211,8 +255,6 @@ class TransactionController extends Controller
             'logoBase64' => $logoBase64,
         ]);
 
-        // Custom paper size for thermal printer (80mm width)
-        // 80mm is approx 226.77 points. Height can be dynamic or set large.
         $pdf->setPaper([0, 0, 226.77, 800], 'portrait');
 
         return $pdf->stream('receipt-'.$id.'.pdf');
@@ -235,6 +277,8 @@ class TransactionController extends Controller
         $rules = [
             'kitchen_status' => 'required|in:pending,processing,completed',
             'order_type' => 'nullable|in:dine_in,take_away,online',
+            'amount_received' => 'nullable|numeric',
+            'change_amount' => 'nullable|numeric',
         ];
 
         // If status is completed, either completion_photo or completion_photo_base64 must be present
@@ -246,7 +290,11 @@ class TransactionController extends Controller
         $validated = $request->validate($rules);
         
         $oldStatus = $transaction->kitchen_status;
-        $updateData = ['kitchen_status' => $validated['kitchen_status']];
+        $updateData = [
+            'kitchen_status' => $validated['kitchen_status'],
+            'amount_received' => $validated['amount_received'] ?? $transaction->amount_received,
+            'change_amount' => $validated['change_amount'] ?? $transaction->change_amount,
+        ];
 
         // Save order_type if provided (set during order completion)
         if ($request->filled('order_type')) {

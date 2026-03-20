@@ -44,9 +44,22 @@ class ApiService {
     _dio.options.headers.remove('Authorization');
   }
 
-  String getImageUrl(String? filename) {
-    if (filename == null || filename.isEmpty) return '';
-    return '$baseUrl/images/$filename';
+  String getImageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    
+    // If it's a full URL, try to extract the storage path
+    if (path.startsWith('http')) {
+      final storagePrefix = '/storage/';
+      int index = path.indexOf(storagePrefix);
+      if (index != -1) {
+        // Convert http://.../storage/path/to/file.jpg -> baseUrl/images/path/to/file.jpg
+        return '$baseUrl/images/${path.substring(index + storagePrefix.length)}';
+      }
+      return path; // Return as is if not a storage URL
+    }
+    
+    // If it's just a filename or relative path
+    return '$baseUrl/images/$path';
   }
 
   Future<Map<String, dynamic>?> login(String email, String password) async {
@@ -114,7 +127,7 @@ class ApiService {
     }
   }
 
-  Future<bool> updateTransactionStatus(int id, String status, {dynamic photo, String? orderType}) async {
+  Future<bool> updateTransactionStatus(int id, String status, {dynamic photo, String? orderType, double? amountReceived, double? changeAmount}) async {
     try {
       Response response;
       if (photo != null) {
@@ -129,6 +142,8 @@ class ApiService {
             'kitchen_status': status,
             'completion_photo_base64': base64Image,
             if (orderType != null) 'order_type': orderType,
+            if (amountReceived != null) 'amount_received': amountReceived,
+            if (changeAmount != null) 'change_amount': changeAmount,
           },
         );
       } else {
@@ -205,8 +220,14 @@ class ApiService {
     }
   }
 
-  Future<bool> createTransaction(Map<String, dynamic> transactionData) async {
+  Future<bool> createTransaction(Map<String, dynamic> transactionData, {dynamic photo}) async {
     try {
+      if (photo != null) {
+        final xfile = photo as dynamic;
+        final bytes = await xfile.readAsBytes();
+        final base64Image = base64Encode(bytes);
+        transactionData['completion_photo_base64'] = 'data:image/jpeg;base64,$base64Image';
+      }
       final response = await _dio.post('/transactions', data: transactionData);
       return response.statusCode == 201;
     } catch (e) {

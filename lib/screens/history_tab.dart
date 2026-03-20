@@ -219,21 +219,7 @@ class HistoryTabState extends State<HistoryTab> {
     final total = double.tryParse(transaction['total'].toString()) ?? 0;
     final paymentMethod = (transaction['payment_method'] ?? 'cash').toString().toUpperCase();
     
-    String? photoUrl;
-    if (transaction['completion_photo'] != null && transaction['completion_photo'].toString().isNotEmpty) {
-      final String rawUrl = transaction['completion_photo'].toString();
-      // Extract the path after /storage/
-      // e.g. http://127.0.0.1:8000/storage/completion_photos/file.jpg
-      // → completion_photos/file.jpg
-      final storagePrefix = '/storage/';
-      int index = rawUrl.indexOf(storagePrefix);
-      if (index != -1) {
-        final path = rawUrl.substring(index + storagePrefix.length);
-        photoUrl = '${ApiService.baseUrl}/images/$path';
-      } else {
-        photoUrl = rawUrl.replaceAll('localhost', '127.0.0.1:8000');
-      }
-    }
+    final String photoUrl = ApiService().getImageUrl(transaction['completion_photo']);
 
     return Container(
       margin: EdgeInsets.only(bottom: 16),
@@ -496,7 +482,7 @@ class HistoryTabState extends State<HistoryTab> {
                 ),
 
                 // Completion Photo (if exists)
-                if (photoUrl != null) ...
+                if (photoUrl.isNotEmpty) ...
                 [
                   SizedBox(height: 12),
                   Row(
@@ -518,7 +504,7 @@ class HistoryTabState extends State<HistoryTab> {
                             children: [
                               Center(
                                 child: DioNetworkImage(
-                                  url: photoUrl!,
+                                  url: photoUrl,
                                   fit: BoxFit.contain,
                                   loadingWidget: const Center(child: CircularProgressIndicator(color: Colors.white)),
                                   errorWidget: Column(
@@ -547,7 +533,7 @@ class HistoryTabState extends State<HistoryTab> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: DioNetworkImage(
-                        url: photoUrl!,
+                        url: photoUrl,
                         height: 120,
                         width: double.infinity,
                         fit: BoxFit.cover,

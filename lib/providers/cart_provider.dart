@@ -159,10 +159,10 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> checkout(String paymentMethod) async {
+  Future<bool> checkout(String paymentMethod, {double? amountReceived, double? changeAmount, dynamic photo}) async {
     if (_items.isEmpty) return false;
 
-    // Build the request payload. Fallback to take_away if dine_in but no table is selected to avoid 422.
+    // Build the request payload
     String finalOrderType = _orderType;
     if (_orderType == 'dine_in' && _selectedTable == null) {
         finalOrderType = 'take_away';
@@ -173,6 +173,8 @@ class CartProvider with ChangeNotifier {
       'order_type': finalOrderType,
       'table_id': _selectedTable?.id,
       'customer_name': _customerName,
+      'amount_received': amountReceived,
+      'change_amount': changeAmount,
       'items': _items.map((item) {
         return {
           'product_id': item.product.id,
@@ -183,7 +185,7 @@ class CartProvider with ChangeNotifier {
     };
 
     try {
-      bool success = await _apiService.createTransaction(payload);
+      bool success = await _apiService.createTransaction(payload, photo: photo);
       if (success) {
         clearCart();
       }

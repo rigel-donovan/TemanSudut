@@ -115,11 +115,11 @@
             </tr>
             <tr class="total-row" style="margin-top: 5px;">
                 <td>Bayar ({{ strtoupper($transaction->payment_method) }})</td>
-                <td class="text-right">Rp {{ number_format($transaction->total, 0, ',', '.') }}</td>
+                <td class="text-right">Rp {{ number_format($transaction->amount_received ?? $transaction->total, 0, ',', '.') }}</td>
             </tr>
             <tr class="total-row">
                 <td>Kembali</td>
-                <td class="text-right">Rp 0</td>
+                <td class="text-right">Rp {{ number_format($transaction->change_amount ?? 0, 0, ',', '.') }}</td>
             </tr>
         </table>
     </div>
@@ -130,7 +130,6 @@
         <div class="bold">Terima Kasih Telah Berbelanja</div>
         <div style="margin-top: 5px;">Link Kritik dan Saran:</div>
         <div style="font-size: 10px;">farisatsal@gmail.com</div>
-        <div style="font-size: 10px;">085245436632</div>
     </div>
 </body>
 </html>

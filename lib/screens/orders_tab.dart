@@ -5,6 +5,10 @@ import '../widgets/popup_notification.dart';
 import '../utils/app_format.dart';
 import '../widgets/slide_to_finish.dart';
 import '../services/api_service.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import '../widgets/camera_dialog.dart';
+import 'package:camera/camera.dart';
 
 class OrdersTab extends StatelessWidget {
   final VoidCallback? onOrderFinished;
@@ -178,6 +182,8 @@ class OrdersTab extends StatelessWidget {
                           final nameController = TextEditingController(text: cart.customerName);
                           final outerContext = context;
                           String selectedPayment = 'cash'; // default
+                          double amountReceived = 0;
+                          double changeAmount = 0;
 
                           showModalBottomSheet(
                             context: outerContext,
@@ -335,7 +341,90 @@ class OrdersTab extends StatelessWidget {
                                             ],
                                           ),
                                         ),
-                                        const SizedBox(height: 16),
+                                        // Cash Input Section
+                                        if (selectedPayment == 'cash') ...[
+                                          const SizedBox(height: 20),
+                                          Row(
+                                            children: [
+                                              const Icon(Icons.payments_outlined, size: 16, color: Colors.black87),
+                                              const SizedBox(width: 6),
+                                              const Text('Pembayaran Tunai', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 10),
+                                          Container(
+                                            padding: const EdgeInsets.all(16),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: Colors.grey[200]!),
+                                            ),
+                                            child: Column(
+                                              children: [
+                                                TextField(
+                                                  keyboardType: TextInputType.number,
+                                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                                  decoration: InputDecoration(
+                                                    labelText: 'Input Uang',
+                                                    prefixText: 'Rp ',
+                                                    filled: true,
+                                                    fillColor: Colors.grey[50],
+                                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                                                  ),
+                                                  onChanged: (val) {
+                                                    setSheetState(() {
+                                                      final raw = val.replaceAll(RegExp(r'[^0-9]'), '');
+                                                      amountReceived = double.tryParse(raw) ?? 0;
+                                                      changeAmount = amountReceived - cart.total;
+                                                      if (changeAmount < 0) changeAmount = 0;
+                                                    });
+                                                  },
+                                                ),
+                                                const SizedBox(height: 12),
+                                                Row(
+                                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                  children: [
+                                                    const Text('Kembalian', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                                                    Text(
+                                                      AppFormat.currency(changeAmount),
+                                                      style: TextStyle(
+                                                        fontSize: 18, 
+                                                        fontWeight: FontWeight.bold, 
+                                                        color: changeAmount > 0 ? Colors.green[700] : Colors.grey
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                if (cart.currentShift != null) ...[
+                                                  const Divider(height: 20),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      Text('Sisa Uang Kembalian', style: TextStyle(fontSize: 11, color: amountReceived > 0 ? Colors.blue[700] : Colors.black54)),
+                                                      Text(
+                                                        AppFormat.currency(
+                                                          (double.tryParse(cart.currentShift!['current_cash']?.toString() ?? '0') ?? 0) + amountReceived - changeAmount
+                                                        ),
+                                                        style: TextStyle(
+                                                          fontSize: 11, 
+                                                          fontWeight: FontWeight.bold, 
+                                                          color: amountReceived > 0 ? Colors.blue[700] : Colors.black54
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(top: 4.0),
+                                                    child: Text(
+                                                      'Saldo saat ini: ${AppFormat.currency(double.tryParse(cart.currentShift!['current_cash']?.toString() ?? '0') ?? 0)}',
+                                                      style: TextStyle(fontSize: 10, color: Colors.grey[500], fontStyle: FontStyle.italic),
+                                                    ),
+                                                  ),
+                                                ]
+                                              ],
+                                            ),
+                                          ),
+                                        ],
 
                                         // Confirm Button
                                         SizedBox(
@@ -348,12 +437,18 @@ class OrdersTab extends StatelessWidget {
                                               shape: RoundedRectangleBorder(
                                                   borderRadius: BorderRadius.circular(12)),
                                             ),
-                                            onPressed: () async {
-                                              cart.setCustomerName(
-                                                  nameController.text.isNotEmpty ? nameController.text : 'Tamu');
-                                              Navigator.pop(sheetCtx);
+                                            onPressed: (selectedPayment == 'cash' && amountReceived < cart.total)
+                                                ? null
+                                                : () async {
+                                                    cart.setCustomerName(
+                                                        nameController.text.isNotEmpty ? nameController.text : 'Tamu');
+                                                    Navigator.pop(sheetCtx);
 
-                                              bool success = await cart.checkout(selectedPayment);
+                                                    bool success = await cart.checkout(
+                                                      selectedPayment,
+                                                      amountReceived: selectedPayment == 'cash' ? amountReceived : null,
+                                                      changeAmount: selectedPayment == 'cash' ? changeAmount : null,
+                                                    );
                                               if (success) {
                                                 PopupNotification.show(
                                                   outerContext,
