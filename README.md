@@ -4,7 +4,7 @@ Dokumen ini adalah panduan untuk menyambungkan Komputer Anda (sebagai Server) de
 
 ---
 
-## TAHAP 1: Menghidupkan "Mesin Data" (Backend) di Komputer
+## TAHAP 1: Menghidupkan Backend di Komputer
 Komputer Anda wajib menyala terus selama toko buka.
 1. Buka layar hitam pencarian (Terminal / CMD) di dalam folder `backend` aplikasi Anda.
 2. Nyalakan mesin pencatat datanya dengan mengetikkan persis perintah ini:
