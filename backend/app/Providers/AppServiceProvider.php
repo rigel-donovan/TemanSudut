@@ -21,8 +21,19 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (request()->server('HTTP_X_FORWARDED_PROTO') == 'https' || str_contains(request()->getHost(), 'trycloudflare.com')) {
+        $host = request()->getHost();
+        $forwardedHost = request()->server('HTTP_X_FORWARDED_HOST', '');
+
+        if (request()->server('HTTP_X_FORWARDED_PROTO') == 'https' || 
+            str_contains($host, 'trycloudflare.com') ||
+            str_contains($forwardedHost, 'trycloudflare.com') ||
+            str_contains($host, 'ngrok') ||
+            str_contains($forwardedHost, 'ngrok')) {
+            
+            $activeHost = $forwardedHost ?: $host;
             URL::forceScheme('https');
+            URL::forceRootUrl('https://' . $activeHost);
+            config(['app.url' => 'https://' . $activeHost]);
         }
     }
 }

@@ -201,10 +201,11 @@ class OrdersTab extends StatelessWidget {
                                       left: 24, right: 24, top: 24,
                                       bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
                                     ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
+                                    child: SingleChildScrollView(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
                                         // Handle bar
                                         Center(
                                           child: Container(
@@ -395,12 +396,26 @@ class OrdersTab extends StatelessWidget {
                                                     ),
                                                   ],
                                                 ),
+                                                if (amountReceived > 0 && amountReceived < cart.total)
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(top: 8.0),
+                                                    child: Row(
+                                                      children: [
+                                                        const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.red),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          'Uang kurang ${AppFormat.currency(cart.total - amountReceived)}', 
+                                                          style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
                                                 if (cart.currentShift != null) ...[
                                                   const Divider(height: 20),
                                                   Row(
                                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                                     children: [
-                                                      Text('Sisa Uang Kembalian', style: TextStyle(fontSize: 11, color: amountReceived > 0 ? Colors.blue[700] : Colors.black54)),
+                                                      Text('Total Saldo Kasir', style: TextStyle(fontSize: 11, color: amountReceived > 0 ? Colors.blue[700] : Colors.black54)),
                                                       Text(
                                                         AppFormat.currency(
                                                           (double.tryParse(cart.currentShift!['current_cash']?.toString() ?? '0') ?? 0) + amountReceived - changeAmount
@@ -474,8 +489,9 @@ class OrdersTab extends StatelessWidget {
                                         ),
                                       ],
                                     ),
-                                  );
-                                },
+                                  ),
+                                );
+                              },
                               );
                             },
                           );

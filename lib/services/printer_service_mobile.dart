@@ -73,9 +73,6 @@ class PrinterServiceMobile implements PrinterService {
     }
 
     final profile = await CapabilityProfile.load();
-    // Default to 80mm if possible, or 58mm if that's what's connected.
-    // For now we use mm58 as it's the most common small thermal, 
-    // but the layout will be designed to work on both.
     final generator = Generator(PaperSize.mm58, profile);
     List<int> bytes = [];
 
