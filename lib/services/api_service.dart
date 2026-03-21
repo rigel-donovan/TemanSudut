@@ -10,7 +10,9 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'https://proceed-substances-organ-tasks.trycloudflare.com/api';
+  // === URL SERVER ANDA (PERMANEN NGROK) ===
+  static const String baseUrl = 'https://tigerishly-nonconductive-davin.ngrok-free.dev/api';
+  // ========================================
   late final Dio _dio;
 
   ApiService._internal() {
