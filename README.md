@@ -20,7 +20,7 @@ Agar Tablet/HP Anda (yang menggunakan jaringan berbeda) bisa masuk ke PC Anda, k
 1. Buka Terminal (CMD/PowerShell) baru di folder utama proyek Anda.
 2. Ketikkan perintah ini untuk membuat link `trycloudflare` baru:
    ```bash
-   cloudflared.exe tunnel --url http://localhost:8000
+   .\cloudflared.exe tunnel --url http://localhost:8000
    ```
 3. Nanti di layar akan muncul sebuah link unik HTTPS (Misalnya: `https://proceed-substances-organ-tasks.trycloudflare.com`). **Salin link tersebut**.
    *(Sama seperti Tahap 1, layar hitam ini pantang di-close/dimatikan).*
