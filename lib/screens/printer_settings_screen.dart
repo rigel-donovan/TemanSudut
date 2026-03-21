@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../services/printer_service.dart';
 
 class PrinterSettingsScreen extends StatefulWidget {
@@ -22,8 +23,25 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     initPlatformState();
   }
 
+  Future<bool> _requestPermissions() async {
+    Map<Permission, PermissionStatus> statuses = await [
+      Permission.bluetooth,
+      Permission.bluetoothScan,
+      Permission.bluetoothConnect,
+      Permission.location,
+    ].request();
+
+    // Check if permissions are sufficient
+    bool hasBlueprint = statuses[Permission.bluetoothConnect]?.isGranted ?? false;
+    bool hasScan = statuses[Permission.bluetoothScan]?.isGranted ?? false;
+    // Some older devices rely on location, newer on scan/connect
+    return (hasBlueprint && hasScan) || statuses[Permission.bluetooth]?.isGranted == true || statuses[Permission.location]?.isGranted == true;
+  }
+
   Future<void> initPlatformState() async {
     if (kIsWeb) return; 
+
+    await _requestPermissions();
 
     try {
       bool isConnected = await printerService.isConnected;
@@ -51,6 +69,17 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
   }
 
   Future<void> scanBluetooth() async {
+    bool hasPermission = await _requestPermissions();
+    if (!hasPermission) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+           content: Text("Akses Bluetooth/Lokasi ditolak. Mohon izinkan di Pengaturan Aplikasi."),
+           backgroundColor: Colors.red,
+         ));
+      }
+      return;
+    }
+
     setState(() => _isScanning = true);
     await Future.delayed(Duration(seconds: 1));
     
@@ -123,7 +152,7 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
                 children: [
                   Text('Cara Menghubungkan Printer', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue[900])),
                   SizedBox(height: 4),
-                  Text('Pastikan Bluetooth aktif dan printer dalam mode pairing. Klik tombol SCAN untuk mencari perangkat.', style: TextStyle(color: Colors.blue[800], fontSize: 13)),
+                  Text('Pastikan Bluetooth dan Lokasi aktif. Saat diminta Izin Akses (Allow), pastikan Anda memilih Ya/Menerima untuk menemukan printer.', style: TextStyle(color: Colors.blue[800], fontSize: 13)),
                 ],
               ),
             )

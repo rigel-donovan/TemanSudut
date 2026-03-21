@@ -91,52 +91,82 @@ class _MainNavScreenState extends State<MainNavScreen> {
     super.dispose();
   }
 
+  Future<bool> _onWillPop() async {
+    return (await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Konfirmasi', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Batal', style: TextStyle(color: Colors.grey[700])),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Keluar'),
+          ),
+        ],
+      ),
+    )) ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<CartProvider>(
-      builder: (context, cart, child) {
-        Widget mainContent = LayoutBuilder(
-          builder: (context, constraints) {
-            if (constraints.maxWidth > 800) {
-              return _buildTabletLayout(context);
-            } else {
-              return _buildMobileLayout(context);
-            }
-          },
-        );
-
-        if (cart.isLoadingShift) {
-          return Scaffold(
-            backgroundColor: Colors.white,
-            body: Center(child: CircularProgressIndicator(color: Colors.black)),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Consumer<CartProvider>(
+        builder: (context, cart, child) {
+          Widget mainContent = LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth > 800) {
+                return _buildTabletLayout(context);
+              } else {
+                return _buildMobileLayout(context);
+              }
+            },
           );
-        }
 
-        if (!cart.isShiftOpen) {
-          return Scaffold(
-            body: Stack(
-              children: [
-                mainContent,
-                Positioned.fill(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                    child: Container(
-                      color: Colors.white.withOpacity(0.5),
-                      child: Center(
-                        child: _buildOpenShiftCard(context, cart),
+          if (cart.isLoadingShift) {
+            return Scaffold(
+              backgroundColor: Colors.white,
+              body: Center(child: CircularProgressIndicator(color: Colors.black)),
+            );
+          }
+
+          if (!cart.isShiftOpen) {
+            return Scaffold(
+              body: Stack(
+                children: [
+                  mainContent,
+                  Positioned.fill(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
+                      child: Container(
+                        color: Colors.white.withOpacity(0.5),
+                        child: Center(
+                          child: _buildOpenShiftCard(context, cart),
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        }
+                ],
+              ),
+            );
+          }
 
-        return mainContent;
-      },
+          return mainContent;
+        },
+      ),
     );
   }
+
 
   Widget _buildOpenShiftCard(BuildContext context, CartProvider cart) {
     return Card(
