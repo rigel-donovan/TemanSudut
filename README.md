@@ -1,6 +1,6 @@
-# Panduan Mudah Menjalankan Aplikasi Kasir di Toko
+# Panduan Running
 
-Dokumen ini adalah panduan untuk menyambungkan Komputer Anda (sebagai Server Utama) dengan Tablet Kasir **menggunakan Jaringan Publik Permanen (Ngrok)**. Karena menggunakan Ngrok Static Domain, Anda **TIDAK PERLU** lagi merakit (build) APK berulang-ulang setiap kali komputer dimatikan!
+Dokumen ini adalah panduan untuk menyambungkan Komputer Anda (sebagai Server Utama) dengan Tablet Kasir **menggunakan Jaringan Publik Permanen (Ngrok)**. Karena menggunakan Ngrok Static Domain
 
 ---
 
