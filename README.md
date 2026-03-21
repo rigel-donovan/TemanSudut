@@ -28,14 +28,12 @@ Agar Tablet Kasir dan HP Bos bisa mengakses komputer dari jarak jauh (hanya moda
 
 ## TAHAP 3: Buka Toko & Mulai Berjualan!
 
-Karena aplikasi Android Anda sudah ditanamkan link permanen Ngrok, Anda tidak perlu lagi melakukan setup rumit seumur hidup.
-
 **1. Untuk Kasir (Tablet / LDPlayer Emulator Utama):**
 - Buka saja aplikasi Android Kasir Teman Sudut.
 - Login dengan akun kasir (contoh: `farisatsal@gmail.com`), dan Tablet Kasir siap melayani transaksi pembeli!
 
 **2. Untuk Bos / Admin Toko:**
-- Bos **TIDAK PERLU** install aplikasi. Cukup buka browser (Google Chrome / Safari) di HP, Tablet Pribadi, PC Rumah, dll.
+- Cukup buka browser (Google Chrome / Safari) di HP, Tablet Pribadi, PC Rumah, dll.
 - Ketik Link Web Admin toko Anda:  
    `https://tigerishly-nonconductive-davin.ngrok-free.dev/admin`
 - Masukkan Email dan Password Bos, lalu pantau penjualan secara real-time dari mana saja di seluruh dunia.
