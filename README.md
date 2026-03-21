@@ -15,7 +15,7 @@ Komputer penyimpan database ini wajib menyala terus selama jam operasional toko.
 
 ---
 
-## TAHAP 2: Membuka Jalan Tol Permanen (Ngrok)
+## TAHAP 2: Membuka Penghubung (Ngrok)
 Agar Tablet Kasir dan HP Bos bisa mengakses komputer dari jarak jauh (hanya modal kuota/internet apa saja), kita harus membuka jalurnya.
 1. Buka Terminal (PowerShell) **baru** di folder UTAMA proyek Anda.
 2. Nyalakan Ngrok ke alamat permanen toko Anda dengan perintah ini:
