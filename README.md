@@ -1,7 +1,6 @@
 # Panduan Running
 
-Dokumen ini adalah panduan untuk menyambungkan Komputer Anda (sebagai Server Utama) dengan Tablet Kasir **menggunakan Jaringan Publik Permanen (Ngrok)**. Karena menggunakan Ngrok Static Domain
-
+Dokumen ini adalah panduan untuk menyambungkan Komputer Anda (sebagai Server Utama) dengan Tablet Kasir **menggunakan Jaringan (Ngrok)**
 ---
 
 ## TAHAP 1: Menghidupkan Induk Server di Komputer Utama
