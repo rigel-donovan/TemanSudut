@@ -20,7 +20,7 @@ Agar Tablet Kasir dan HP Bos bisa mengakses komputer dari jarak jauh (hanya moda
 1. Buka Terminal (PowerShell) **baru** di folder UTAMA proyek Anda.
 2. Nyalakan Ngrok ke alamat permanen toko Anda dengan perintah ini:
    ```bash
-   .\cloudflared.exe tunnel --url http://localhost:8000
+   .\ngrok http --domain=tigerishly-nonconductive-davin.ngrok-free.dev 8000
    ```
 3. Selesai! Biarkan layar ini terus menyala bersama dengan layar di Tahap 1.
 
