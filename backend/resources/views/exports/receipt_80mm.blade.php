@@ -5,37 +5,37 @@
     <style>
         @page { 
             margin: 0; 
-            size: 80mm 200mm; /* Large height, will be cropped if possible by printer or custom size */
+            size: 80mm 200mm;
         }
         body { 
             font-family: 'Courier', monospace; 
-            font-size: 12px; 
+            font-size: 10px; 
             color: #000; 
             margin: 0; 
-            padding: 10mm 5mm;
-            width: 70mm; /* Safe width for 80mm paper */
+            padding: 5mm 3mm;
+            width: 74mm;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .bold { font-weight: bold; }
-        .dashed-line { border-top: 1px dashed #000; margin: 5px 0; }
+        .dashed-line { border-top: 1px dashed #000; margin: 3px 0; }
         
-        .header { margin-bottom: 10px; }
-        .logo { margin-bottom: 5px; }
-        .store-name { font-size: 16px; font-weight: 900; }
-        .store-info { font-size: 10px; margin-bottom: 2px; }
+        .header { margin-bottom: 5px; }
+        .logo { margin-bottom: 3px; }
+        .store-name { font-size: 14px; font-weight: 900; }
+        .store-info { font-size: 9px; margin-bottom: 2px; }
         
-        .meta-info { font-size: 11px; margin-bottom: 10px; }
+        .meta-info { font-size: 10px; margin-bottom: 5px; }
         
-        .items-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-        .item-row td { padding: 4px 0; vertical-align: top; }
-        .item-details { font-size: 10px; color: #333; }
+        .items-table { width: 100%; border-collapse: collapse; font-size: 9px; }
+        .item-row td { padding: 2px 0; vertical-align: top; }
+        .item-details { font-size: 9px; color: #333; }
         
-        .totals-section { margin-top: 10px; font-size: 12px; }
-        .total-row { margin-bottom: 3px; }
-        .grand-total { font-size: 14px; margin-top: 5px; border-top: 1px solid #000; padding-top: 5px; }
+        .totals-section { margin-top: 5px; font-size: 10px; }
+        .total-row { margin-bottom: 2px; }
+        .grand-total { font-size: 12px; margin-top: 3px; border-top: 1px solid #000; padding-top: 3px; }
         
-        .footer { margin-top: 20px; font-size: 10px; }
+        .footer { margin-top: 10px; font-size: 9px; }
     </style>
 </head>
 <body>

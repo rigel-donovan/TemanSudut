@@ -10,7 +10,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  static const String baseUrl = 'http://172.20.10.2:8000/api';
+  static const String baseUrl = 'https://proceed-substances-organ-tasks.trycloudflare.com/api';
   late final Dio _dio;
 
   ApiService._internal() {
