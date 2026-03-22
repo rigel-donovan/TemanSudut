@@ -24,8 +24,8 @@ class StockManagementPage extends Page implements HasTable
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
     protected static \UnitEnum|string|null $navigationGroup = 'Stock Management';
-    protected static ?string $navigationLabel = 'Stok Produk';
-    protected static ?string $title = 'Stok Produk';
+    protected static ?string $navigationLabel = 'Product Stock';
+    protected static ?string $title = 'Product Stock';
     protected static ?int $navigationSort = 1;
 
     public function getView(): string
