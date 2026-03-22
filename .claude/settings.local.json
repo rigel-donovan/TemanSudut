@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep:*)",
+      "Bash(find 'D:/my projects/kasir-android' -name *.dart)"
+    ]
+  }
+}

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/cart_provider.dart';
+import '../utils/app_format.dart';
 
 class CustomDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, auth, _) {
+    return Consumer2<AuthProvider, CartProvider>(
+      builder: (context, auth, cart, _) {
         final userName = auth.user?['name'] ?? 'Guest';
         return Drawer(
           backgroundColor: Colors.white,
@@ -72,6 +74,15 @@ class CustomDrawer extends StatelessWidget {
                   ),
                 ),
                 Spacer(),
+                if (cart.isShiftOpen)
+                  ListTile(
+                    leading: Icon(Icons.point_of_sale_rounded, color: Colors.orange[700]),
+                    title: Text('Tutup Kasir', style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.w600)),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      _showCloseShiftDialog(context, cart);
+                    },
+                  ),
                 ListTile(
                   leading: Icon(Icons.logout, color: Colors.redAccent),
                   title: Text('Logout', style: TextStyle(color: Colors.redAccent)),
@@ -87,4 +98,151 @@ class CustomDrawer extends StatelessWidget {
       }
     );
   }
+}
+
+void _showCloseShiftDialog(BuildContext context, CartProvider cart) {
+  final shift = cart.currentShift;
+  if (shift == null) return;
+
+  final TextEditingController endCashController = TextEditingController();
+  double startingCash = double.tryParse(shift['starting_cash']?.toString() ?? '0') ?? 0;
+  double expectedCash = double.tryParse(shift['current_cash']?.toString() ?? '0') ?? 0;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) {
+      double enteredCash = 0;
+      double difference = 0;
+
+      return StatefulBuilder(
+        builder: (ctx, setStateDialog) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Icon(Icons.point_of_sale_rounded, color: Colors.red[700]),
+                SizedBox(width: 8),
+                Text('Tutup Kasir', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Column(
+                      children: [
+                        _drawerSummaryRow('Modal Awal', AppFormat.currency(startingCash)),
+                        SizedBox(height: 8),
+                        _drawerSummaryRow('Uang di Laci (Estimasi)', AppFormat.currency(expectedCash), highlight: true),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Text('Uang Fisik di Laci', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  SizedBox(height: 8),
+                  TextField(
+                    controller: endCashController,
+                    keyboardType: TextInputType.number,
+                    decoration: InputDecoration(
+                      prefixText: 'Rp ',
+                      prefixStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                      hintText: '0',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black, width: 2)),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                    ),
+                    onChanged: (val) {
+                      setStateDialog(() {
+                        enteredCash = double.tryParse(val.replaceAll(',', '')) ?? 0;
+                        difference = enteredCash - expectedCash;
+                      });
+                    },
+                  ),
+                  if (endCashController.text.isNotEmpty) ...[
+                    SizedBox(height: 16),
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: difference >= 0 ? Colors.green[50] : Colors.red[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: difference >= 0 ? Colors.green[200]! : Colors.red[200]!),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            difference >= 0 ? 'Selisih Lebih' : 'Selisih Kurang',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: difference >= 0 ? Colors.green[700] : Colors.red[700],
+                            ),
+                          ),
+                          Text(
+                            AppFormat.currency(difference.abs()),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: difference >= 0 ? Colors.green[700] : Colors.red[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: Text('Batal', style: TextStyle(color: Colors.grey[700])),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red[700],
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () async {
+                  double endingCash = double.tryParse(endCashController.text.replaceAll(',', '')) ?? 0;
+                  Navigator.of(dialogContext).pop();
+                  bool success = await cart.closeShift(endingCash);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(success ? 'Kasir berhasil ditutup.' : 'Gagal menutup kasir. Coba lagi.'),
+                      backgroundColor: success ? Colors.green : Colors.red,
+                    ));
+                  }
+                },
+                child: Text('Tutup Kasir', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+Widget _drawerSummaryRow(String label, String value, {bool highlight = false}) {
+  return Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    children: [
+      Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+      Text(value, style: TextStyle(fontWeight: highlight ? FontWeight.bold : FontWeight.w500, fontSize: 13)),
+    ],
+  );
 }
