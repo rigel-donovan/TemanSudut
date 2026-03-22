@@ -87,7 +87,40 @@ class CustomDrawer extends StatelessWidget {
                   leading: Icon(Icons.logout, color: Colors.redAccent),
                   title: Text('Logout', style: TextStyle(color: Colors.redAccent)),
                   onTap: () {
-                    auth.logout();
+                    showDialog(
+                      context: context,
+                      builder: (BuildContext dialogContext) {
+                        return AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: Row(
+                            children: [
+                              Icon(Icons.logout, color: Colors.redAccent),
+                              SizedBox(width: 8),
+                              Text('Konfirmasi Logout', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                          content: Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(dialogContext).pop(),
+                              child: Text('Batal', style: TextStyle(color: Colors.grey[700])),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.red[700],
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              onPressed: () {
+                                Navigator.of(dialogContext).pop();
+                                auth.logout();
+                              },
+                              child: Text('Keluar', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        );
+                      },
+                    );
                   },
                 ),
                 SizedBox(height: 24),
@@ -104,15 +137,18 @@ void _showCloseShiftDialog(BuildContext context, CartProvider cart) {
   final shift = cart.currentShift;
   if (shift == null) return;
 
-  final TextEditingController endCashController = TextEditingController();
   double startingCash = double.tryParse(shift['starting_cash']?.toString() ?? '0') ?? 0;
   double expectedCash = double.tryParse(shift['current_cash']?.toString() ?? '0') ?? 0;
+  
+  final TextEditingController endCashController = TextEditingController(
+    text: expectedCash.toInt().toString()
+  );
 
   showDialog(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) {
-      double enteredCash = 0;
+      double enteredCash = expectedCash;
       double difference = 0;
 
       return StatefulBuilder(
