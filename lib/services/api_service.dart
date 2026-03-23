@@ -10,8 +10,8 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  // === URL SERVER ANDA (PERMANEN LOCALTUNNEL) ===
-  static const String baseUrl = 'https://kasir-kopi-sudut.loca.lt/api';
+  // === URL SERVER ANDA (PERMANEN TAILSCALE) ===
+  static const String baseUrl = 'http://100.123.248.104:8000/api';
   // ========================================
   late final Dio _dio;
 
@@ -21,7 +21,6 @@ class ApiService {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Bypass-Tunnel-Reminder': 'true',
       },
     ));
 

@@ -14,15 +14,9 @@ Komputer penyimpan database ini wajib menyala terus selama jam operasional toko.
 
 ---
 
-## TAHAP 2: Membuka Penghubung (LocalTunnel)
-Agar Tablet Kasir dan HP Bos bisa mengakses komputer dari jarak jauh (hanya modal kuota/internet apa saja), kita harus membuka jalurnya bebas kuota limit.
-1. Buka Terminal (PowerShell) **baru** di folder UTAMA proyek Anda.
-2. Nyalakan LocalTunnel ke alamat permanen toko Anda dengan perintah ini:
-   ```bash
-   npx localtunnel --port 8000 --subdomain kasir-kopi-sudut
-   ```
-3. Tunggu sampai muncul tulisan `your url is: https://kasir-kopi-sudut.loca.lt`.
-4. Selesai! Biarkan layar ini terus menyala bersama dengan layar di Tahap 1.
+## TAHAP 2: Membuka Penghubung (Tailscale VPN)
+Karena kita sudah menggunakan sistem kelas Enterprise (Tailscale), Anda **tidak perlu lagi membuka terminal Ngrok/LocalTunnel**.
+Pastikan saja aplikasi Tailscale di Komputer dan di Tablet Kasir sama-sama sudah ter-install dan dalam kondisi **Connected/Active**!
 
 ---
 
@@ -33,7 +27,8 @@ Agar Tablet Kasir dan HP Bos bisa mengakses komputer dari jarak jauh (hanya moda
 - Login dengan akun kasir (contoh: `farisatsal@gmail.com`), dan Tablet Kasir siap melayani transaksi pembeli!
 
 **2. Untuk Bos / Admin Toko:**
-- Cukup buka browser (Google Chrome / Safari) di HP, Tablet Pribadi, PC Rumah, dll.
+- Pastikan HP / Laptop Bos juga sudah di-install aplikasi Tailscale dan login dengan akun Google yang sama.
+- Buka browser (Google Chrome / Safari) kesayangan Bos.
 - Ketik Link Web Admin toko Anda:  
-   `https://kasir-kopi-sudut.loca.lt/admin`
-- Masukkan Email dan Password Bos, lalu pantau penjualan secara real-time dari mana saja di seluruh dunia.
+   `http://100.123.248.104:8000/admin`
+- Masukkan Email dan Password Bos, lalu pantau penjualan secara real-time dari mana saja.
