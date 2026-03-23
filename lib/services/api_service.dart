@@ -10,8 +10,8 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  // === URL SERVER ANDA (PERMANEN NGROK) ===
-  static const String baseUrl = 'https://tigerishly-nonconductive-davin.ngrok-free.dev/api';
+  // === URL SERVER ANDA (PERMANEN LOCALTUNNEL) ===
+  static const String baseUrl = 'https://kasir-kopi-sudut.loca.lt/api';
   // ========================================
   late final Dio _dio;
 
@@ -21,6 +21,7 @@ class ApiService {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
+        'Bypass-Tunnel-Reminder': 'true',
       },
     ));
 

@@ -28,7 +28,9 @@ class AppServiceProvider extends ServiceProvider
             str_contains($host, 'trycloudflare.com') ||
             str_contains($forwardedHost, 'trycloudflare.com') ||
             str_contains($host, 'ngrok') ||
-            str_contains($forwardedHost, 'ngrok')) {
+            str_contains($forwardedHost, 'ngrok') ||
+            str_contains($host, 'loca.lt') ||
+            str_contains($forwardedHost, 'loca.lt')) {
             
             $activeHost = $forwardedHost ?: $host;
             URL::forceScheme('https');
