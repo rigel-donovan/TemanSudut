@@ -1,6 +1,6 @@
 # Panduan Running
 
-Dokumen ini adalah panduan untuk menyambungkan Komputer Anda (sebagai Server Utama) dengan Tablet Kasir **menggunakan Jaringan (LocalTunnel)**
+Dokumen ini adalah panduan untuk menyambungkan Komputer Anda (sebagai Server Utama) dengan Tablet Kasir
 ---
 
 ## TAHAP 1: Menghidupkan Induk Server di Komputer Utama
@@ -15,8 +15,8 @@ Komputer penyimpan database ini wajib menyala terus selama jam operasional toko.
 ---
 
 ## TAHAP 2: Membuka Penghubung (Tailscale VPN)
-Karena kita sudah menggunakan sistem kelas Enterprise (Tailscale), Anda **tidak perlu lagi membuka terminal Ngrok/LocalTunnel**.
-Pastikan saja aplikasi Tailscale di Komputer dan di Tablet Kasir sama-sama sudah ter-install dan dalam kondisi **Connected/Active**!
+Karena kita sudah menggunakan sistem kelas Enterprise (Tailscale), Anda **tidak perlu lagi repot membuka terminal khusus**.
+Pastikan saja aplikasi Tailscale di Komputer dan di Tablet Kasir sama-sama sudah ter-install dan selalu dalam kondisi **Connected/Active** selama jam toko!
 
 ---
 
