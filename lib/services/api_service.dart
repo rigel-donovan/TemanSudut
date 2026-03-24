@@ -10,7 +10,7 @@ class ApiService {
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
 
-  // === URL SERVER ANDA (PERMANEN TAILSCALE) ===
+  // === URL SERVER ANDA ===
   static const String baseUrl = 'http://100.123.248.104:8000/api';
   // ========================================
   late final Dio _dio;
