@@ -16,7 +16,6 @@ class ActivityLog extends Model
     {
         return $this->belongsTo(User::class);
     }
-
     public static function log(string $action, string $description, ?array $metadata = null)
     {
         return self::create([
