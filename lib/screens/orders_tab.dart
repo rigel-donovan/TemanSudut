@@ -56,104 +56,186 @@ class OrdersTab extends StatelessWidget {
                           children: [
                             // Items List
                             ...cart.items.map((item) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 16.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                width: 50, height: 50,
-                                decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
-                                clipBehavior: Clip.antiAlias,
-                                child: item.product.image != null && item.product.image!.isNotEmpty
-                                  ? Image.network(
-                                      ApiService().getImageUrl(item.product.image),
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => Icon(Icons.fastfood, color: Colors.black12),
-                                    )
-                                  : Icon(Icons.fastfood, color: Colors.black12),
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12.0),
+                            child: Container(
+                              padding: EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[200]!),
                               ),
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(child: Text(item.product.name, style: TextStyle(fontWeight: FontWeight.bold))),
-                                        Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(
+                                        width: 48, height: 48,
+                                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+                                        clipBehavior: Clip.antiAlias,
+                                        child: item.product.image != null && item.product.image!.isNotEmpty
+                                          ? Image.network(
+                                              ApiService().getImageUrl(item.product.image),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => Icon(Icons.fastfood, color: Colors.black12),
+                                            )
+                                          : Icon(Icons.fastfood, color: Colors.black12),
+                                      ),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text('X${item.quantity}', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                                            SizedBox(width: 8),
+                                            Text(item.product.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                            SizedBox(height: 2),
+                                            Text(AppFormat.currency(item.product.price), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 10),
+                                  // Notes
+                                  InkWell(
+                                    onTap: () => _showNoteDialog(context, cart, item),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: Colors.grey[200]!),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.edit_note, size: 16, color: Colors.blue[700]),
+                                          SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(
+                                              item.notes != null && item.notes!.isNotEmpty ? item.notes! : 'Tambah Catatan',
+                                              style: TextStyle(
+                                                color: item.notes != null && item.notes!.isNotEmpty ? Colors.black87 : Colors.grey[600],
+                                                fontSize: 12,
+                                                fontWeight: item.notes != null && item.notes!.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 10),
+                                  // Bottom row: qty stepper + subtotal + delete
+                                  Row(
+                                    children: [
+                                      // Quantity Stepper
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.grey[300]!),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
                                             InkWell(
-                                              onTap: () {
-                                                cart.removeFromCart(item);
-                                              },
-                                              child: Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                                              onTap: () => cart.updateQuantity(item, item.quantity - 1),
+                                              borderRadius: BorderRadius.only(topLeft: Radius.circular(8), bottomLeft: Radius.circular(8)),
+                                              child: Container(
+                                                width: 30, height: 30,
+                                                alignment: Alignment.center,
+                                                child: Icon(Icons.remove, size: 16, color: Colors.black87),
+                                              ),
+                                            ),
+                                            Container(
+                                              width: 1, height: 30,
+                                              color: Colors.grey[200],
+                                            ),
+                                            Container(
+                                              width: 36, height: 30,
+                                              alignment: Alignment.center,
+                                              child: Text('${item.quantity}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                            ),
+                                            Container(
+                                              width: 1, height: 30,
+                                              color: Colors.grey[200],
+                                            ),
+                                            InkWell(
+                                              onTap: () => cart.updateQuantity(item, item.quantity + 1),
+                                              borderRadius: BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(8)),
+                                              child: Container(
+                                                width: 30, height: 30,
+                                                alignment: Alignment.center,
+                                                child: Icon(Icons.add, size: 16, color: Colors.black87),
+                                              ),
                                             ),
                                           ],
-                                        )
-                                      ],
-                                    ),
-                                    SizedBox(height: 4),
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 4.0),
-                                      child: InkWell(
-                                        onTap: () => _showNoteDialog(context, cart, item),
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      // Subtotal
+                                      Expanded(
+                                        child: Text(
+                                          AppFormat.currency(item.subtotal),
+                                          style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold, fontSize: 13),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                      // Delete Button
+                                      InkWell(
+                                        onTap: () {
+                                          showDialog(
+                                            context: context,
+                                            builder: (ctx) => AlertDialog(
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                              title: Text('Hapus Item?', style: TextStyle(fontWeight: FontWeight.bold)),
+                                              content: Text('Hapus "${item.product.name}" dari pesanan?'),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () => Navigator.pop(ctx),
+                                                  child: Text('Batal', style: TextStyle(color: Colors.grey)),
+                                                ),
+                                                TextButton(
+                                                  onPressed: () {
+                                                    cart.removeFromCart(item);
+                                                    Navigator.pop(ctx);
+                                                  },
+                                                  child: Text('Hapus', style: TextStyle(color: Colors.red)),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
                                         borderRadius: BorderRadius.circular(8),
                                         child: Container(
-                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: Colors.grey[50],
+                                            color: Colors.red[50],
                                             borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.grey[200]!),
+                                            border: Border.all(color: Colors.red[200]!),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(Icons.edit_note, size: 18, color: Colors.blue[700]),
+                                              Icon(Icons.delete_outline, color: Colors.red, size: 16),
                                               SizedBox(width: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  item.notes != null && item.notes!.isNotEmpty ? item.notes! : 'Tambah Catatan',
-                                                  style: TextStyle(
-                                                    color: item.notes != null && item.notes!.isNotEmpty ? Colors.black87 : Colors.grey[600],
-                                                    fontSize: 12,
-                                                    fontWeight: item.notes != null && item.notes!.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
+                                              Text('Hapus', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500)),
                                             ],
                                           ),
                                         ),
                                       ),
-                                    ),
-                                    SizedBox(height: 8),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Flexible(child: Text('Harga Satuan', style: TextStyle(color: Colors.grey, fontSize: 12))),
-                                        Text(AppFormat.currency(item.product.price), style: TextStyle(fontSize: 12)),
-                                      ],
-                                    ),
-                                    SizedBox(height: 4),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Flexible(child: Text('Subtotal', style: TextStyle(color: Colors.grey, fontSize: 12))),
-                                        Text(AppFormat.currency(item.subtotal), style: TextStyle(color: Colors.green[600], fontSize: 12, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        );
-                      }).toList(),
+                            ),
+                          );
+                        }).toList(),
                       
                       Divider(height: 32, thickness: 1, color: Colors.grey[200]),
                       

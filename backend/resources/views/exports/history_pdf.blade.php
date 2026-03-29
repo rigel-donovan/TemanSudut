@@ -153,7 +153,7 @@
     <!-- Bottom Summary -->
     <div style="page-break-inside: avoid;">
         <table class="summary-table">
-            <tr>
+            <tr> 
                 <td class="summary-label" style="border:none;">Total Transactions</td>
                 <td class="summary-val" style="border:none;">{{ $totalCount }} items</td>
             </tr>

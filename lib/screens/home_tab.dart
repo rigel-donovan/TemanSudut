@@ -278,11 +278,16 @@ class _HomeTabState extends State<HomeTab> {
   }
 
   void _showCloseShiftDialog(BuildContext context, CartProvider cart) {
+    final shift = cart.currentShift;
+    double expectedCash = double.tryParse(shift?['current_cash']?.toString() ?? '0') ?? 0;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        final _cashController = TextEditingController();
+        final _cashController = TextEditingController(
+          text: expectedCash > 0 ? expectedCash.toInt().toString() : '',
+        );
         bool _isClosing = false;
         
         return StatefulBuilder(

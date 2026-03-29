@@ -14,6 +14,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Support\Icons\Heroicon;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\BulkActionGroup;
@@ -89,6 +90,11 @@ class RawMaterialResource extends Resource
                 //
             ])
             ->recordActions([
+                Action::make('history')
+                    ->label('Riwayat')
+                    ->icon('heroicon-o-clock')
+                    ->color('gray')
+                    ->url(fn ($record) => \App\Filament\Pages\RawMaterialLogPage::getUrl(['raw_material' => $record->id])),
                 EditAction::make(),
                 DeleteAction::make(),
             ])

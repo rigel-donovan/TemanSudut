@@ -29,7 +29,6 @@ class AdminPanelProvider extends PanelProvider
     {
         parent::register();
 
-        // Inject backup reminder popup ke semua halaman admin
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_END,
             fn (): string => Blade::render('@include("filament.components.backup-reminder")'),
