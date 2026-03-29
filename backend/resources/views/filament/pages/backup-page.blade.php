@@ -42,13 +42,14 @@
 
                 {{-- Download Button --}}
                 <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <a href="{{ route('admin.backup.download') }}"
+                    <button
                         id="backup-download-btn"
-                        onclick="recordBackupTime()"
+                        type="button"
+                        onclick="triggerBackupDownload()"
                         class="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-all duration-200 active:scale-95">
                         <x-heroicon-m-arrow-down-tray style="width: 20px; height: 20px; flex-shrink: 0;" />
                         Download Backup Sekarang
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -64,6 +65,11 @@
                 el.textContent = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
             }
         });
+
+        function triggerBackupDownload() {
+            recordBackupTime();
+            window.location.href = '{{ route('admin.backup.download') }}';
+        }
 
         function recordBackupTime() {
             localStorage.setItem('kasir_last_backup', Date.now().toString());
