@@ -11,7 +11,7 @@ class ApiService {
   factory ApiService() => _instance;
 
   // === URL SERVER ANDA ===
-  static const String baseUrl = 'http://100.123.248.104:8000/api';
+  static const String baseUrl = 'http://100.77.57.121:8000/api';
   // ========================================
   late final Dio _dio;
 
@@ -231,6 +231,16 @@ class ApiService {
       return response.statusCode == 201;
     } catch (e) {
       print('Failed to create transaction: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteTransaction(int id) async {
+    try {
+      final response = await _dio.delete('/transactions/$id');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Failed to delete transaction: $e');
       return false;
     }
   }

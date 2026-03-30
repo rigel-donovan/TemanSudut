@@ -245,6 +245,60 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
     );
   }
 
+  Future<void> _deleteOrder(dynamic order) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Hapus Pesanan', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text('Apakah Anda yakin ingin menghapus pesanan #${order['id']}?\n\nAksi ini akan membatalkan pesanan dan mengembalikan stok produk.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Batal', style: TextStyle(color: Colors.grey[700])),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
+            child: Text('Ya, Hapus', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+    
+    final success = await _apiService.deleteTransaction(order['id']);
+    
+    if (!mounted) return;
+    
+    if (success) {
+      PopupNotification.show(
+        context,
+        title: 'Berhasil',
+        message: 'Pesanan #${order['id']} telah dibatalkan dan stok dikembalikan.',
+        type: PopupType.success,
+      );
+      _fetchActiveOrders();
+    } else {
+      PopupNotification.show(
+        context,
+        title: 'Gagal',
+        message: 'Tidak dapat menghapus pesanan. Coba lagi.',
+        type: PopupType.error,
+      );
+      setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -404,23 +458,66 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                   ),
                                 )),
                             const Divider(height: 24),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Flexible(
-                                  child: Text(
-                                    AppFormat.currency(order['total']),
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700]),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                            // Transaction Summary
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.grey[200]!),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Total', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                                      Text(AppFormat.currency(order['total']), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black)),
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Row(
-                                  children: [
-                                    // Print Receipt Button for Owners
-                                    Consumer<AuthProvider>(
-                                      builder: (context, auth, _) {
+                                  if (order['amount_received'] != null && (double.tryParse(order['amount_received'].toString()) ?? 0) > 0) ...[
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Uang Diterima', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                                        Text(AppFormat.currency(double.tryParse(order['amount_received'].toString()) ?? 0), style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('Kembalian', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                                        Text(
+                                          AppFormat.currency(double.tryParse(order['change_amount']?.toString() ?? '0') ?? 0),
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green[700]),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                      // Delete Order Button
+                                      Padding(
+                                        padding: const EdgeInsets.only(right: 8.0),
+                                        child: IconButton(
+                                          icon: const Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                                          tooltip: 'Hapus Pesanan',
+                                          padding: EdgeInsets.zero,
+                                          constraints: BoxConstraints(),
+                                          onPressed: () => _deleteOrder(order),
+                                        ),
+                                      ),
+                                      
+                                      // Print Receipt Button for Owners
+                                      Consumer<AuthProvider>(
+                                        builder: (context, auth, _) {
                                         if (auth.can('print_receipt') && status != 'pending') {
                                           return Padding(
                                             padding: const EdgeInsets.only(right: 8.0),
@@ -466,8 +563,6 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                     ),
                                   ],
                                 ),
-                              ],
-                            ),
                           ],
                         ),
                       ),
@@ -540,6 +635,7 @@ class _CameraDialog extends StatelessWidget {
           ),
         ],
       ),
+   
     );
   }
 }

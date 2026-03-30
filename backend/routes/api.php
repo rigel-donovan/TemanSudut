@@ -61,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transactions/active', [TransactionController::class, 'activeOrders']);
     Route::put('/transactions/{id}/status', [TransactionController::class, 'updateStatus']);
     Route::post('/transactions/{id}/status', [TransactionController::class, 'updateStatus']);
+    Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
     Route::get('/transactions/history', [TransactionController::class, 'history']);
     
     // Products (update = owner only, enforced in controller)

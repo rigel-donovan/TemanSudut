@@ -355,4 +355,34 @@ class TransactionController extends Controller
             'transaction' => $transaction->load('items.product')
         ]);
     }
+
+    public function destroy($id)
+    {
+        $transaction = Transaction::with('items')->findOrFail($id);
+
+        if ($transaction->payment_status === 'paid') {
+            return response()->json(['message' => 'Pesanan yang sudah dibayar tidak dapat dihapus'], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            foreach ($transaction->items as $item) {
+                $product = Product::find($item->product_id);
+                if ($product) {
+                    $product->increment('stock', $item->quantity);
+                }
+            }
+
+            ActivityLog::log('order_deleted', 'Pesanan #' . $transaction->id . ' dihapus oleh ' . (auth()->user()->name ?? 'System'));
+
+            $transaction->delete();
+            DB::commit();
+
+            return response()->json(['message' => 'Pesanan berhasil dihapus']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Gagal menghapus pesanan', 'error' => $e->getMessage()], 500);
+        }
+    }
 }

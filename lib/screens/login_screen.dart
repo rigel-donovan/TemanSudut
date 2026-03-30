@@ -16,123 +16,140 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SingleChildScrollView(
-        child: Container(
-          height: MediaQuery.of(context).size.height,
-          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo
-              Center(
-                child: Container(
-                  height: 120,
-                  width: 120,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      )
-                    ],
-                  ),
-                  child: ClipOval(
-                    child: Image.asset(
-                      'res/logo.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => 
-                        const Icon(Icons.storefront, size: 60, color: Colors.black26),
-                    ),
-                  ),
+      backgroundColor: Colors.grey[50], 
+      body: Center(
+        child: SingleChildScrollView(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 420), 
+            margin: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(36.0),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.grey[200]!, width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 24,
+                  spreadRadius: 0,
+                  offset: const Offset(0, 8),
                 ),
-              ),
-              const SizedBox(height: 32),
-
-              Text(
-                'TemanSudut',
-                style: GoogleFonts.outfit(
-                  fontSize: 36, 
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -1,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Selamat datang kembali! Silakan masuk ke akun Anda.',
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 48),
-              
-              // Form Fields
-              _buildTextField(
-                controller: _emailCtrl,
-                label: 'Email',
-                icon: Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 20),
-              _buildTextField(
-                controller: _passCtrl,
-                label: 'Password',
-                icon: Icons.lock_outline,
-                obscureText: true,
-              ),
-              
-              const SizedBox(height: 40),
-              
-              // Login Button
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  onPressed: _isLoading ? null : _handleLogin,
-                  child: _isLoading 
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, 
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Logo
+                Center(
+                  child: Container(
+                    height: 100,
+                    width: 100,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
                         )
-                      : Text(
-                          'Masuk Sekarang', 
-                          style: GoogleFonts.outfit(
-                            fontWeight: FontWeight.bold, 
-                            fontSize: 16,
-                          ),
-                        ),
-                ),
-              ),
-              
-              const SizedBox(height: 24),
-              
-              // Footer
-              Center(
-                child: Text(
-                  'v1.0.0 • TemanSudut',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[400],
-                    letterSpacing: 0.5,
+                      ],
+                    ),
+                    child: ClipOval(
+                      child: Image.asset(
+                        'res/logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => 
+                          const Icon(Icons.storefront, size: 50, color: Colors.black26),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 24),
+
+                Text(
+                  'TemanSudut',
+                  style: GoogleFonts.outfit(
+                    fontSize: 32, 
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: -1,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Selamat datang kembali!\nSilakan masuk ke akun Anda.',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 40),
+                
+                // Form Fields
+                _buildTextField(
+                  controller: _emailCtrl,
+                  label: 'Email',
+                  icon: Icons.email_outlined,
+                  keyboardType: TextInputType.emailAddress,
+                ),
+                const SizedBox(height: 20),
+                _buildTextField(
+                  controller: _passCtrl,
+                  label: 'Password',
+                  icon: Icons.lock_outline,
+                  obscureText: true,
+                ),
+                
+                const SizedBox(height: 36),
+                
+                // Login Button
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: _isLoading ? null : _handleLogin,
+                    child: _isLoading 
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
+                          )
+                        : Text(
+                            'Masuk Sekarang', 
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.bold, 
+                              fontSize: 16,
+                            ),
+                          ),
+                  ),
+                ),
+                
+                const SizedBox(height: 24),
+                
+                // Footer
+                Center(
+                  child: Text(
+                    'v1.0.0 • TemanSudut',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[400],
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
