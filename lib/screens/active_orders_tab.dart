@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:typed_data';
-import 'dart:async';
 import '../services/api_service.dart';
 import '../widgets/popup_notification.dart';
 import '../utils/app_format.dart';

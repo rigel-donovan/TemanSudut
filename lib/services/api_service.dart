@@ -11,7 +11,7 @@ class ApiService {
   factory ApiService() => _instance;
 
   // === URL SERVER ANDA ===
-  static const String baseUrl = 'http://100.77.57.121:8000/api';
+  static const String baseUrl = 'http://100.123.248.104:8000/api';
   // ========================================
   late final Dio _dio;
 
@@ -28,6 +28,7 @@ class ApiService {
       onRequest: (options, handler) async {
         if (options.headers['Authorization'] == null) {
           final prefs = await SharedPreferences.getInstance();
+          
           final token = prefs.getString('auth_token');
           if (token != null) {
             options.headers['Authorization'] = 'Bearer $token';
@@ -178,7 +179,7 @@ class ApiService {
     } catch (e) {
       print('Failed to load categories: $e');
       return [];
-    }
+    }  
   }
 
   Future<List<Product>> getProducts({int? categoryId, String? search}) async {

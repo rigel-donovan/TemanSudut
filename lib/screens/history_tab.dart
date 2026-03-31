@@ -8,8 +8,6 @@ import '../widgets/popup_notification.dart';
 import '../utils/app_format.dart';
 import '../widgets/dio_network_image.dart';
 import '../services/printer_service.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 
 class HistoryTab extends StatefulWidget {
   const HistoryTab({Key? key}) : super(key: key);

@@ -5,8 +5,6 @@ import '../widgets/popup_notification.dart';
 import '../utils/app_format.dart';
 import '../widgets/slide_to_finish.dart';
 import '../services/api_service.dart';
-import 'dart:io';
-import 'dart:typed_data';
 import '../widgets/camera_dialog.dart';
 import 'package:camera/camera.dart';
 
@@ -125,6 +123,50 @@ class OrdersTab extends StatelessWidget {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: 8),
+                                  // Extra Charge Button
+                                  InkWell(
+                                    onTap: () => _showExtraChargeDialog(context, cart, item),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: item.extraCharge > 0 ? Colors.orange[50] : Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: item.extraCharge > 0 ? Colors.orange[300]! : Colors.grey[200]!),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.add_circle_outline, size: 16, color: Colors.orange[700]),
+                                          SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(
+                                              item.extraCharge > 0
+                                                  ? '${item.extraChargeLabel ?? "Extra"}: +${AppFormat.currency(item.extraCharge)}'
+                                                  : 'Tambah Ekstra Biaya',
+                                              style: TextStyle(
+                                                color: item.extraCharge > 0 ? Colors.orange[800] : Colors.grey[600],
+                                                fontSize: 12,
+                                                fontWeight: item.extraCharge > 0 ? FontWeight.w600 : FontWeight.normal,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          if (item.extraCharge > 0) ...[
+                                            SizedBox(width: 4),
+                                            GestureDetector(
+                                              onTap: () {
+                                                cart.updateExtraCharge(item, 0, label: null);
+                                              },
+                                              child: Icon(Icons.close, size: 14, color: Colors.orange[700]),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                     ),
@@ -262,6 +304,7 @@ class OrdersTab extends StatelessWidget {
                         onSlideSuccess: () {
                           if (cart.items.isEmpty) return;
                           final nameController = TextEditingController(text: cart.customerName);
+                          final tableController = TextEditingController();
                           final outerContext = context;
                           String selectedPayment = 'cash'; // default
                           double amountReceived = 0;
@@ -304,23 +347,65 @@ class OrdersTab extends StatelessWidget {
                                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                         const SizedBox(height: 20),
 
-                                        // Customer Name
-                                        const Text('Nama Pelanggan',
-                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
-                                        const SizedBox(height: 8),
-                                        TextField(
-                                          controller: nameController,
-                                          decoration: InputDecoration(
-                                            hintText: 'Opsional (Default: Tamu)',
-                                            prefixIcon: const Icon(Icons.person_outline, size: 18),
-                                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                            border: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(12),
-                                                borderSide: BorderSide(color: Colors.grey[300]!)),
-                                            enabledBorder: OutlineInputBorder(
-                                                borderRadius: BorderRadius.circular(12),
-                                                borderSide: BorderSide(color: Colors.grey[300]!)),
-                                          ),
+                                        // Customer Name & Table Number in a Row
+                                        Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Customer Name
+                                            Expanded(
+                                              flex: 3,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text('Nama Pelanggan',
+                                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                                  const SizedBox(height: 8),
+                                                  TextField(
+                                                    controller: nameController,
+                                                    decoration: InputDecoration(
+                                                      hintText: 'Default: Tamu',
+                                                      prefixIcon: const Icon(Icons.person_outline, size: 18),
+                                                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                      border: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(12),
+                                                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                                                      enabledBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(12),
+                                                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            // Table Number
+                                            Expanded(
+                                              flex: 2,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text('No. Meja',
+                                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                                                  const SizedBox(height: 8),
+                                                  TextField(
+                                                    controller: tableController,
+                                                    keyboardType: TextInputType.number,
+                                                    decoration: InputDecoration(
+                                                      hintText: 'Opsional',
+                                                      prefixIcon: const Icon(Icons.table_bar_outlined, size: 18),
+                                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                                      border: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(12),
+                                                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                                                      enabledBorder: OutlineInputBorder(
+                                                          borderRadius: BorderRadius.circular(12),
+                                                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 20),
 
@@ -537,8 +622,12 @@ class OrdersTab extends StatelessWidget {
                                             onPressed: (selectedPayment == 'cash' && amountReceived < cart.total)
                                                 ? null
                                                 : () async {
-                                                    cart.setCustomerName(
-                                                        nameController.text.isNotEmpty ? nameController.text : 'Tamu');
+                                                    String customerName = nameController.text.isNotEmpty ? nameController.text : 'Tamu';
+                                                    String tableNum = tableController.text.trim();
+                                                    if (tableNum.isNotEmpty) {
+                                                      customerName = '$customerName - Meja $tableNum';
+                                                    }
+                                                    cart.setCustomerName(customerName);
                                                     Navigator.pop(sheetCtx);
 
                                                     bool success = await cart.checkout(
@@ -631,6 +720,137 @@ class OrdersTab extends StatelessWidget {
           ],
         );
       }
+    );
+  }
+
+  void _showExtraChargeDialog(BuildContext context, CartProvider cart, CartItem item) {
+    final labelCtrl = TextEditingController(text: item.extraChargeLabel ?? '');
+    final amountCtrl = TextEditingController(
+      text: item.extraCharge > 0 ? item.extraCharge.toInt().toString() : '',
+    );
+
+    // Preset options for quick selection
+    final presets = [
+      {'label': 'Double Shot', 'amount': 5000},
+      {'label': 'Extra Cheese', 'amount': 5000},
+      {'label': 'Extra Topping', 'amount': 3000},
+      {'label': 'Upsize', 'amount': 5000},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  Icon(Icons.add_circle_outline, color: Colors.orange[700], size: 22),
+                  SizedBox(width: 8),
+                  Text('Ekstra Biaya', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17)),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Pilih cepat:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+                    SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: presets.map((preset) {
+                        final isSelected = labelCtrl.text == preset['label'] && amountCtrl.text == (preset['amount'] as int).toString();
+                        return InkWell(
+                          onTap: () {
+                            setDialogState(() {
+                              labelCtrl.text = preset['label'] as String;
+                              amountCtrl.text = (preset['amount'] as int).toString();
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? Colors.orange[50] : Colors.grey[50],
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isSelected ? Colors.orange[400]! : Colors.grey[300]!,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Column(
+                              children: [
+                                Text(preset['label'] as String, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                                Text('+${AppFormat.currency(preset['amount'])}', style: TextStyle(fontSize: 11, color: Colors.orange[700])),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    SizedBox(height: 20),
+                    Divider(height: 1),
+                    SizedBox(height: 16),
+                    Text('Atau input manual:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+                    SizedBox(height: 10),
+                    TextField(
+                      controller: labelCtrl,
+                      decoration: InputDecoration(
+                        labelText: 'Nama Ekstra',
+                        hintText: 'e.g. Double Shot',
+                        prefixIcon: Icon(Icons.label_outline, size: 18),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      ),
+                      onChanged: (_) => setDialogState(() {}),
+                    ),
+                    SizedBox(height: 12),
+                    TextField(
+                      controller: amountCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Nominal Biaya',
+                        hintText: '5000',
+                        prefixText: 'Rp ',
+                        prefixStyle: TextStyle(fontWeight: FontWeight.bold),
+                        prefixIcon: Icon(Icons.attach_money, size: 18),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+                      ),
+                      onChanged: (_) => setDialogState(() {}),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: Text('Batal', style: TextStyle(color: Colors.grey[600])),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange[700],
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  ),
+                  onPressed: () {
+                    double charge = double.tryParse(amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+                    cart.updateExtraCharge(item, charge, label: labelCtrl.text.isNotEmpty ? labelCtrl.text : null);
+                    Navigator.pop(dialogCtx);
+                  },
+                  child: Text('Simpan', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -8,10 +8,12 @@ class CartItem {
   final Product product;
   int quantity;
   String? notes;
+  double extraCharge;
+  String? extraChargeLabel;
 
-  CartItem({required this.product, this.quantity = 1, this.notes});
+  CartItem({required this.product, this.quantity = 1, this.notes, this.extraCharge = 0, this.extraChargeLabel});
 
-  double get subtotal => product.price * quantity;
+  double get subtotal => (product.price + extraCharge) * quantity;
 }
 
 class CartProvider with ChangeNotifier {
@@ -151,6 +153,12 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void updateExtraCharge(CartItem cartItem, double charge, {String? label}) {
+    cartItem.extraCharge = charge;
+    cartItem.extraChargeLabel = label;
+    notifyListeners();
+  }
+
   void clearCart() {
     _items.clear();
     _selectedTable = null;
@@ -176,10 +184,16 @@ class CartProvider with ChangeNotifier {
       'amount_received': amountReceived,
       'change_amount': changeAmount,
       'items': _items.map((item) {
+        String? finalNotes = item.notes;
+        if (item.extraCharge > 0) {
+          String extraInfo = '[Extra: ${item.extraChargeLabel ?? "Tambahan"} +Rp${item.extraCharge.toInt()}]';
+          finalNotes = finalNotes != null && finalNotes.isNotEmpty ? '$finalNotes | $extraInfo' : extraInfo;
+        }
         return {
           'product_id': item.product.id,
           'quantity': item.quantity,
-          'notes': item.notes,
+          'notes': finalNotes,
+          'extra_charge': item.extraCharge,
         };
       }).toList(),
     };
@@ -188,6 +202,7 @@ class CartProvider with ChangeNotifier {
       bool success = await _apiService.createTransaction(payload, photo: photo);
       if (success) {
         clearCart();
+        await checkShiftStatus();
       }
       return success;
     } catch (e) {
