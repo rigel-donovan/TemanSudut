@@ -94,117 +94,163 @@ class HistoryTabState extends State<HistoryTab> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50], 
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
         elevation: 0,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('History', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-            Text(_filterTitle, style: TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.normal)),
+            Text('Riwayat Transaksi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            Text(_filterTitle, style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.normal)),
           ],
         ),
         centerTitle: false,
         actions: [
-          // Only show export for owners
           if (auth.isOwner)
-            IconButton(icon: Icon(Icons.download, color: Colors.white), onPressed: () => _showDownloadOptions(context)),
-          IconButton(
-            icon: Icon(Icons.calendar_today, color: Colors.white), 
-            onPressed: () => _showFilterOptions(context)
-          ),
-          SizedBox(width: 8),
+            Container(
+              margin: EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Colors.green[50],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: IconButton(
+                icon: Icon(Icons.file_download_outlined, color: Colors.green[700]), 
+                onPressed: () => _showDownloadOptions(context),
+                tooltip: 'Export Laporan',
+              ),
+            ),
         ],
       ),
-      body: _isLoading 
-        ? Center(child: CircularProgressIndicator())
-        : _transactions.isEmpty
-          ? Center(child: Text('Tidak ada riwayat pada periode ini'))
-          : ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: _transactions.length,
-              itemBuilder: (context, index) {
-                final transaction = _transactions[index];
-                return _buildHistoryCard(transaction);
-              },
+      body: Column(
+        children: [
+          // Filter Chips Row
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterChip('Hari Ini', 'daily'),
+                  SizedBox(width: 8),
+                  _buildFilterChip('Minggu Ini', 'weekly'),
+                  SizedBox(width: 8),
+                  _buildFilterChip('Bulan Ini', 'monthly'),
+                  SizedBox(width: 8),
+                  _buildDateFilterChip(),
+                ],
+              ),
             ),
+          ),
+          
+          Expanded(
+            child: _isLoading 
+              ? Center(child: CircularProgressIndicator(color: Colors.black))
+              : _transactions.isEmpty
+                ? _buildEmptyState()
+                : ListView.builder(
+                    padding: EdgeInsets.all(16),
+                    itemCount: _transactions.length,
+                    itemBuilder: (context, index) {
+                      final transaction = _transactions[index];
+                      return _buildHistoryCard(transaction);
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
-  void _showFilterOptions(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: Text('Harian (Daily)'),
-                trailing: _selectedFilter == 'daily' ? Icon(Icons.check) : null,
-                onTap: () {
-                  setState(() => _selectedFilter = 'daily');
-                  Navigator.pop(context);
-                  _fetchHistory();
-                },
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _selectedFilter == value;
+    return ChoiceChip(
+      label: Text(label),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) {
+          setState(() => _selectedFilter = value);
+          _fetchHistory();
+        }
+      },
+      selectedColor: Colors.black,
+      labelStyle: TextStyle(
+        color: isSelected ? Colors.white : Colors.grey[700],
+        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        fontSize: 13,
+      ),
+      backgroundColor: Colors.grey[100],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide(color: isSelected ? Colors.black : Colors.grey[300]!, width: 1),
+    );
+  }
+
+  Widget _buildDateFilterChip() {
+    final isDateFilter = _selectedFilter.startsWith('date:');
+    final label = isDateFilter ? _selectedFilter.substring(5) : 'Pilih Tanggal';
+    
+    return ChoiceChip(
+      avatar: Icon(Icons.calendar_month, size: 16, color: isDateFilter ? Colors.white : Colors.grey[700]),
+      label: Text(label),
+      selected: isDateFilter,
+      onSelected: (selected) async {
+        final DateTime? pickedDate = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime(2020),
+          lastDate: DateTime.now(),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: Colors.black, 
+                  onPrimary: Colors.white, 
+                  onSurface: Colors.black, 
+                ),
               ),
-              ListTile(
-                title: Text('Mingguan (Weekly)'),
-                trailing: _selectedFilter == 'weekly' ? Icon(Icons.check) : null,
-                onTap: () {
-                  setState(() => _selectedFilter = 'weekly');
-                  Navigator.pop(context);
-                  _fetchHistory();
-                },
-              ),
-              ListTile(
-                title: Text('Bulanan (Monthly)'),
-                trailing: _selectedFilter == 'monthly' ? Icon(Icons.check) : null,
-                onTap: () {
-                  setState(() => _selectedFilter = 'monthly');
-                  Navigator.pop(context);
-                  _fetchHistory();
-                },
-              ),
-              ListTile(
-                title: Text('Pilih Tanggal (Specific Date)'),
-                trailing: _selectedFilter.startsWith('date:') ? Icon(Icons.check) : null,
-                onTap: () async {
-                  Navigator.pop(context); // Close bottom sheet
-                  
-                  final DateTime? pickedDate = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime.now(),
-                    builder: (context, child) {
-                      return Theme(
-                        data: Theme.of(context).copyWith(
-                          colorScheme: ColorScheme.light(
-                            primary: Colors.black, // header background color
-                            onPrimary: Colors.white, // header text color
-                            onSurface: Colors.black, // body text color
-                          ),
-                        ),
-                        child: child!,
-                      );
-                    },
-                  );
-                  
-                  if (pickedDate != null) {
-                    final String formattedDate = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-                    setState(() => _selectedFilter = 'date:$formattedDate');
-                    _fetchHistory();
-                  }
-                },
-              ),
-            ],
-          ),
+              child: child!,
+            );
+          },
         );
-      }
+        
+        if (pickedDate != null) {
+          final String formattedDate = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+          setState(() => _selectedFilter = 'date:$formattedDate');
+          _fetchHistory();
+        }
+      },
+      selectedColor: Colors.black,
+      labelStyle: TextStyle(
+        color: isDateFilter ? Colors.white : Colors.grey[700],
+        fontWeight: isDateFilter ? FontWeight.bold : FontWeight.normal,
+        fontSize: 13,
+      ),
+      backgroundColor: Colors.grey[100],
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      side: BorderSide(color: isDateFilter ? Colors.black : Colors.grey[300]!, width: 1),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.receipt_long, size: 64, color: Colors.grey[300]),
+          SizedBox(height: 16),
+          Text(
+            'Tidak Ada Transaksi',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey[800]),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Belum ada riwayat pesanan pada periode ini.',
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+          ),
+        ],
+      ),
     );
   }
 
@@ -220,127 +266,185 @@ class HistoryTabState extends State<HistoryTab> {
     final String photoUrl = ApiService().getImageUrl(transaction['completion_photo']);
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 5))],
-        border: Border.all(color: Colors.grey[200]!)
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04), 
+            blurRadius: 15, 
+            offset: Offset(0, 8)
+          )
+        ],
+        border: Border.all(color: Colors.grey[100]!)
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          // Header Section
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.vertical(top: Radius.circular(12))),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white, 
+              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              border: Border(bottom: BorderSide(color: Colors.grey[100]!))
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(invoice, style: TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.bold)),
+                    SizedBox(height: 2),
+                    Text(date, style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                  ],
+                ),
                 Row(
                   children: [
-                    Text(date, style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                    SizedBox(width: 8),
-                    Text(invoice, style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.bold)),
-                    SizedBox(width: 8),
                     if (transaction['order_type'] != null) ...[
                       Builder(builder: (_) {
                         final type = transaction['order_type'].toString();
-                        final label = type == 'dine_in' ? 'Dine In' : type == 'take_away' ? 'Take Away' : type == 'online' ? 'Online' : type;
-                        final color = type == 'dine_in' ? Colors.blue : type == 'take_away' ? Colors.orange : Colors.green;
+                        String label = type;
+                        MaterialColor color = Colors.grey;
+                        IconData iconData = Icons.receipt;
+
+                        if (type == 'dine_in') {
+                          label = 'Dine In';
+                          color = Colors.blue;
+                          iconData = Icons.restaurant;
+                        } else if (type == 'take_away') {
+                          label = 'Take Away';
+                          color = Colors.orange;
+                          iconData = Icons.takeout_dining;
+                        } else if (type == 'online') {
+                          label = 'Online';
+                          color = Colors.green;
+                          iconData = Icons.moped;
+                        }
+
                         return Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.12),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: color.withOpacity(0.4), width: 1),
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: color.withOpacity(0.2), width: 1),
                           ),
-                          child: Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color[700])),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(iconData, size: 12, color: color[700]),
+                              SizedBox(width: 4),
+                              Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color[700])),
+                            ],
+                          ),
                         );
                       }),
+                      SizedBox(width: 8),
                     ],
-                  ],
-                ),
-                Consumer<AuthProvider>(
-                  builder: (context, auth, _) {
-                    if (auth.can('print_receipt')) {
-                      return IconButton(
-                        icon: Icon(Icons.print, size: 18, color: Colors.blue[600]),
-                        tooltip: 'Cetak Struk',
-                        padding: EdgeInsets.zero,
-                        constraints: BoxConstraints(),
-                        onPressed: () {
-                          showModalBottomSheet(
-                            context: context,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
-                            builder: (context) {
-                              return SafeArea(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Padding(
-                                      padding: const EdgeInsets.all(16.0),
-                                      child: Text('Opsi Cetak Struk', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, _) {
+                        if (auth.can('print_receipt')) {
+                          return GestureDetector(
+                            onTap: () {
+                              showModalBottomSheet(
+                                context: context,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                                builder: (context) {
+                                  return SafeArea(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 24.0, bottom: 16, left: 24, right: 24),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.print, color: Colors.black87),
+                                              SizedBox(width: 12),
+                                              Text('Cetak Struk Transaksi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                                            ],
+                                          ),
+                                        ),
+                                        ListTile(
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                                          leading: Container(
+                                            padding: EdgeInsets.all(8),
+                                            decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(8)),
+                                            child: Icon(Icons.bluetooth, color: Colors.blue[700])
+                                          ),
+                                          title: Text('Printer Thermal (Bluetooth)', style: TextStyle(fontWeight: FontWeight.w600)),
+                                          subtitle: Text('Cetak langsung via bluetooth'),
+                                          onTap: () async {
+                                            final messenger = ScaffoldMessenger.of(context);
+                                            Navigator.pop(context);
+                                            if (await _printerService.isConnected) {
+                                              if (!mounted) return;
+                                              try {
+                                                await _printerService.printReceipt(
+                                                  transaction: transaction, 
+                                                  items: transaction['items'] ?? [], 
+                                                  isHistory: true
+                                                );
+                                                messenger.showSnackBar(SnackBar(content: Text('Mencetak struk...')));
+                                              } catch (e) {
+                                                messenger.showSnackBar(SnackBar(content: Text('Gagal mencetak: $e')));
+                                              }
+                                            } else {
+                                              messenger.showSnackBar(SnackBar(
+                                                content: Text('Printer belum terhubung!'), 
+                                                backgroundColor: Colors.red,
+                                                action: SnackBarAction(label: 'Settings', textColor: Colors.white, onPressed: () {
+                                                  Navigator.pushNamed(context, '/printer_settings');
+                                                }),
+                                              ));
+                                            }
+                                          },
+                                        ),
+                                        ListTile(
+                                          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                                          leading: Container(
+                                            padding: EdgeInsets.all(8),
+                                            decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)),
+                                            child: Icon(Icons.picture_as_pdf, color: Colors.red[700])
+                                          ),
+                                          title: Text('Simpan PDF (80mm)', style: TextStyle(fontWeight: FontWeight.w600)),
+                                          subtitle: Text('Download format PDF'),
+                                          onTap: () async {
+                                            final messenger = ScaffoldMessenger.of(context);
+                                            Navigator.pop(context);
+                                            try {
+                                              await _printerService.downloadReceiptPdf(transaction['id']);
+                                              messenger.showSnackBar(SnackBar(content: Text('Membuka struk PDF...')));
+                                            } catch (e) {
+                                              messenger.showSnackBar(SnackBar(content: Text('Gagal membuat PDF: $e'), backgroundColor: Colors.red));
+                                            }
+                                          },
+                                        ),
+                                        SizedBox(height: 16),
+                                      ],
                                     ),
-                                    ListTile(
-                                      leading: Icon(Icons.bluetooth, color: Colors.blue),
-                                      title: Text('Cetak Struk (Bluetooth)'),
-                                      subtitle: Text('Direct ke printer thermal bluetooth'),
-                                      onTap: () async {
-                                        final messenger = ScaffoldMessenger.of(context);
-                                        Navigator.pop(context);
-                                        if (await _printerService.isConnected) {
-                                          if (!mounted) return;
-                                          try {
-                                            await _printerService.printReceipt(
-                                              transaction: transaction, 
-                                              items: transaction['items'] ?? [], 
-                                              isHistory: true
-                                            );
-                                            messenger.showSnackBar(SnackBar(content: Text('Mencetak struk (Bluetooth)...')));
-                                          } catch (e) {
-                                            messenger.showSnackBar(SnackBar(content: Text('Gagal mencetak: $e')));
-                                          }
-                                        } else {
-                                          messenger.showSnackBar(SnackBar(
-                                            content: Text('Printer belum terhubung!'), 
-                                            backgroundColor: Colors.red,
-                                            action: SnackBarAction(label: 'Settings', textColor: Colors.white, onPressed: () {
-                                              Navigator.pushNamed(context, '/printer_settings');
-                                            }),
-                                          ));
-                                        }
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: Icon(Icons.picture_as_pdf, color: Colors.red),
-                                      title: Text('Cetak Struk (PDF 80mm)'),
-                                      subtitle: Text('Format PDF untuk printer kasir meja'),
-                                      onTap: () async {
-                                        final messenger = ScaffoldMessenger.of(context);
-                                        Navigator.pop(context);
-                                        try {
-                                          await _printerService.downloadReceiptPdf(transaction['id']);
-                                          messenger.showSnackBar(SnackBar(content: Text('Membuka struk PDF...')));
-                                        } catch (e) {
-                                          messenger.showSnackBar(SnackBar(content: Text('Gagal membuat PDF: $e'), backgroundColor: Colors.red));
-                                        }
-                                      },
-                                    ),
-                                    SizedBox(height: 8),
-                                  ],
-                                ),
+                                  );
+                                }
                               );
-                            }
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+                              child: Icon(Icons.print, size: 16, color: Colors.grey[700]),
+                            ),
                           );
-                        },
-                      );
-                    }
-                    return SizedBox.shrink();
-                  },
+                        }
+                        return SizedBox.shrink();
+                      },
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
+          
+          // Info Grid
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
@@ -348,69 +452,80 @@ class HistoryTabState extends State<HistoryTab> {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(border: Border.all(color: Colors.grey[300]!), borderRadius: BorderRadius.circular(8)),
-                      child: Text('1', style: TextStyle(fontWeight: FontWeight.bold)), 
-                    ),
-                    SizedBox(width: 16),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          Text('Pelanggan', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                          SizedBox(height: 2),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Flexible(child: Text('Customer', style: TextStyle(color: Colors.grey, fontSize: 12))),
-                              Flexible(child: Text(customer, style: TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis)),
+                              Icon(Icons.person, size: 12, color: Colors.black54),
+                              SizedBox(width: 4),
+                              Flexible(child: Text(customer, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
                             ],
                           ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Kasir', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                          SizedBox(height: 2),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Flexible(child: Text('Kasir', style: TextStyle(color: Colors.grey, fontSize: 12))),
-                              Flexible(child: Text(cashier, style: TextStyle(fontWeight: FontWeight.bold, color: Colors.indigo), overflow: TextOverflow.ellipsis)),
+                              Icon(Icons.badge, size: 12, color: Colors.indigo[400]),
+                              SizedBox(width: 4),
+                              Flexible(child: Text(cashier, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.indigo[700]), overflow: TextOverflow.ellipsis)),
                             ],
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Items', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                              Text('$itemsCount item', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Pembayaran', style: TextStyle(color: Colors.grey, fontSize: 12)),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.green[50],
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: Colors.green[200]!),
-                                ),
-                                child: Text(paymentMethod, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.green[700])),
-                              ),
-                            ],
-                          ),
-                        ]
+                        ],
                       ),
                     ),
                   ],
                 ),
+                SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Jumlah Item', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                          SizedBox(height: 2),
+                          Text('$itemsCount item', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Pembayaran', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
+                          SizedBox(height: 2),
+                          Text(paymentMethod, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green[700])),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                SizedBox(height: 16),
+                Divider(color: Colors.grey[200], thickness: 1, height: 1),
                 SizedBox(height: 16),
                 
                 // Item List inside History
                 ...(transaction['items'] as List).map((item) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 8.0),
+                    padding: const EdgeInsets.only(bottom: 12.0),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 40, height: 40, 
-                          decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(8)),
+                          width: 42, height: 42, 
+                          decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(10)),
                           clipBehavior: Clip.antiAlias,
                           child: item['product'] != null && item['product']['image'] != null
                             ? Image.network(
@@ -428,28 +543,27 @@ class HistoryTabState extends State<HistoryTab> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Flexible(child: Text(item['product'] != null ? item['product']['name'] : 'Item', style: TextStyle(fontWeight: FontWeight.bold))),
-                                  Text('X${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold)),
+                                  Flexible(child: Text(item['product'] != null ? item['product']['name'] : 'Item', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                                  Text('x${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                 ],
                               ),
                               if (item['notes'] != null && item['notes'].toString().isNotEmpty)
                                 Container(
                                   margin: const EdgeInsets.only(top: 4),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
                                     color: Colors.amber[50],
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: Colors.amber[100]!),
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(Icons.edit_note, size: 14, color: Colors.amber[800]),
+                                      Icon(Icons.edit_note, size: 12, color: Colors.amber[800]),
                                       const SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
                                           item['notes'],
-                                          style: TextStyle(fontSize: 11, color: Colors.amber[900], fontWeight: FontWeight.w500),
+                                          style: TextStyle(fontSize: 10, color: Colors.amber[900], fontStyle: FontStyle.italic),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -457,10 +571,8 @@ class HistoryTabState extends State<HistoryTab> {
                                     ],
                                   ),
                                 ),
-                              Align(
-                                alignment: Alignment.centerRight,
-                                child: Text(AppFormat.currency(item['subtotal']), style: TextStyle(color: Colors.green[600], fontWeight: FontWeight.bold)),
-                              ),
+                              SizedBox(height: 2),
+                              Text(AppFormat.currency(item['subtotal']), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                             ],
                           ),
                         ),
@@ -469,14 +581,21 @@ class HistoryTabState extends State<HistoryTab> {
                   );
                 }).toList(),
 
-                Divider(height: 32),
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold)),
-                    Text(AppFormat.currency(total), style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[600])),
-                  ],
+                SizedBox(height: 8),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!)
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Total Pembayaran', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
+                      Text(AppFormat.currency(total), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green[700])),
+                    ],
+                  ),
                 ),
 
                 // Completion Photo (if exists)

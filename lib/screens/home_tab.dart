@@ -26,254 +26,307 @@ class _HomeTabState extends State<HomeTab> {
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
       builder: (context, cart, child) {
-        return CustomScrollView(
-          slivers: [
-            // Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (!_isSearching)
+        return Scaffold(
+          backgroundColor: Colors.grey[50], 
+          body: CustomScrollView(
+            slivers: [
+              // Header Section
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 48, bottom: 16),
+                  child: Column(
+                    children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Container(
-                            padding: EdgeInsets.all(2),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.grey[200]!, width: 1),
-                            ),
-                            child: ClipOval(
-                              child: Image.asset('res/logo.png', width: 32, height: 32, fit: BoxFit.cover),
-                            ),
+                          Row(
+                            children: [
+                              Container(
+                                padding: EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.grey[300]!, width: 1),
+                                ),
+                                child: ClipOval(
+                                  child: Image.asset('res/logo.png', width: 36, height: 36, fit: BoxFit.cover),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text('TemanSudut', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                            ],
                           ),
-                          SizedBox(width: 12),
-                          Text('TemanSudut', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                          if (cart.isShiftOpen && Provider.of<AuthProvider>(context, listen: false).can('open_shift'))
+                            InkWell(
+                              onTap: () => _showCloseShiftDialog(context, cart),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.red[50],
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: Colors.red[100]!),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.lock_outline, size: 14, color: Colors.red[700]),
+                                    SizedBox(width: 4),
+                                    Text('Tutup Kasir', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700])),
+                                  ],
+                                ),
+                              ),
+                            ),
                         ],
                       ),
-                    _isSearching 
-                      ? Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(left: 16.0),
-                            child: TextField(
-                              
-                              controller: _searchController,
-                              autofocus: true,
-                              decoration: InputDecoration(
-                                hintText: 'Cari produk...',
-                                prefixIcon: Icon(Icons.search, size: 20),
-                                suffixIcon: IconButton(
-                                  icon: Icon(Icons.close, size: 20),
-                                  onPressed: () {
-                                    setState(() {
-                                      _isSearching = false;
-                                      _searchController.clear();
-                                      cart.setSearchQuery('');
-                                    });
-                                  },
-                                ),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),
-                              ),
-                              onChanged: (value) {
-                                cart.setSearchQuery(value);
-                              },
-                            ),
-                          ),
-                        )
-                      : Row(
-                          children: [
-                            if (cart.isShiftOpen && Provider.of<AuthProvider>(context, listen: false).can('open_shift'))
-                              ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red[50],
-                                  foregroundColor: Colors.red[700],
-                                  elevation: 0,
-                                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                ),
-                                icon: Icon(Icons.lock_outline, size: 18),
-                                label: Text('Tutup Kasir', style: TextStyle(fontWeight: FontWeight.bold)),
-                                onPressed: () => _showCloseShiftDialog(context, cart),
-                              ),
-                            SizedBox(width: 16),
-                            IconButton(
-                              icon: Icon(Icons.search, size: 28),
-                              onPressed: () {
-                                setState(() {
-                                  _isSearching = true;
-                                });
-                              },
-                            ),
-                          ]
+                      SizedBox(height: 20),
+                      // Persistent Search Bar
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))],
+                          border: Border.all(color: Colors.grey[200]!)
                         ),
-                  ],
-                ),
-              ),
-            ),
-            
-            // Categories
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('| Category', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.bold)),
-                    SizedBox(height: 12),
-                    SizedBox(
-                      height: 50,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _buildCategoryItem(
-                            'All', '', Icons.apps, cart.selectedCategory == null, 
-                            () => cart.filterByCategory(null),
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            hintText: 'Cari produk favoritmu...',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(Icons.close, size: 20, color: Colors.grey[600]),
+                                    onPressed: () {
+                                      setState(() {
+                                        _searchController.clear();
+                                        cart.setSearchQuery('');
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                           ),
-                          ...cart.categories.map((cat) {
-                            return Padding(
-                              padding: const EdgeInsets.only(left: 12.0),
-                              child: _buildCategoryItem(
-                                cat.name, 
-                                '', 
-                                Icons.fastfood_outlined,
-                                cart.selectedCategory?.id == cat.id,
-                                () => cart.filterByCategory(cat),
-                              ),
-                            );
-                          }).toList(),
-                        ],
+                          onChanged: (value) {
+                            setState(() {});
+                            cart.setSearchQuery(value);
+                          },
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 24),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            
-            // Products List Header
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8),
-                child: Text('| Products List', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.bold)),
+              
+              // Categories Section
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Kategori', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)),
+                      SizedBox(height: 12),
+                      SizedBox(
+                        height: 44, // Slightly slimmer pills
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          clipBehavior: Clip.none,
+                          children: [
+                            _buildCategoryItem(
+                              'Semua', Icons.apps, cart.selectedCategory == null, 
+                              () => cart.filterByCategory(null),
+                            ),
+                            ...cart.categories.map((cat) {
+                              return Padding(
+                                padding: const EdgeInsets.only(left: 10.0),
+                                child: _buildCategoryItem(
+                                  cat.name, 
+                                  Icons.fastfood,
+                                  cart.selectedCategory?.id == cat.id,
+                                  () => cart.filterByCategory(cat),
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 24),
+                    ],
+                  ),
+                ),
               ),
-            ),
-            
-            // Products Grid
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-              sliver: cart.availableProducts.isEmpty
-                  ? SliverToBoxAdapter(child: Center(child: CircularProgressIndicator(color: Colors.black)))
-                  : SliverGrid(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: MediaQuery.of(context).size.width > 800 ? 5 : (MediaQuery.of(context).size.width > 600 ? 4 : 2),
-                        childAspectRatio: 0.75,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
+              
+              // Products Section
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                sliver: cart.availableProducts.isEmpty
+                    ? SliverToBoxAdapter(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 40.0),
+                            child: Column(
+                              children: [
+                                _searchController.text.isNotEmpty 
+                                    ? Icon(Icons.search_off, size: 48, color: Colors.grey[300])
+                                    : CircularProgressIndicator(color: Colors.black),
+                                SizedBox(height: 16),
+                                Text(
+                                  _searchController.text.isNotEmpty ? 'Produk tidak ditemukan' : 'Memuat produk...',
+                                  style: TextStyle(color: Colors.grey[500]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                    : SliverGrid(
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: MediaQuery.of(context).size.width > 800 ? 5 : (MediaQuery.of(context).size.width > 600 ? 4 : 2),
+                          childAspectRatio: 0.72,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final product = cart.availableProducts[index];
+                            return _buildProductCard(context, cart, product);
+                          },
+                          childCount: cart.availableProducts.length,
+                        ),
                       ),
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final product = cart.availableProducts[index];
-                          return _buildProductCard(context, cart, product);
-                        },
-                        childCount: cart.availableProducts.length,
-                      ),
-                    ),
-            ),
-            
-            SliverToBoxAdapter(child: SizedBox(height: 100)),
-          ],
+              ),
+              
+              SliverToBoxAdapter(child: SizedBox(height: 120)),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildCategoryItem(String title, String subtitle, IconData icon, bool isSelected, VoidCallback onTap) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isSelected ? Colors.white : Colors.transparent,
-        border: Border.all(color: isSelected ? Colors.grey[300]! : Colors.transparent),
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: isSelected ? [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0,2))] : [],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: isSelected ? Colors.black : Colors.grey, size: 20),
-                SizedBox(width: 8),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min, // prevent overflow
-                  children: [
-                    Text(title, style: TextStyle(fontWeight: FontWeight.bold, color: isSelected ? Colors.black : Colors.grey)),
-                    if (subtitle.isNotEmpty) Text(subtitle, style: TextStyle(fontSize: 10, color: Colors.grey)),
-                  ],
-                )
-              ],
-            ),
-          ),
-        ),
-      ),
+  Widget _buildCategoryItem(String title, IconData icon, bool isSelected, VoidCallback onTap) {
+    return FilterChip(
+      label: Text(title, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 13)),
+      selected: isSelected,
+      onSelected: (_) => onTap(),
+      backgroundColor: Colors.white,
+      selectedColor: Colors.black,
+      showCheckmark: false,
+      elevation: isSelected ? 4 : 0,
+      shadowColor: Colors.black26,
+      side: BorderSide(color: isSelected ? Colors.transparent : Colors.grey[300]!),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     );
   }
 
   Widget _buildProductCard(BuildContext context, CartProvider cart, Product product) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(16),
-            ),
-            width: double.infinity,
-            clipBehavior: Clip.antiAlias,
-            child: product.image != null && product.image!.isNotEmpty
-              ? Image.network(
-                  ApiService().getImageUrl(product.image),
-                  fit: BoxFit.cover,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(child: CircularProgressIndicator(color: Colors.black12, strokeWidth: 2));
-                  },
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(Icons.broken_image_outlined, size: 40, color: Colors.black12);
-                  },
-                )
-              : Icon(Icons.fastfood, size: 50, color: Colors.black26),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 6))
+        ],
+        border: Border.all(color: Colors.grey[100]!)
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Edge-to-edge image
+              Expanded(
+                flex: 3,
+                child: Container(
+                  color: Colors.grey[100],
+                  child: product.image != null && product.image!.isNotEmpty
+                    ? Image.network(
+                        ApiService().getImageUrl(product.image),
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(child: CircularProgressIndicator(color: Colors.black12, strokeWidth: 2));
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(Icons.broken_image_outlined, size: 40, color: Colors.black12);
+                        },
+                      )
+                    : Icon(Icons.fastfood, size: 50, color: Colors.black26),
+                ),
+              ),
+              // Content
+              Expanded(
+                flex: 2,
+                child: Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(product.name, 
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87), 
+                        maxLines: 2, 
+                        overflow: TextOverflow.ellipsis
+                      ),
+                      Text(AppFormat.currency(product.price), 
+                        style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w800, fontSize: 13)
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        SizedBox(height: 8),
-        Text(product.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-        SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(AppFormat.currency(product.price), style: TextStyle(color: Colors.green[600], fontWeight: FontWeight.bold)),
-            InkWell(
-              onTap: () {
-                cart.addToCart(product);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${product.name} ditambahkan'), duration: Duration(seconds: 1)));
-              },
-              child: Container(
-                padding: EdgeInsets.all(4),
-                decoration: BoxDecoration(color: Colors.black, shape: BoxShape.circle),
-                child: Icon(Icons.add, color: Colors.white, size: 16),
+          
+          // Add Button positioned bottom right
+          Positioned(
+            bottom: 8,
+            right: 8,
+            child: Material(
+              color: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: () {
+                  cart.addToCart(product);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${product.name} tertambah', style: TextStyle(fontWeight: FontWeight.bold)), 
+                      duration: Duration(seconds: 1),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    )
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Icon(Icons.add, color: Colors.white, size: 18),
+                ),
               ),
             ),
-          ],
-        )
-      ],
+          ),
+          
+          // Stock Badge if low/empty
+          if (product.stock <= 5)
+            Positioned(
+              top: 8, left: 8,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: product.stock == 0 ? Colors.red : Colors.orange,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  product.stock == 0 ? 'Habis' : 'Sisa ${product.stock}',
+                  style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                ),
+              ),
+            )
+        ],
+      ),
     );
   }
 

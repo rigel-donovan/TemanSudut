@@ -24,6 +24,7 @@ class TransactionController extends Controller
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.notes' => 'nullable|string',
+            'items.*.extra_charge' => 'nullable|numeric',
             'amount_received' => 'nullable|numeric',
             'change_amount' => 'nullable|numeric',
             'completion_photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
@@ -38,7 +39,8 @@ class TransactionController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $product = Product::find($item['product_id']);
-                $itemSubtotal = $product->price * $item['quantity'];
+                $extraCharge = floatval($item['extra_charge'] ?? 0);
+                $itemSubtotal = ($product->price + $extraCharge) * $item['quantity'];
                 $subtotal += $itemSubtotal;
 
                 if ($product->stock >= $item['quantity']) {
@@ -51,6 +53,7 @@ class TransactionController extends Controller
                     'unit_price' => $product->price,
                     'subtotal' => $itemSubtotal,
                     'notes' => $item['notes'] ?? null,
+                    'extra_charge' => $extraCharge,
                 ];
             }
 
