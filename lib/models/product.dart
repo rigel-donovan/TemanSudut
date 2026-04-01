@@ -36,4 +36,16 @@ class Product {
       category: json['category'] != null ? Category.fromJson(json['category']) : null,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'category_id': categoryId,
+    'name': name,
+    'description': description,
+    'price': price,
+    'stock': stock,
+    'is_active': isActive,
+    'image': image,
+    'category': category?.toJson(),
+  };
 }

@@ -54,6 +54,15 @@
 
     <div class="meta-info">
         <table style="width: 100%;">
+            @php
+                $custName = $transaction->customer_name ?? 'Guest';
+                $tableNum = '-';
+                if (str_contains($custName, ' - Meja ')) {
+                    $parts = explode(' - Meja ', $custName);
+                    $custName = $parts[0];
+                    $tableNum = $parts[1];
+                }
+            @endphp
             <tr>
                 <td>No. INV:</td>
                 <td class="text-right">#{{ $transaction->id }}</td>
@@ -72,7 +81,11 @@
             </tr>
             <tr>
                 <td>Pelanggan:</td>
-                <td class="text-right">{{ $transaction->customer_name ?? 'Guest' }}</td>
+                <td class="text-right">{{ $custName }}</td>
+            </tr>
+            <tr>
+                <td>Meja:</td>
+                <td class="text-right">{{ $tableNum }}</td>
             </tr>
         </table>
     </div>
@@ -87,6 +100,11 @@
                 <div class="item-details">
                     {{ $item->quantity }} x {{ number_format($item->unit_price, 0, ',', '.') }}
                 </div>
+                @if($item->extra_charge > 0)
+                <div class="item-details" style="font-style: italic; color: #555;">
+                    + Extra: {{ number_format($item->extra_charge, 0, ',', '.') }} / item
+                </div>
+                @endif
             </td>
             <td class="text-right" style="vertical-align: bottom;">
                 Rp {{ number_format($item->subtotal, 0, ',', '.') }}

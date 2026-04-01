@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/popup_notification.dart';
 import '../utils/app_format.dart';
-import '../widgets/dio_network_image.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/printer_service.dart';
 
 class HistoryTab extends StatefulWidget {
@@ -43,10 +43,15 @@ class HistoryTabState extends State<HistoryTab> {
 
   Future<void> _fetchHistory() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
-    _transactions = await _apiService.getHistory(_selectedFilter);
+    if (_transactions.isEmpty) {
+      setState(() => _isLoading = true);
+    }
+    final data = await _apiService.getHistory(_selectedFilter);
     if (!mounted) return;
-    setState(() => _isLoading = false);
+    setState(() {
+      _transactions = data;
+      _isLoading = false;
+    });
   }
 
   Future<void> _downloadFile(String format) async {
@@ -620,11 +625,11 @@ class HistoryTabState extends State<HistoryTab> {
                           child: Stack(
                             children: [
                               Center(
-                                child: DioNetworkImage(
-                                  url: photoUrl,
+                                child: CachedNetworkImage(
+                                  imageUrl: photoUrl,
                                   fit: BoxFit.contain,
-                                  loadingWidget: const Center(child: CircularProgressIndicator(color: Colors.white)),
-                                  errorWidget: Column(
+                                  placeholder: (context, url) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                                  errorWidget: (context, url, error) => Column(
                                     mainAxisSize: MainAxisSize.min,
                                     children: const [
                                       Icon(Icons.broken_image, color: Colors.white, size: 60),
@@ -649,17 +654,17 @@ class HistoryTabState extends State<HistoryTab> {
                     },
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(10),
-                      child: DioNetworkImage(
-                        url: photoUrl,
+                      child: CachedNetworkImage(
+                        imageUrl: photoUrl,
                         height: 120,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        loadingWidget: Container(
+                        placeholder: (context, url) => Container(
                           height: 120,
                           color: Colors.grey[200],
                           child: const Center(child: CircularProgressIndicator()),
                         ),
-                        errorWidget: Container(
+                        errorWidget: (context, url, error) => Container(
                           height: 80,
                           color: Colors.grey[200],
                           child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),

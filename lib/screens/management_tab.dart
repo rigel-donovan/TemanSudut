@@ -126,7 +126,9 @@ class _StockManagementViewState extends State<_StockManagementView> {
 
   Future<void> _fetchProducts() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    if (_products.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     try {
       final products = await _apiService.getProducts();
       if (!mounted) return;
@@ -317,7 +319,9 @@ class _RawMaterialsViewState extends State<_RawMaterialsView> {
 
   Future<void> _fetchMaterials() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    if (_materials.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     try {
       final materials = await _apiService.getRawMaterials();
       if (!mounted) return;

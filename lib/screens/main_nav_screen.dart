@@ -268,7 +268,10 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 body: Stack(
                   children: [
                     SafeArea(
-                      child: _pages[_selectedIndex],
+                      child: IndexedStack(
+                        index: _selectedIndex,
+                        children: _pages,
+                      ),
                     ),
                     if (_isSidebarMinimized)
                       Positioned(
@@ -358,7 +361,10 @@ class _MainNavScreenState extends State<MainNavScreen> {
       backgroundColor: Colors.white,
       drawer: CustomDrawer(),
       body: SafeArea(
-        child: _pages[_selectedIndex],
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: _pages,
+        ),
       ),
       bottomNavigationBar: _buildBottomNav(),
     );

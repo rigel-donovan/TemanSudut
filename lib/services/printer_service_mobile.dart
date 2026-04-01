@@ -101,26 +101,43 @@ class PrinterServiceMobile implements PrinterService {
       PosColumn(text: 'Tgl: ${transaction['created_at'].toString().substring(0, 10)}', width: 6),
       PosColumn(text: 'Jam: ${transaction['created_at'].toString().substring(11, 16)}', width: 6, styles: PosStyles(align: PosAlign.right)),
     ]);
+    String custName = transaction['customer_name'] ?? 'Guest';
+    String tableNum = '-';
+    if (custName.contains(' - Meja ')) {
+      final parts = custName.split(' - Meja ');
+      custName = parts[0];
+      tableNum = parts[1];
+    }
+
     bytes += generator.row([
       PosColumn(text: 'No: INV-${transaction['id']}', width: 6),
       PosColumn(text: 'Kasir: ${transaction['user']?['name'] ?? 'Staff'}', width: 6, styles: PosStyles(align: PosAlign.right)),
     ]);
-    bytes += generator.text('Pelanggan: ${transaction['customer_name'] ?? 'Guest'}');
+    bytes += generator.text('Pelanggan: $custName');
+    bytes += generator.text('Meja: $tableNum');
     
     bytes += generator.hr();
 
-    // Items List - More professional row alignment
+    // Items List 
     for (var item in items) {
       String name = item['product']['name'];
       int qty = int.tryParse(item['quantity'].toString()) ?? 1;
       double price = double.tryParse(item['unit_price'].toString()) ?? 0;
       double subtotal = double.tryParse(item['subtotal'].toString()) ?? (price * qty);
+      double extraCharge = double.tryParse(item['extra_charge']?.toString() ?? '0') ?? 0;
 
       bytes += generator.text(name, styles: PosStyles(bold: true));
       bytes += generator.row([
         PosColumn(text: '  $qty x ${AppFormat.currency(price)}', width: 7),
         PosColumn(text: AppFormat.currency(subtotal), width: 5, styles: PosStyles(align: PosAlign.right)),
       ]);
+      
+      if (extraCharge > 0) {
+        bytes += generator.row([
+          PosColumn(text: '  + Extra: ${AppFormat.currency(extraCharge)}/item', width: 8),
+          PosColumn(text: '', width: 4),
+        ]);
+      }
     }
 
     bytes += generator.hr();

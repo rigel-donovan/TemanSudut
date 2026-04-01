@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/cart_provider.dart';
 import '../models/product.dart';
 import '../utils/app_format.dart';
@@ -28,7 +29,10 @@ class _HomeTabState extends State<HomeTab> {
       builder: (context, cart, child) {
         return Scaffold(
           backgroundColor: Colors.grey[50], 
-          body: CustomScrollView(
+          body: RefreshIndicator(
+            color: Colors.black,
+            onRefresh: () => cart.refreshProducts(),
+            child: CustomScrollView(
             slivers: [
               // Header Section
               SliverToBoxAdapter(
@@ -200,6 +204,7 @@ class _HomeTabState extends State<HomeTab> {
               SliverToBoxAdapter(child: SizedBox(height: 120)),
             ],
           ),
+          ),
         );
       },
     );
@@ -243,16 +248,11 @@ class _HomeTabState extends State<HomeTab> {
                 child: Container(
                   color: Colors.grey[100],
                   child: product.image != null && product.image!.isNotEmpty
-                    ? Image.network(
-                        ApiService().getImageUrl(product.image),
+                    ? CachedNetworkImage(
+                        imageUrl: ApiService().getImageUrl(product.image),
                         fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(child: CircularProgressIndicator(color: Colors.black12, strokeWidth: 2));
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Icon(Icons.broken_image_outlined, size: 40, color: Colors.black12);
-                        },
+                        placeholder: (context, url) => Center(child: CircularProgressIndicator(color: Colors.black12, strokeWidth: 2)),
+                        errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 40, color: Colors.black12),
                       )
                     : Icon(Icons.fastfood, size: 50, color: Colors.black26),
                 ),

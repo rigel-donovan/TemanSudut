@@ -3,6 +3,7 @@ import '../models/product.dart';
 import '../models/table_model.dart';
 import '../models/category.dart';
 import '../services/api_service.dart';
+import '../services/cache_service.dart';
 
 class CartItem {
   final Product product;
@@ -76,25 +77,66 @@ class CartProvider with ChangeNotifier {
   bool get isLoadingShift => _isLoadingShift;
   Map<String, dynamic>? get currentShift => _currentShift;
 
+  // All products
+  List<Product> _allProducts = [];
+
   Future<void> filterByCategory(Category? category) async {
     _selectedCategory = category;
-    _fetchProducts();
+    _applyFilter();
   }
 
   Future<void> setSearchQuery(String query) async {
     _searchQuery = query;
-    _fetchProducts();
+    _applyFilter();
   }
 
-  Future<void> _fetchProducts() async {
-    if (_categories.isEmpty) {
-      _categories = await _apiService.getCategories();
+  // Apply category + search filter locally (no network call)
+  void _applyFilter() {
+    List<Product> result = _allProducts;
+    if (_selectedCategory != null) {
+      result = result.where((p) => p.categoryId == _selectedCategory!.id).toList();
     }
-    _availableProducts = await _apiService.getProducts(
-      categoryId: _selectedCategory?.id,
-      search: _searchQuery,
-    );
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      result = result.where((p) => p.name.toLowerCase().contains(q)).toList();
+    }
+    _availableProducts = result;
     notifyListeners();
+  }
+
+  /// Initial load: use cache if valid, otherwise fetch and store in cache.
+  Future<void> _fetchProducts() async {
+    // ── Categories ──────────────────────────────────────────────────────────
+    if (_categories.isEmpty) {
+      final cachedCats = await CacheService.getCategories();
+      if (cachedCats != null) {
+        _categories = cachedCats.map((j) => Category.fromJson(j)).toList();
+      } else {
+        _categories = await _apiService.getCategories();
+        await CacheService.saveCategories(_categories.map((c) => c.toJson()).toList());
+      }
+    }
+
+    // ── Products (all, unfiltered) ───────────────────────────────────────────
+    if (_allProducts.isEmpty) {
+      final cachedProds = await CacheService.getProducts();
+      if (cachedProds != null) {
+        _allProducts = cachedProds.map((j) => Product.fromJson(j)).toList();
+      } else {
+        _allProducts = await _apiService.getProducts();
+        await CacheService.saveProducts(_allProducts.map((p) => p.toJson()).toList());
+      }
+    }
+
+    _applyFilter();
+  }
+
+  /// Force refresh from network (e.g. after admin edits a product).
+  Future<void> refreshProducts() async {
+    await CacheService.invalidateAll();
+    _allProducts = [];
+    _categories = [];
+    await _fetchProducts();
   }
 
   List<CartItem> get items => _items;

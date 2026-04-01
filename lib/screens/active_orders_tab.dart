@@ -36,7 +36,9 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
 
   Future<void> _fetchActiveOrders() async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
+    if (_activeOrders.isEmpty) {
+      setState(() => _isLoading = true);
+    }
     final orders = await _apiService.getActiveOrders();
     if (!mounted) return;
     setState(() {
