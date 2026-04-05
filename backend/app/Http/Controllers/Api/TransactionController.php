@@ -34,11 +34,15 @@ class TransactionController extends Controller
         try {
             DB::beginTransaction();
 
+            // ── Fix N+1: Load all products in ONE query ──────────────────────
+            $productIds = array_column($validated['items'], 'product_id');
+            $productMap = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
             $subtotal = 0;
             $items = [];
 
             foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
+                $product = $productMap[$item['product_id']];
                 $extraCharge = floatval($item['extra_charge'] ?? 0);
                 $itemSubtotal = ($product->price + $extraCharge) * $item['quantity'];
                 $subtotal += $itemSubtotal;
@@ -76,18 +80,11 @@ class TransactionController extends Controller
             ]);
 
             // Handle Photo Saving
-            \Log::info('Transaction Store - Photo Check', [
-                'has_file' => $request->hasFile('completion_photo'),
-                'has_base64' => $request->filled('completion_photo_base64'),
-                'base64_len' => strlen($request->input('completion_photo_base64', ''))
-            ]);
-
             if ($request->hasFile('completion_photo')) {
                 File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
                 $path = $request->file('completion_photo')->store('completion_photos', 'public');
                 $url = url(\Storage::disk('public')->url($path));
                 $transaction->update(['completion_photo' => $url]);
-                \Log::info('Transaction Store - Photo Saved from File', ['url' => $url]);
             } elseif ($request->filled('completion_photo_base64')) {
                 $imageData = $request->completion_photo_base64;
                 if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
@@ -103,20 +100,15 @@ class TransactionController extends Controller
                 \Storage::disk('public')->put($path, $imageData);
                 $url = url(\Storage::disk('public')->url($path));
                 $transaction->update(['completion_photo' => $url]);
-                \Log::info('Transaction Store - Photo Saved from Base64', ['url' => $url, 'file' => $fileName]);
             }
 
-            foreach ($items as $item) {
-                $item['transaction_id'] = $transaction->id;
-                TransactionItem::create($item);
-            }
-
-            // Audit Log
-            \Log::info('Transaction Store - Finalizing', [
+            // ── Fix: Bulk insert all items in ONE query ───────────────────────
+            $now = now();
+            TransactionItem::insert(array_map(fn($item) => array_merge($item, [
                 'transaction_id' => $transaction->id,
-                'has_photo' => !empty($transaction->completion_photo),
-                'photo_url' => $transaction->completion_photo,
-            ]);
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]), $items));
 
             ActivityLog::log('order_created', 'Pesanan #' . $transaction->id . ' dibuat oleh ' . (auth()->user()->name ?? 'System'), [
                 'transaction_id' => $transaction->id,
@@ -162,7 +154,8 @@ class TransactionController extends Controller
 
     public function history(Request $request)
     {
-        $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->get();
+        // Cap at 500 records per query — enough for daily/weekly/monthly reports
+        $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->limit(500)->get();
         return response()->json($transactions);
     }
 
@@ -263,9 +256,10 @@ class TransactionController extends Controller
 
     public function activeOrders()
     {
-        $transactions = Transaction::with(['items.product', 'table', 'user'])
+        $transactions = Transaction::with(['items.product:id,name,price', 'table:id,name', 'user:id,name'])
             ->whereIn('kitchen_status', ['pending', 'processing'])
             ->orderBy('created_at', 'asc')
+            ->limit(200)
             ->get();
             
         return response()->json($transactions);
