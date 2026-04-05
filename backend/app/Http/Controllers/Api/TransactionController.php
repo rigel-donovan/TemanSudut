@@ -188,9 +188,8 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
         }
 
-        // Owner only
-        if ($user->isCashier()) {
-            return response()->json(['message' => 'Akses ditolak. Hanya owner yang bisa export.'], 403);
+        if (!\App\Models\RolePermission::isAllowed('export_history', $user->role)) {
+            return response()->json(['message' => 'Akses ditolak. Anda tidak memiliki izin untuk export.'], 403);
         }
 
         $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->get();
@@ -205,9 +204,8 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
         }
 
-        // Owner only
-        if ($user->isCashier()) {
-            return response()->json(['message' => 'Akses ditolak. Hanya owner yang bisa export.'], 403);
+        if (!\App\Models\RolePermission::isAllowed('export_history', $user->role)) {
+            return response()->json(['message' => 'Akses ditolak. Anda tidak memiliki izin untuk export.'], 403);
         }
 
         $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->get();

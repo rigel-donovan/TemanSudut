@@ -113,7 +113,7 @@ class HistoryTabState extends State<HistoryTab> {
         ),
         centerTitle: false,
         actions: [
-          if (auth.isOwner)
+          if (auth.can('export_history'))
             Container(
               margin: EdgeInsets.only(right: 12),
               decoration: BoxDecoration(

@@ -7,6 +7,7 @@ import '../utils/app_format.dart';
 import '../providers/auth_provider.dart';
 import '../services/printer_service.dart';
 import '../widgets/camera_dialog.dart';
+import '../widgets/loading_overlay.dart';
 import 'package:provider/provider.dart';
 
 class ActiveOrdersTab extends StatefulWidget {
@@ -48,6 +49,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
   }
 
   Future<void> _markAsCompleted(dynamic order, {XFile? photo, String? orderType, double? amountReceived, double? changeAmount}) async {
+    LoadingOverlay.show(context, message: 'Menyelesaikan pesanan...');
     final success = await _apiService.updateTransactionStatus(
       order['id'],
       'completed',
@@ -57,6 +59,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
       changeAmount: changeAmount,
     );
     if (!mounted) return;
+    LoadingOverlay.hide(context);
     if (success) {
       PopupNotification.show(
         context,
@@ -320,7 +323,24 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.black))
           : _activeOrders.isEmpty
-              ? const Center(child: Text('Tidak ada orderan aktif.', style: TextStyle(color: Colors.grey)))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.receipt_long_outlined, size: 64, color: Colors.grey[300]),
+                      SizedBox(height: 16),
+                      Text('Tidak ada pesanan aktif', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+                      SizedBox(height: 4),
+                      Text('Pesanan baru akan muncul di sini', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+                      SizedBox(height: 20),
+                      OutlinedButton.icon(
+                        onPressed: _fetchActiveOrders,
+                        icon: Icon(Icons.refresh),
+                        label: Text('Perbarui'),
+                      ),
+                    ],
+                  ),
+                )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: _activeOrders.length,

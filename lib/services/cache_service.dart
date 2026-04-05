@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CacheService {
-  static const int ttlHours = 1; // Cache expires after 1 hour
+  static const int ttlHours = 1;
   static const String _keyProducts = 'cache_products';
   static const String _keyCategories = 'cache_categories';
+  static const String _keyMgmtStock = 'cache_mgmt_stock';
+  static const String _keyMgmtMaterials = 'cache_mgmt_materials';
+  static const String _keyMgmtUsers = 'cache_mgmt_users';
   static const String _suffixTs = '_ts';
 
   // ─── Internal helpers ───────────────────────────────────────────────────────
@@ -55,11 +58,46 @@ class CacheService {
     await prefs.remove(_keyProducts + _suffixTs);
   }
 
-  /// Call this to bust all data caches.
+  static Future<List<dynamic>?> getMgmtStock() async {
+    if (!await _isValid(_keyMgmtStock)) return null;
+    return (await _loadJson(_keyMgmtStock)) as List<dynamic>?;
+  }
+
+  static Future<void> saveMgmtStock(List<dynamic> data) =>
+      _saveJson(_keyMgmtStock, data);
+
+  static Future<List<dynamic>?> getMgmtMaterials() async {
+    if (!await _isValid(_keyMgmtMaterials)) return null;
+    return (await _loadJson(_keyMgmtMaterials)) as List<dynamic>?;
+  }
+
+  static Future<void> saveMgmtMaterials(List<dynamic> data) =>
+      _saveJson(_keyMgmtMaterials, data);
+
+  static Future<List<dynamic>?> getMgmtUsers() async {
+    if (!await _isValid(_keyMgmtUsers)) return null;
+    return (await _loadJson(_keyMgmtUsers)) as List<dynamic>?;
+  }
+
+  static Future<void> saveMgmtUsers(List<dynamic> data) =>
+      _saveJson(_keyMgmtUsers, data);
+
+  static Future<void> invalidateMgmtUsers() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyMgmtUsers);
+    await prefs.remove(_keyMgmtUsers + _suffixTs);
+  }
+
   static Future<void> invalidateAll() async {
     await invalidateProducts();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyCategories);
     await prefs.remove(_keyCategories + _suffixTs);
+    await prefs.remove(_keyMgmtStock);
+    await prefs.remove(_keyMgmtStock + _suffixTs);
+    await prefs.remove(_keyMgmtMaterials);
+    await prefs.remove(_keyMgmtMaterials + _suffixTs);
+    await prefs.remove(_keyMgmtUsers);
+    await prefs.remove(_keyMgmtUsers + _suffixTs);
   }
 }

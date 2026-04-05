@@ -76,12 +76,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
     setState(() {
       _selectedIndex = index;
     });
-    // Auto-refresh data when switching to these tabs
-    if (index == 1) {
-      _historyKey.currentState?.refreshHistory();
-    } else if (index == 2) {
-      _activeOrdersKey.currentState?.refreshOrders();
-    }
   }
 
   @override

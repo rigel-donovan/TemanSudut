@@ -17,7 +17,6 @@ class AuthProvider with ChangeNotifier {
   bool get isOwner => _role == 'owner';
   bool get isCashier => _role == 'cashier';
 
-  /// Check if the current user has permission for a specific feature.
   bool can(String feature) {
     if (_permissions.containsKey(feature)) {
       return _permissions[feature][_role] == true || _permissions[feature][_role] == 1;

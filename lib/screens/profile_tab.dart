@@ -78,7 +78,7 @@ class ProfileTab extends StatelessWidget {
                   ),
                 ),
                 
-                SizedBox(height: 100), // spacing for bottom nav
+                SizedBox(height: 100), 
               ],
             ),
           ),

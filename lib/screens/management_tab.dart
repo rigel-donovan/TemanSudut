@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/product.dart';
 import '../services/api_service.dart';
+import '../services/cache_service.dart';
 import '../widgets/popup_notification.dart';
 import 'user_management_tab.dart';
 import 'printer_settings_screen.dart';
@@ -124,13 +126,26 @@ class _StockManagementViewState extends State<_StockManagementView> {
     _fetchProducts();
   }
 
-  Future<void> _fetchProducts() async {
+  Future<void> _fetchProducts({bool forceRefresh = false}) async {
     if (!mounted) return;
-    if (_products.isEmpty) {
+    // Try cache first
+    if (!forceRefresh) {
+      final cached = await CacheService.getMgmtStock();
+      if (cached != null && mounted) {
+        setState(() {
+          _products = cached.map((e) => Product.fromJson(e)).toList();
+          _isLoading = false;
+        });
+        _fetchProducts(forceRefresh: true);
+        return;
+      }
+    }
+    if (_products.isEmpty && mounted) {
       setState(() => _isLoading = true);
     }
     try {
       final products = await _apiService.getProducts();
+      await CacheService.saveMgmtStock(products.map((p) => p.toJson()).toList());
       if (!mounted) return;
       setState(() {
         _products = products;
@@ -148,8 +163,29 @@ class _StockManagementViewState extends State<_StockManagementView> {
       return Center(child: CircularProgressIndicator(color: Colors.black));
     }
 
+    if (_products.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.inventory_2_outlined, size: 56, color: Colors.grey[400]),
+            SizedBox(height: 12),
+            Text('Tidak ada produk', style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+            SizedBox(height: 4),
+            Text('Tambah produk melalui panel admin web', style: TextStyle(fontSize: 12, color: Colors.grey[400])),
+            SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: () => _fetchProducts(forceRefresh: true),
+              icon: Icon(Icons.refresh),
+              label: Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+
     return RefreshIndicator(
-      onRefresh: _fetchProducts,
+      onRefresh: () => _fetchProducts(forceRefresh: true),
       child: ListView.builder(
         padding: EdgeInsets.all(16),
         itemCount: _products.length,
@@ -169,12 +205,12 @@ class _StockManagementViewState extends State<_StockManagementView> {
               leading: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: product.image != null
-                    ? Image.network(
-                        _apiService.getImageUrl(product.image),
+                    ? CachedNetworkImage(
+                        imageUrl: _apiService.getImageUrl(product.image),
                         width: 50,
                         height: 50,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
+                        errorWidget: (context, url, error) => Container(
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
@@ -195,18 +231,18 @@ class _StockManagementViewState extends State<_StockManagementView> {
                   IconButton(
                     icon: Icon(Icons.remove_circle_outline, color: Colors.red),
                     onPressed: product.stock > 0
-                        ? () async {
-                            final success = await _apiService.updateProduct(product.id, {'stock': product.stock - 1});
-                            if (success) _fetchProducts();
-                          }
-                        : null,
+                      ? () async {
+                          final success = await _apiService.updateProduct(product.id, {'stock': product.stock - 1});
+                          if (success) { await CacheService.invalidateProducts(); _fetchProducts(forceRefresh: true); }
+                        }
+                      : null,
                   ),
                   Text('${product.stock}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   IconButton(
                     icon: Icon(Icons.add_circle_outline, color: Colors.green),
                     onPressed: () async {
                       final success = await _apiService.updateProduct(product.id, {'stock': product.stock + 1});
-                      if (success) _fetchProducts();
+                      if (success) { await CacheService.invalidateProducts(); _fetchProducts(forceRefresh: true); }
                     },
                   ),
                   IconButton(
@@ -280,7 +316,8 @@ class _StockManagementViewState extends State<_StockManagementView> {
                     message: '${product.name} telah diupdate.',
                     type: PopupType.success,
                   );
-                  _fetchProducts();
+                  await CacheService.invalidateProducts();
+                  _fetchProducts(forceRefresh: true);
                 } else {
                   PopupNotification.show(
                     context,

@@ -14,6 +14,7 @@ class RolePermissionSeeder extends Seeder
     public static array $features = [
         'print_receipt'     => ['label' => 'Cetak Struk',               'owner' => true,  'cashier' => true],
         'view_history'      => ['label' => 'Lihat Riwayat Transaksi',   'owner' => true,  'cashier' => true],
+        'export_history'    => ['label' => 'Export Laporan Transaksi',  'owner' => true,  'cashier' => false],
         'manage_employees'  => ['label' => 'Kelola Karyawan',           'owner' => true,  'cashier' => false],
         'manage_products'   => ['label' => 'Kelola Produk',             'owner' => true,  'cashier' => false],
         'open_shift'        => ['label' => 'Buka / Tutup Kasir',        'owner' => true,  'cashier' => true],

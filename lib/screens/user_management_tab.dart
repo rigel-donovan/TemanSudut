@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/cache_service.dart';
 import '../widgets/popup_notification.dart';
+import '../widgets/loading_overlay.dart';
 
 class UserManagementTab extends StatefulWidget {
   const UserManagementTab({Key? key}) : super(key: key);
@@ -22,12 +24,31 @@ class UserManagementTabState extends State<UserManagementTab> {
 
   void refreshUsers() => _fetchUsers();
 
-  Future<void> _fetchUsers() async {
+  Future<void> _fetchUsers({bool forceRefresh = false}) async {
     if (!mounted) return;
-    setState(() => _isLoading = true);
-    _users = await _apiService.getUsers();
+    // Try cache first
+    if (!forceRefresh) {
+      final cached = await CacheService.getMgmtUsers();
+      if (cached != null && mounted) {
+        setState(() {
+          _users = cached;
+          _isLoading = false;
+        });
+        // Silent background refresh
+        _fetchUsers(forceRefresh: true);
+        return;
+      }
+    }
+    if (_users.isEmpty && mounted) {
+      setState(() => _isLoading = true);
+    }
+    final users = await _apiService.getUsers();
+    await CacheService.saveMgmtUsers(users);
     if (!mounted) return;
-    setState(() => _isLoading = false);
+    setState(() {
+      _users = users;
+      _isLoading = false;
+    });
   }
 
   void _showUserDialog({dynamic existingUser}) {
@@ -138,16 +159,19 @@ class UserManagementTabState extends State<UserManagementTab> {
                       data['password'] = passCtrl.text;
                     }
 
+                    LoadingOverlay.show(context, message: isEdit ? 'Menyimpan perubahan...' : 'Menambah user...');
                     bool success;
                     if (isEdit) {
                       success = await _apiService.updateUser(existingUser['id'], data);
                     } else {
                       success = await _apiService.createUser(data);
                     }
+                    LoadingOverlay.hide(context);
 
                     if (success) {
                       PopupNotification.show(context, title: 'Berhasil! ✅', message: isEdit ? 'User berhasil diperbarui.' : 'User baru berhasil ditambahkan.', type: PopupType.success);
-                      _fetchUsers();
+                      await CacheService.invalidateMgmtUsers();
+                      _fetchUsers(forceRefresh: true);
                     } else {
                       PopupNotification.show(context, title: 'Gagal', message: 'Terjadi kesalahan. Periksa data yang diisi.', type: PopupType.error);
                     }
@@ -179,10 +203,13 @@ class UserManagementTabState extends State<UserManagementTab> {
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
               onPressed: () async {
                 Navigator.pop(dialogCtx);
+                LoadingOverlay.show(context, message: 'Menghapus user...');
                 final success = await _apiService.deleteUser(user['id']);
+                LoadingOverlay.hide(context);
                 if (success) {
                   PopupNotification.show(context, title: 'Dihapus 🗑️', message: '"${user['name']}" telah dihapus.', type: PopupType.success);
-                  _fetchUsers();
+                  await CacheService.invalidateMgmtUsers();
+                  _fetchUsers(forceRefresh: true);
                 } else {
                   PopupNotification.show(context, title: 'Gagal', message: 'Tidak bisa menghapus user.', type: PopupType.error);
                 }
@@ -206,7 +233,7 @@ class UserManagementTabState extends State<UserManagementTab> {
         centerTitle: false,
         automaticallyImplyLeading: false,
         actions: [
-          IconButton(icon: Icon(Icons.refresh, color: Colors.black), onPressed: _fetchUsers),
+          IconButton(icon: Icon(Icons.refresh, color: Colors.black), onPressed: () => _fetchUsers(forceRefresh: true)),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -219,7 +246,24 @@ class UserManagementTabState extends State<UserManagementTab> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: Colors.black))
           : _users.isEmpty
-              ? Center(child: Text('Belum ada user.', style: TextStyle(color: Colors.grey)))
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.people_outline, size: 64, color: Colors.grey[300]),
+                      SizedBox(height: 16),
+                      Text('Belum ada karyawan', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.grey[600])),
+                      SizedBox(height: 4),
+                      Text('Tekan tombol + untuk menambah user', style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+                      SizedBox(height: 20),
+                      OutlinedButton.icon(
+                        onPressed: () => _fetchUsers(forceRefresh: true),
+                        icon: Icon(Icons.refresh),
+                        label: Text('Coba Lagi'),
+                      ),
+                    ],
+                  ),
+                )
               : ListView.builder(
                   padding: EdgeInsets.all(16),
                   itemCount: _users.length,
