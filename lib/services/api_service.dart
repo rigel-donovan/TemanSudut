@@ -11,7 +11,7 @@ class ApiService {
   factory ApiService() => _instance;
 
   // === URL SERVER ANDA ===
-  static const String baseUrl = 'http://100.123.248.104:8000/api';
+  static const String baseUrl = 'http://100.77.57.121:8000/api';
   // ========================================
   late final Dio _dio;
 
