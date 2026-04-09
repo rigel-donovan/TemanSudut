@@ -1,6 +1,5 @@
 # Panduan Running
 
-Dokumen ini adalah panduan untuk menyambungkan Komputer Anda (sebagai Server Utama) dengan Tablet Kasir
 ---
 
 ## TAHAP 1: Menghidupkan Induk Server di Komputer Utama
@@ -53,4 +52,4 @@ Jika di masa depan Anda mengganti Laptop Utama atau login dengan akun Tailscale 
 - Pindahkan file *APK* murni racikan baru tersebut ke Tablet dan Install.
 - Selesai! Kasir langsung siap jualan kembali selamanya!
 
-*(Catatan : Jangan lupa ganti juga tulisan angka 100... di `README` ini dengan IP Anda yang baru agar tidak kebingungan kalau dibaca tahun depan ya!)*
+*(Catatan : Jangan lupa ganti juga tulisan angka 100... di `README` ini dengan IP Anda yang baru)*
