@@ -38,12 +38,44 @@ class OrdersTab extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-                      child: Text('| Order Detail', style: TextStyle(color: Colors.grey[700], fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange[50],
+                                foregroundColor: Colors.orange[800],
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              ),
+                              onPressed: () {}, // Add Customer placeholder
+                              icon: Icon(Icons.person_add_alt_1, size: 18),
+                              label: Text('Customer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.qr_code_scanner, color: Colors.grey[600]), 
+                                onPressed: () {}
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.sync, color: Colors.grey[600]), 
+                                onPressed: () {
+                                  // Add some feedback if wanted
+                                }
+                              ),
+                            ],
+                          )
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
                     ),
                     Expanded(
@@ -299,9 +331,38 @@ class OrdersTab extends StatelessWidget {
                         ],
                       ),
                       
-                      const SizedBox(height: 32),
-                      SlideToFinish(
-                        onSlideSuccess: () {
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange[50], // Hold Order Style
+                                foregroundColor: Colors.orange[800],
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                side: BorderSide(color: Colors.orange[300]!)
+                              ),
+                              onPressed: () {
+                                // Hold Order Logic later
+                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pesanan ditahan (Hold)')));
+                              },
+                              child: Text('Hold Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green[600], // Proceed / Checkout Style
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: cart.items.isEmpty ? null : () {
                           if (cart.items.isEmpty) return;
                           final nameController = TextEditingController(text: cart.customerName);
                           final tableController = TextEditingController();
@@ -667,9 +728,11 @@ class OrdersTab extends StatelessWidget {
                             },
                           );
                         },
-                        text: 'Slide to Finish Order',
-                        isEnabled: cart.items.isNotEmpty,
+                        child: Text('Proceed', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       ),
+                    ),
+                  ],
+                ),
                     ],
                   ),
                 ),

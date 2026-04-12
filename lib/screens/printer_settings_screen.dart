@@ -34,7 +34,6 @@ class _PrinterSettingsScreenState extends State<PrinterSettingsScreen> {
     // Check if permissions are sufficient
     bool hasBlueprint = statuses[Permission.bluetoothConnect]?.isGranted ?? false;
     bool hasScan = statuses[Permission.bluetoothScan]?.isGranted ?? false;
-    // Some older devices rely on location, newer on scan/connect
     return (hasBlueprint && hasScan) || statuses[Permission.bluetooth]?.isGranted == true || statuses[Permission.location]?.isGranted == true;
   }
 

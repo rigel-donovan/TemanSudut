@@ -38,87 +38,9 @@ class _HomeTabState extends State<HomeTab> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 48, bottom: 16),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.grey[300]!, width: 1),
-                                ),
-                                child: ClipOval(
-                                  child: Image.asset('res/logo.png', width: 36, height: 36, fit: BoxFit.cover),
-                                ),
-                              ),
-                              SizedBox(width: 12),
-                              Text('TemanSudut', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-                            ],
-                          ),
-                          if (cart.isShiftOpen && Provider.of<AuthProvider>(context, listen: false).can('open_shift'))
-                            InkWell(
-                              onTap: () => _showCloseShiftDialog(context, cart),
-                              borderRadius: BorderRadius.circular(20),
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: Colors.red[50],
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: Colors.red[100]!),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.lock_outline, size: 14, color: Colors.red[700]),
-                                    SizedBox(width: 4),
-                                    Text('Tutup Kasir', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700])),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      // Persistent Search Bar
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))],
-                          border: Border.all(color: Colors.grey[200]!)
-                        ),
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            hintText: 'Cari produk favoritmu...',
-                            hintStyle: TextStyle(color: Colors.grey[400]),
-                            prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
-                            suffixIcon: _searchController.text.isNotEmpty
-                                ? IconButton(
-                                    icon: Icon(Icons.close, size: 20, color: Colors.grey[600]),
-                                    onPressed: () {
-                                      setState(() {
-                                        _searchController.clear();
-                                        cart.setSearchQuery('');
-                                      });
-                                    },
-                                  )
-                                : null,
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                          ),
-                          onChanged: (value) {
-                            setState(() {});
-                            cart.setSearchQuery(value);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: MediaQuery.of(context).size.width > 800
+                      ? _buildTabletHeader(context, cart)
+                      : _buildMobileHeader(context, cart),
                 ),
               ),
               
@@ -129,27 +51,24 @@ class _HomeTabState extends State<HomeTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Kategori', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)),
-                      SizedBox(height: 12),
                       SizedBox(
-                        height: 44, // Slightly slimmer pills
+                        height: 48,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           clipBehavior: Clip.none,
                           children: [
-                            _buildCategoryItem(
-                              'Semua', Icons.apps, cart.selectedCategory == null, 
-                              () => cart.filterByCategory(null),
-                            ),
-                            ...cart.categories.map((cat) {
-                              return Padding(
-                                padding: const EdgeInsets.only(left: 10.0),
-                                child: _buildCategoryItem(
-                                  cat.name, 
-                                  Icons.fastfood,
-                                  cart.selectedCategory?.id == cat.id,
-                                  () => cart.filterByCategory(cat),
+                                _buildCategoryItem(
+                                  'All', cart.selectedCategory == null, 
+                                  () => cart.filterByCategory(null),
                                 ),
+                                ...cart.categories.map((cat) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(left: 10.0),
+                                    child: _buildCategoryItem(
+                                      cat.name,
+                                      cart.selectedCategory?.id == cat.id,
+                                      () => cart.filterByCategory(cat),
+                                    ),
                               );
                             }).toList(),
                           ],
@@ -186,10 +105,10 @@ class _HomeTabState extends State<HomeTab> {
                       )
                     : SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: MediaQuery.of(context).size.width > 800 ? 5 : (MediaQuery.of(context).size.width > 600 ? 4 : 2),
-                          childAspectRatio: 0.72,
+                          crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : (MediaQuery.of(context).size.width > 600 ? 3 : 2),
+                          childAspectRatio: 0.8,
                           crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
+                          mainAxisSpacing: 24, 
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
@@ -210,114 +129,116 @@ class _HomeTabState extends State<HomeTab> {
     );
   }
 
-  Widget _buildCategoryItem(String title, IconData icon, bool isSelected, VoidCallback onTap) {
-    return FilterChip(
-      label: Text(title, style: TextStyle(color: isSelected ? Colors.white : Colors.black87, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500, fontSize: 13)),
-      selected: isSelected,
-      onSelected: (_) => onTap(),
-      backgroundColor: Colors.white,
-      selectedColor: Colors.black,
-      showCheckmark: false,
-      elevation: isSelected ? 4 : 0,
-      shadowColor: Colors.black26,
-      side: BorderSide(color: isSelected ? Colors.transparent : Colors.grey[300]!),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+  Widget _buildCategoryItem(String title, bool isSelected, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          border: isSelected 
+              ? Border.all(color: Colors.orange, width: 1.5)
+              : Border.all(color: Colors.transparent),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(
+          child: Text(
+            title,
+            style: TextStyle(
+              color: isSelected ? Colors.orange : Colors.grey[600],
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildProductCard(BuildContext context, CartProvider cart, Product product) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 6))
-        ],
-        border: Border.all(color: Colors.grey[100]!)
-      ),
-      clipBehavior: Clip.antiAlias,
+    return GestureDetector(
+      onTap: () {
+        cart.addToCart(product);
+        // Remove snackbar here or clear immediately to avoid delay queues
+        ScaffoldMessenger.of(context).clearSnackBars();
+      },
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Edge-to-edge image
-              Expanded(
-                flex: 3,
-                child: Container(
-                  color: Colors.grey[100],
-                  child: product.image != null && product.image!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: ApiService().getImageUrl(product.image),
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Center(child: CircularProgressIndicator(color: Colors.black12, strokeWidth: 2)),
-                        errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 40, color: Colors.black12),
-                      )
-                    : Icon(Icons.fastfood, size: 50, color: Colors.black26),
-                ),
+          // Main Card Container
+          Positioned.fill(
+            top: 30, // Space for circular image to protrude
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))
+                ],
+                border: Border.all(color: Colors.grey[200]!)
               ),
-              // Content
-              Expanded(
-                flex: 2,
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(product.name, 
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87), 
-                        maxLines: 2, 
-                        overflow: TextOverflow.ellipsis
-                      ),
-                      Text(AppFormat.currency(product.price), 
-                        style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.w800, fontSize: 13)
-                      ),
-                    ],
+              padding: EdgeInsets.fromLTRB(12, 55, 12, 12), // Top padding gives room for image 
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    product.name, 
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87), 
+                    maxLines: 2, 
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
-                ),
-              ),
-            ],
-          ),
-          
-          // Add Button positioned bottom right
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: Material(
-              color: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              clipBehavior: Clip.antiAlias,
-              child: InkWell(
-                onTap: () {
-                  cart.addToCart(product);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${product.name} tertambah', style: TextStyle(fontWeight: FontWeight.bold)), 
-                      duration: Duration(seconds: 1),
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    )
-                  );
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Icon(Icons.add, color: Colors.white, size: 18),
-                ),
+                  SizedBox(height: 8),
+                  Text(
+                    AppFormat.currency(product.price), 
+                    style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.w800, fontSize: 13)
+                  ),
+                ],
               ),
             ),
           ),
           
+          // Protruding Circular Image
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 4))
+                  ],
+                ),
+                child: ClipOval(
+                  child: product.image != null && product.image!.isNotEmpty
+                    ? CachedNetworkImage(
+                        imageUrl: ApiService().getImageUrl(product.image),
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => Center(child: CircularProgressIndicator(color: Colors.orange, strokeWidth: 2)),
+                        errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 30, color: Colors.black12),
+                      )
+                    : Icon(Icons.fastfood, size: 30, color: Colors.black26),
+                ),
+              ),
+            ),
+          ),
+
           // Stock Badge if low/empty
           if (product.stock <= 5)
             Positioned(
-              top: 8, left: 8,
+              top: 40, right: 0,
               child: Container(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: product.stock == 0 ? Colors.red : Colors.orange,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: BorderRadius.horizontal(left: Radius.circular(4)),
                 ),
                 child: Text(
                   product.stock == 0 ? 'Habis' : 'Sisa ${product.stock}',
@@ -327,6 +248,153 @@ class _HomeTabState extends State<HomeTab> {
             )
         ],
       ),
+    );
+  }
+
+  Widget _buildTabletHeader(BuildContext context, CartProvider cart) {
+    return Row(
+      children: [
+        // Search Bar fills space
+        Expanded(
+          child: Container(
+            height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[200]!)
+            ),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search products.....',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.close, size: 20, color: Colors.grey[600]),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            cart.setSearchQuery('');
+                          });
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              onChanged: (value) {
+                setState(() {});
+                cart.setSearchQuery(value);
+              },
+            ),
+          ),
+        ),
+        SizedBox(width: 16),
+        // Sync icon
+        IconButton(
+          icon: Icon(Icons.sync, color: Colors.grey[600]),
+          onPressed: () => cart.refreshProducts(),
+        ),
+        SizedBox(width: 8),
+        // Webkul close shift / Select table simulation
+        if (cart.isShiftOpen && Provider.of<AuthProvider>(context, listen: false).can('open_shift'))
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              elevation: 0,
+            ),
+            onPressed: () => _showCloseShiftDialog(context, cart),
+            child: Text('Close Shift', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMobileHeader(BuildContext context, CartProvider cart) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.grey[300]!, width: 1),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset('res/logo.png', width: 36, height: 36, fit: BoxFit.cover),
+                  ),
+                ),
+                SizedBox(width: 12),
+                Text('TemanSudut', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+              ],
+            ),
+            if (cart.isShiftOpen && Provider.of<AuthProvider>(context, listen: false).can('open_shift'))
+              InkWell(
+                onTap: () => _showCloseShiftDialog(context, cart),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.red[50],
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.red[100]!),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.lock_outline, size: 14, color: Colors.red[700]),
+                      SizedBox(width: 4),
+                      Text('Tutup Kasir', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red[700])),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 20),
+        // Persistent Search Bar
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))],
+            border: Border.all(color: Colors.grey[200]!)
+          ),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Cari produk favoritmu...',
+              hintStyle: TextStyle(color: Colors.grey[400]),
+              prefixIcon: Icon(Icons.search, color: Colors.grey[500]),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.close, size: 20, color: Colors.grey[600]),
+                      onPressed: () {
+                        setState(() {
+                          _searchController.clear();
+                          cart.setSearchQuery('');
+                        });
+                      },
+                    )
+                  : null,
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+            ),
+            onChanged: (value) {
+              setState(() {});
+              cart.setSearchQuery(value);
+            },
+          ),
+        ),
+      ],
     );
   }
 

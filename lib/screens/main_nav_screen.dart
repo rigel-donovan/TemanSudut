@@ -247,104 +247,139 @@ class _MainNavScreenState extends State<MainNavScreen> {
     );
   }
 
+  Widget _buildTabletSidebar(BuildContext context) {
+    return Container(
+      width: 100,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: Colors.grey[200]!)),
+      ),
+      child: Column(
+        children: [
+          SizedBox(height: 24),
+          // Logo
+          Container(
+            padding: EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.grey[300]!, width: 1),
+            ),
+            child: ClipOval(
+              child: Image.asset('res/logo.png', width: 36, height: 36, fit: BoxFit.cover),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text('TemanSudut', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: -0.5)),
+          SizedBox(height: 32),
+          // Nav Items
+          Expanded(
+            child: ListView.builder(
+              itemCount: _navItems.length,
+              itemBuilder: (context, index) {
+                final isSelected = _selectedIndex == index;
+                final item = _navItems[index]; 
+                return InkWell(
+                  onTap: () => _onItemTapped(index),
+                  hoverColor: Colors.transparent,
+                  focusColor: Colors.transparent,
+                  splashColor: Colors.transparent,
+                  child: Container(
+                    margin: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    decoration: isSelected
+                        ? BoxDecoration(
+                            border: Border.all(color: Colors.orange, width: 1.5),
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.orange.withOpacity(0.05),
+                          )
+                        : null,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isSelected ? (item.activeIcon as Icon).icon : (item.icon as Icon).icon,
+                          color: isSelected ? Colors.orange : Colors.grey[500],
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          item.label ?? '',
+                          style: TextStyle(
+                            color: isSelected ? Colors.orange : Colors.grey[500],
+                            fontSize: 10,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          // Settings / Logout at bottom
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24),
+            child: Column(
+              children: [
+                IconButton(
+                  icon: Icon(Icons.settings_outlined, color: Colors.grey[600]),
+                  onPressed: () {},
+                ),
+                SizedBox(height: 16),
+                IconButton(
+                  icon: Icon(Icons.logout, color: Colors.red[400]),
+                  onPressed: () async {
+                    bool confirm = await _onWillPop();
+                    if (confirm) {
+                      Provider.of<AuthProvider>(context, listen: false).logout();
+                    }
+                  },
+                ),
+                SizedBox(height: 8),
+                Text('Logout', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
   Widget _buildTabletLayout(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.grey[50],
       body: Row(
         children: [
-          // Main Content
+          // 1. Sidebar Navigation (Left)
+          _buildTabletSidebar(context),
+
+          // 2. Main Content
           Expanded(
-            flex: _isSidebarMinimized ? 1 : 5,
-            child: ClipRRect(
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(32)),
-              child: Scaffold(
-                backgroundColor: Colors.white,
-                body: Stack(
-                  children: [
-                    SafeArea(
-                      child: IndexedStack(
-                        index: _selectedIndex,
-                        children: _pages,
-                      ),
-                    ),
-                    if (_isSidebarMinimized)
-                      Positioned(
-                        right: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: Center(
-                          child: InkWell(
-                            onTap: () => setState(() => _isSidebarMinimized = false),
-                            child: Container(
-                              width: 32,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.horizontal(left: Radius.circular(16)),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.black26, blurRadius: 8, offset: Offset(-2, 0))
-                                ],
-                              ),
-                              child: Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 16),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
+            child: Scaffold(
+              backgroundColor: Colors.transparent,
+              body: SafeArea(
+                child: IndexedStack(
+                  index: _selectedIndex,
+                  children: _pages,
                 ),
-                bottomNavigationBar: _buildBottomNav(),
               ),
             ),
           ),
-          // Sidebar Toggle Handle
-          if (!_isSidebarMinimized)
+
+          // 3. Cart / Orders Right Sidebar
+          if (_selectedIndex == 0) // Pin Cart to right side on Dashboard/Home
             Container(
-              width: 1,
-              height: double.infinity,
-              color: Colors.grey[300],
+              width: MediaQuery.of(context).size.width * 0.35,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(left: BorderSide(color: Colors.grey[200]!)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: Offset(-5, 0))
+                ]
+              ),
+              child: OrdersTab(onOrderFinished: () => _onItemTapped(2)),
             ),
-          // Sidebar
-          AnimatedContainer(
-            duration: Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            width: _isSidebarMinimized ? 0 : MediaQuery.of(context).size.width * 0.35,
-            child: _isSidebarMinimized 
-              ? SizedBox.shrink()
-              : Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(left: BorderSide(color: Colors.grey[200]!)),
-                  ),
-                  child: Stack(
-                    children: [
-                      OrdersTab(onOrderFinished: () => _onItemTapped(2)),
-                      Positioned(
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        child: Center(
-                          child: InkWell(
-                            onTap: () => setState(() => _isSidebarMinimized = true),
-                            child: Container(
-                              width: 24,
-                              height: 64,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.horizontal(right: Radius.circular(12)),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: Offset(2, 0))
-                                ],
-                                border: Border.all(color: Colors.grey[200]!),
-                              ),
-                              child: Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 14),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-          ),
         ],
       ),
     );
