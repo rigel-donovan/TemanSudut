@@ -84,8 +84,12 @@ class StockManagementPage extends Page implements HasTable
                     ->formatStateUsing(fn ($state) => number_format((float)$state, 0, ',', '.') . ' porsi'),
                 TextColumn::make('hpp')
                     ->label('HPP')
-                    ->money('IDR')
+                    ->formatStateUsing(fn ($state) => $state > 0 ? 'Rp ' . number_format($state, 0, ',', '.') : '—')
                     ->color('gray'),
+                TextColumn::make('profit')
+                    ->label('Profit')
+                    ->formatStateUsing(fn ($record) => $record->hpp > 0 ? 'Rp ' . number_format($record->profit, 0, ',', '.') : '—')
+                    ->color(fn ($record) => $record->profit > 0 ? 'success' : ($record->profit < 0 ? 'danger' : 'gray')),
                 TextColumn::make('id')
                     ->label('Stok Maks (Bahan Baku)')
                     ->formatStateUsing(function ($record) {

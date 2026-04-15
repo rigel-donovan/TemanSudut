@@ -43,6 +43,11 @@ class ProductsTable
                     ->formatStateUsing(fn ($state) => $state > 0 ? 'Rp ' . number_format($state, 0, ',', '.') : '—')
                     ->color('gray')
                     ->sortable(),
+                TextColumn::make('profit')
+                    ->label('Profit')
+                    ->formatStateUsing(fn ($record) => $record->hpp > 0 ? 'Rp ' . number_format($record->profit, 0, ',', '.') : '—')
+                    ->color(fn ($record) => $record->profit > 0 ? 'success' : ($record->profit < 0 ? 'danger' : 'gray'))
+                    ->sortable(query: fn ($query, string $direction) => $query->orderByRaw('(price - hpp) ' . $direction)),
                 TextColumn::make('stock')
                     ->label('Stok')
                     ->sortable()

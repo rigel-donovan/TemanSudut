@@ -117,7 +117,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final product = cart.availableProducts[index];
-                            return _buildProductCard(context, cart, product);
+                            return _ProductCard(cart: cart, product: product);
                           },
                           childCount: cart.availableProducts.length,
                         ),
@@ -159,101 +159,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
     );
   }
 
-  Widget _buildProductCard(BuildContext context, CartProvider cart, Product product) {
-    return GestureDetector(
-      onTap: () {
-        cart.addToCart(product);
-        // Remove snackbar here or clear immediately to avoid delay queues
-        ScaffoldMessenger.of(context).clearSnackBars();
-      },
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          // Main Card Container
-          Positioned.fill(
-            top: 30, // Space for circular image to protrude
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))
-                ],
-                border: Border.all(color: Colors.grey[200]!)
-              ),
-              padding: EdgeInsets.fromLTRB(12, 55, 12, 12), // Top padding gives room for image 
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    product.name, 
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87), 
-                    maxLines: 2, 
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    AppFormat.currency(product.price), 
-                    style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.w800, fontSize: 13)
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Protruding Circular Image
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 4))
-                  ],
-                ),
-                child: ClipOval(
-                  child: product.image != null && product.image!.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: ApiService().getImageUrl(product.image),
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Center(child: CircularProgressIndicator(color: Colors.orange, strokeWidth: 2)),
-                        errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 30, color: Colors.black12),
-                      )
-                    : Icon(Icons.fastfood, size: 30, color: Colors.black26),
-                ),
-              ),
-            ),
-          ),
-
-          // Stock Badge if low/empty
-          if (product.stock <= 5)
-            Positioned(
-              top: 40, right: 0,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: product.stock == 0 ? Colors.red : Colors.orange,
-                  borderRadius: BorderRadius.horizontal(left: Radius.circular(4)),
-                ),
-                child: Text(
-                  product.stock == 0 ? 'Habis' : 'Sisa ${product.stock}',
-                  style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                ),
-              ),
-            )
-        ],
-      ),
-    );
-  }
+  // We removed _buildProductCard because it is now replaced by _ProductCard class
 
   Widget _buildTabletHeader(BuildContext context, CartProvider cart) {
     return Row(
@@ -486,6 +392,145 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
           }
         );
       }
+    );
+  }
+}
+
+class _ProductCard extends StatefulWidget {
+  final CartProvider cart;
+  final Product product;
+
+  const _ProductCard({required this.cart, required this.product});
+
+  @override
+  State<_ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<_ProductCard> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.90).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) {
+        _controller.reverse();
+        widget.cart.addToCart(widget.product);
+        ScaffoldMessenger.of(context).clearSnackBars();
+      },
+      onTapCancel: () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // Main Card Container
+            Positioned.fill(
+              top: 30, // Space for circular image to protrude
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))
+                  ],
+                  border: Border.all(color: Colors.grey[200]!)
+                ),
+                padding: EdgeInsets.fromLTRB(12, 55, 12, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.product.name, 
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87), 
+                      maxLines: 2, 
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      AppFormat.currency(widget.product.price), 
+                      style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.w800, fontSize: 13)
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // Protruding Circular Image
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 4))
+                    ],
+                  ),
+                  child: ClipOval(
+                    child: widget.product.image != null && widget.product.image!.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: ApiService().getImageUrl(widget.product.image),
+                          fit: BoxFit.cover,
+                          placeholder: (context, url) => Center(child: CircularProgressIndicator(color: Colors.orange, strokeWidth: 2)),
+                          errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 30, color: Colors.black12),
+                        )
+                      : Icon(Icons.fastfood, size: 30, color: Colors.black26),
+                  ),
+                ),
+              ),
+            ),
+
+            // Stock Badge if low/empty
+            if (widget.product.stock <= 5)
+              Positioned(
+                top: 40, right: 0,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: widget.product.stock == 0 ? Colors.red : Colors.orange,
+                    borderRadius: BorderRadius.horizontal(left: Radius.circular(4)),
+                  ),
+                  child: Text(
+                    widget.product.stock == 0 ? 'Habis' : 'Sisa ${widget.product.stock}',
+                    style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              )
+          ],
+        ),
+      ),
     );
   }
 }
