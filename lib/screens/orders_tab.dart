@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/popup_notification.dart';
@@ -24,7 +24,7 @@ class OrdersTab extends StatelessWidget {
           appBar: isWideScreen ? null : AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            title: Text('Orders', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+            title: Text('Orders', style: TextStyle(color: const Color(0xFF5D4037), fontWeight: FontWeight.bold)),
             centerTitle: true,
             automaticallyImplyLeading: false,
           ),
@@ -459,10 +459,10 @@ class OrdersTab extends StatelessWidget {
                                                   duration: const Duration(milliseconds: 180),
                                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                                   decoration: BoxDecoration(
-                                                    color: selectedPayment == 'cash' ? Colors.black : Colors.grey[50],
+                                                    color: selectedPayment == 'cash' ? const Color(0xFF5D4037) : Colors.grey[50],
                                                     borderRadius: BorderRadius.circular(12),
                                                     border: Border.all(
-                                                      color: selectedPayment == 'cash' ? Colors.black : Colors.grey[300]!,
+                                                      color: selectedPayment == 'cash' ? const Color(0xFF5D4037) : Colors.grey[300]!,
                                                       width: selectedPayment == 'cash' ? 2 : 1,
                                                     ),
                                                   ),
@@ -470,13 +470,13 @@ class OrdersTab extends StatelessWidget {
                                                     children: [
                                                       Icon(Icons.payments_outlined, 
                                                           size: 24, 
-                                                          color: selectedPayment == 'cash' ? Colors.white : Colors.black54),
+                                                          color: selectedPayment == 'cash' ? Colors.white : Colors.grey[600]!),
                                                       const SizedBox(height: 6),
                                                       Text('Tunai',
                                                           style: TextStyle(
                                                             fontWeight: FontWeight.bold,
                                                             fontSize: 13,
-                                                            color: selectedPayment == 'cash' ? Colors.white : Colors.black87,
+                                                            color: selectedPayment == 'cash' ? Colors.white : Colors.grey[700]!,
                                                           )),
                                                     ],
                                                   ),
@@ -492,10 +492,10 @@ class OrdersTab extends StatelessWidget {
                                                   duration: const Duration(milliseconds: 180),
                                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                                   decoration: BoxDecoration(
-                                                    color: selectedPayment == 'qris' ? Colors.black : Colors.grey[50],
+                                                    color: selectedPayment == 'qris' ? const Color(0xFF5D4037) : Colors.grey[50],
                                                     borderRadius: BorderRadius.circular(12),
                                                     border: Border.all(
-                                                      color: selectedPayment == 'qris' ? Colors.black : Colors.grey[300]!,
+                                                      color: selectedPayment == 'qris' ? const Color(0xFF5D4037) : Colors.grey[300]!,
                                                       width: selectedPayment == 'qris' ? 2 : 1,
                                                     ),
                                                   ),
@@ -503,13 +503,13 @@ class OrdersTab extends StatelessWidget {
                                                     children: [
                                                       Icon(Icons.qr_code_scanner_outlined,
                                                           size: 24,
-                                                          color: selectedPayment == 'qris' ? Colors.white : Colors.black54),
+                                                          color: selectedPayment == 'qris' ? Colors.white : Colors.grey[600]!),
                                                       const SizedBox(height: 6),
                                                       Text('QRIS',
                                                           style: TextStyle(
                                                             fontWeight: FontWeight.bold,
                                                             fontSize: 13,
-                                                            color: selectedPayment == 'qris' ? Colors.white : Colors.black87,
+                                                            color: selectedPayment == 'qris' ? Colors.white : Colors.grey[700]!,
                                                           )),
                                                     ],
                                                   ),

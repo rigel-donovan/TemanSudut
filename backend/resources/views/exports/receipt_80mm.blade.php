@@ -1,11 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Struk Belanja</title>
+    <title>Struk Pembelian</title>
     <style>
         @page { 
-            margin: 0;
-            size: 80mm auto;
+            margin: 10mm;
         }
         * { box-sizing: border-box; }
         body { 
@@ -16,8 +15,9 @@
             padding: 0;
         }
         .receipt {
-            width: 100%;
-            padding: 5mm 3mm;
+            width: 80mm; 
+            margin: 0 auto;
+            padding: 0;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
@@ -59,7 +59,7 @@
                     <img src="{{ $logoBase64 }}" style="width: 60px; height: 60px;">
                 </div>
             @endif
-            <div class="store-name">SUDUT KOPI</div>
+            <div class="store-name">s u d u t  k o p i.</div>
             <div class="store-info">Jl. Keruang, RT.15/RW.No 35, Gn. Bahagia</div>
             <div class="store-info">Kec. Balikpapan Selatan, Kota Balikpapan</div>
             <div class="store-info">Telp: 085245436632</div>

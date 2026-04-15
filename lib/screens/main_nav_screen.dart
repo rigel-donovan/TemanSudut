@@ -1,4 +1,4 @@
-﻿import 'dart:ui';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -129,7 +129,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
           if (cart.isLoadingShift) {
             return Scaffold(
               backgroundColor: Colors.white,
-              body: Center(child: CircularProgressIndicator(color: Colors.black)),
+              body: Center(child: CircularProgressIndicator(color: const Color(0xFF5D4037))),
             );
           }
 
@@ -195,10 +195,10 @@ class _MainNavScreenState extends State<MainNavScreen> {
               decoration: InputDecoration(
                 labelText: 'Modal Awal',
                 prefixText: 'Rp ',
-                prefixStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 16),
+                prefixStyle: TextStyle(color: const Color(0xFF5D4037), fontWeight: FontWeight.bold, fontSize: 16),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black, width: 2)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: const Color(0xFF5D4037), width: 2)),
                 filled: true,
                 fillColor: Colors.grey[50],
               ),
@@ -251,8 +251,8 @@ class _MainNavScreenState extends State<MainNavScreen> {
     return Container(
       width: 100,
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: Colors.grey[200]!)),
+        color: const Color(0xFF5D4037),
+        border: Border(right: BorderSide(color: const Color(0xFF4E342E)!)),
       ),
       child: Column(
         children: [
@@ -269,7 +269,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
             ),
           ),
           SizedBox(height: 8),
-          Text('TemanSudut', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: -0.5)),
+          Text('TemanSudut', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: -0.5, color: Colors.white70)),
           SizedBox(height: 32),
           // Nav Items
           Expanded(
@@ -288,9 +288,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
                     padding: EdgeInsets.symmetric(vertical: 16),
                     decoration: isSelected
                         ? BoxDecoration(
-                            border: Border.all(color: Colors.orange, width: 1.5),
+                            border: Border.all(color: Colors.white38, width: 1.5),
                             borderRadius: BorderRadius.circular(12),
-                            color: Colors.orange.withOpacity(0.05),
+                            color: Colors.white.withOpacity(0.15),
                           )
                         : null,
                     child: Column(
@@ -298,13 +298,13 @@ class _MainNavScreenState extends State<MainNavScreen> {
                       children: [
                         Icon(
                           isSelected ? (item.activeIcon as Icon).icon : (item.icon as Icon).icon,
-                          color: isSelected ? Colors.orange : Colors.grey[500],
+                          color: isSelected ? Colors.white : Colors.white54,
                         ),
                         SizedBox(height: 8),
                         Text(
                           item.label ?? '',
                           style: TextStyle(
-                            color: isSelected ? Colors.orange : Colors.grey[500],
+                            color: isSelected ? Colors.white : Colors.white54,
                             fontSize: 10,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                           ),
@@ -333,7 +333,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
                   },
                 ),
                 SizedBox(height: 8),
-                Text('Logout', style: TextStyle(color: Colors.grey[600], fontSize: 10)),
+                Text('Logout', style: TextStyle(color: Colors.white60, fontSize: 10)),
               ],
             ),
           )
@@ -465,7 +465,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
       child: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
         backgroundColor: Colors.white,
-        selectedItemColor: Colors.black,
+        selectedItemColor: const Color(0xFF5D4037),
         unselectedItemColor: Colors.grey,
         showSelectedLabels: true,
         showUnselectedLabels: true,

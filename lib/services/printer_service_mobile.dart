@@ -76,14 +76,9 @@ class PrinterServiceMobile implements PrinterService {
     final generator = Generator(PaperSize.mm58, profile);
     List<int> bytes = [];
 
-    // Header - Professional Look
     bytes += generator.text(
-      'SUDUT KOPI',
+      's u d u t  k o p i.',
       styles: PosStyles(align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2),
-    );
-    bytes += generator.text(
-      'Official Store Teman Sudut',
-      styles: PosStyles(align: PosAlign.center, bold: true),
     );
     bytes += generator.text(
       'Jl. Contoh Alamat Resto No.123',

@@ -34,7 +34,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
         return Scaffold(
           backgroundColor: Colors.grey[50], 
           body: RefreshIndicator(
-            color: Colors.black,
+           color: const Color(0xFF5D4037),
             onRefresh: () => cart.refreshProducts(),
             child: CustomScrollView(
             slivers: [

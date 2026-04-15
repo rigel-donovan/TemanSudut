@@ -347,7 +347,14 @@ class TransactionController extends Controller
             'logoBase64' => $logoBase64,
         ]);
 
-        $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+        $itemCount = $transaction->items->count();
+        $baseHeight = 550;  
+        $perItemHeight = 75; 
+        $calculatedHeight = $baseHeight + ($itemCount * $perItemHeight);
+        $minHeight = 600; 
+        $pageHeight = max($minHeight, $calculatedHeight);
+
+        $pdf->setPaper([0, 0, 226.77, $pageHeight], 'portrait');
 
         return $pdf->stream('receipt-' . $id . '.pdf');
     }

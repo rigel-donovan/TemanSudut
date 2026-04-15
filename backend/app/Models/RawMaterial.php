@@ -25,7 +25,7 @@ class RawMaterial extends Model
     protected static function booted(): void
     {
         static::saving(function (RawMaterial $material) {
-            if ($material->conversion_value > 0 && $material->price_per_large_unit > 0) {
+            if (is_null($material->price_per_small_unit) && $material->conversion_value > 0 && $material->price_per_large_unit > 0) {
                 $material->price_per_small_unit = $material->price_per_large_unit / $material->conversion_value;
             }
         });

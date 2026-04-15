@@ -52,12 +52,12 @@ class ProductsTable
                         $record->stock <= 10  => 'warning',
                         default               => 'success',
                     })
-                    ->formatStateUsing(fn ($state) => $state . ' porsi'),
+                    ->formatStateUsing(fn ($state) => number_format((float)$state, 0, ',', '.') . ' porsi'),
                 TextColumn::make('id')
                     ->label('Maks')
                     ->formatStateUsing(function ($record) {
                         $max = StockManagementPage::calculateMaxServings($record);
-                        return $max === null ? '—' : $max;
+                        return $max === null ? '—' : number_format((float)$max, 0, ',', '.');
                     })
                     ->badge()
                     ->color(function ($record) {

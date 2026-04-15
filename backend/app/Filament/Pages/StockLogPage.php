@@ -82,15 +82,15 @@ class StockLogPage extends Page implements HasTable
                     }),
                 TextColumn::make('stock_before')
                     ->label('Stok Awal')
-                    ->numeric(),
+                    ->formatStateUsing(fn ($state) => number_format((float)$state, 0, ',', '.')),
                 TextColumn::make('quantity')
                     ->label('Perubahan')
                     ->weight('bold')
                     ->color(fn ($record) => $record->quantity > 0 ? 'success' : 'danger')
-                    ->formatStateUsing(fn ($state) => $state > 0 ? "+$state" : $state),
+                    ->formatStateUsing(fn ($state) => ($state > 0 ? '+' : '') . number_format((float)$state, 0, ',', '.')),
                 TextColumn::make('stock_after')
                     ->label('Stok Akhir')
-                    ->numeric(),
+                    ->formatStateUsing(fn ($state) => number_format((float)$state, 0, ',', '.')),
                 TextColumn::make('reason')
                     ->label('Alasan')
                     ->limit(30)

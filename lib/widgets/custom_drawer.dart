@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
@@ -18,7 +18,7 @@ class CustomDrawer extends StatelessWidget {
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(24),
-                  color: Colors.black,
+                  color: const Color(0xFF5D4037),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -70,7 +70,7 @@ class CustomDrawer extends StatelessWidget {
                   trailing: Switch(
                     value: false, 
                     onChanged: (val) {},
-                    activeColor: Colors.black,
+                    activeColor: const Color(0xFF5D4037),
                   ),
                 ),
                 Spacer(),
@@ -191,11 +191,11 @@ void _showCloseShiftDialog(BuildContext context, CartProvider cart) {
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
                       prefixText: 'Rp ',
-                      prefixStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                      prefixStyle: TextStyle(color: const Color(0xFF5D4037), fontWeight: FontWeight.bold),
                       hintText: '0',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
                       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.black, width: 2)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: const Color(0xFF5D4037), width: 2)),
                       filled: true,
                       fillColor: Colors.grey[50],
                     ),

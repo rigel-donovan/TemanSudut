@@ -95,9 +95,8 @@ class RawMaterialResource extends Resource
                             ->label('Harga per Satuan Kecil (auto)')
                             ->numeric()
                             ->prefix('Rp')
-                            ->disabled()
                             ->dehydrated()
-                            ->helperText('Dihitung otomatis: harga besar ÷ konversi'),
+                            ->helperText('Dihitung otomatis: harga besar ÷ konversi, tapi tetap bisa diedit manual'),
                         TextInput::make('stock')
                             ->label('Stok Saat Ini')
                             ->numeric()
@@ -126,7 +125,7 @@ class RawMaterialResource extends Resource
                 Tables\Columns\TextColumn::make('stock')
                     ->label('Stok')
                     ->sortable()
-                    ->formatStateUsing(fn ($state, $record) => $state . ' ' . $record->unit)
+                    ->formatStateUsing(fn ($state, $record) => number_format((float)$state, 0, ',', '.') . ' ' . $record->unit)
                     ->color(fn ($record) => $record->stock <= $record->min_stock ? 'danger' : 'success')
                     ->weight('bold'),
                 Tables\Columns\TextColumn::make('price_per_large_unit')

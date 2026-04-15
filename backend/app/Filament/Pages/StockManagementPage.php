@@ -81,7 +81,7 @@ class StockManagementPage extends Page implements HasTable
                         $record->stock <= 10  => 'warning',
                         default               => 'success',
                     })
-                    ->formatStateUsing(fn ($state) => $state . ' porsi'),
+                    ->formatStateUsing(fn ($state) => number_format((float)$state, 0, ',', '.') . ' porsi'),
                 TextColumn::make('hpp')
                     ->label('HPP')
                     ->money('IDR')
@@ -91,7 +91,7 @@ class StockManagementPage extends Page implements HasTable
                     ->formatStateUsing(function ($record) {
                         $max = self::calculateMaxServings($record);
                         if ($max === null) return '—';
-                        return $max . ' porsi';
+                        return number_format((float)$max, 0, ',', '.') . ' porsi';
                     })
                     ->badge()
                     ->color(function ($record) {
