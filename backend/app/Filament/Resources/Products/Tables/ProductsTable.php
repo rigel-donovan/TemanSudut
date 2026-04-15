@@ -58,21 +58,6 @@ class ProductsTable
                         default               => 'success',
                     })
                     ->formatStateUsing(fn ($state) => number_format((float)$state, 0, ',', '.') . ' porsi'),
-                TextColumn::make('id')
-                    ->label('Maks')
-                    ->formatStateUsing(function ($record) {
-                        $max = StockManagementPage::calculateMaxServings($record);
-                        return $max === null ? '—' : number_format((float)$max, 0, ',', '.');
-                    })
-                    ->badge()
-                    ->color(function ($record) {
-                        $max = StockManagementPage::calculateMaxServings($record);
-                        if ($max === null) return 'gray';
-                        if ($max <= 0) return 'danger';
-                        if ($max <= 10) return 'warning';
-                        return 'info';
-                    })
-                    ->tooltip('Stok maks berdasarkan bahan baku'),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

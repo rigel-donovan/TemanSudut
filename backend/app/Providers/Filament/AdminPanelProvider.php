@@ -44,9 +44,9 @@ class AdminPanelProvider extends PanelProvider
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             ->brandName('TemanSudut')
-            ->brandLogo(asset('images/logo.png'))
+            ->brandLogo(asset('images/logo.webp'))
             ->brandLogoHeight('3rem')
-            ->favicon(asset('images/logo.png'))
+            ->favicon(asset('images/logo.webp'))
             ->colors([
                 'primary' => Color::Amber,
             ])
