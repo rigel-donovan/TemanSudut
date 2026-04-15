@@ -2,7 +2,7 @@
 
 ---
 
-## TAHAP 1: Menghidupkan Induk Server di Komputer Utama
+## TAHAP 1: Menghidupkan Server di Komputer Utama
 Komputer penyimpan database ini wajib menyala terus selama jam operasional toko.
 1. Buka Terminal (Command Prompt / PowerShell) di dalam folder **`backend`** aplikasi Anda.
 2. Nyalakan mesin server databasenya dengan mengetikkan perintah ini:
@@ -34,7 +34,7 @@ Pastikan saja aplikasi Tailscale di Komputer dan di Tablet Kasir sama-sama sudah
 
 ---
 
-## PANDUAN PENGGANTIAN IP (Bila Ganti Laptop / Ganti Akun Tailscale)
+## PANDUAN PENGGANTIAN IP
 
 Jika di masa depan Anda mengganti Laptop Utama atau login dengan akun Tailscale yang berbeda, maka Nomor IP `100.x.x.x` Anda pasti akan berubah. Ikuti 2 langkah super gampang ini untuk menyesuaikannya:
 
