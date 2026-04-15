@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../models/table_model.dart';
 import '../models/category.dart';
@@ -11,10 +11,18 @@ class CartItem {
   String? notes;
   double extraCharge;
   String? extraChargeLabel;
+  bool isFree;
 
-  CartItem({required this.product, this.quantity = 1, this.notes, this.extraCharge = 0, this.extraChargeLabel});
+  CartItem({
+    required this.product, 
+    this.quantity = 1, 
+    this.notes, 
+    this.extraCharge = 0, 
+    this.extraChargeLabel,
+    this.isFree = false,
+  });
 
-  double get subtotal => (product.price + extraCharge) * quantity;
+  double get subtotal => isFree ? 0 : (product.price + extraCharge) * quantity;
 }
 
 class CartProvider with ChangeNotifier {
@@ -106,7 +114,7 @@ class CartProvider with ChangeNotifier {
 
   /// Initial load: use cache if valid, otherwise fetch and store in cache.
   Future<void> _fetchProducts() async {
-    // ── Categories ──────────────────────────────────────────────────────────
+    // â”€â”€ Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (_categories.isEmpty) {
       final cachedCats = await CacheService.getCategories();
       if (cachedCats != null) {
@@ -117,7 +125,7 @@ class CartProvider with ChangeNotifier {
       }
     }
 
-    // ── Products (all, unfiltered) ───────────────────────────────────────────
+    // â”€â”€ Products (all, unfiltered) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (_allProducts.isEmpty) {
       final cachedProds = await CacheService.getProducts();
       if (cachedProds != null) {
@@ -195,6 +203,11 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleFreeCup(CartItem cartItem) {
+    cartItem.isFree = !cartItem.isFree;
+    notifyListeners();
+  }
+
   void updateExtraCharge(CartItem cartItem, double charge, {String? label}) {
     cartItem.extraCharge = charge;
     cartItem.extraChargeLabel = label;
@@ -209,10 +222,12 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  String? _lastCheckoutError;
+  String? get lastCheckoutError => _lastCheckoutError;
+
   Future<bool> checkout(String paymentMethod, {double? amountReceived, double? changeAmount, dynamic photo}) async {
     if (_items.isEmpty) return false;
-
-    // Build the request payload
+    _lastCheckoutError = null;
     String finalOrderType = _orderType;
     if (_orderType == 'dine_in' && _selectedTable == null) {
         finalOrderType = 'take_away';
@@ -231,24 +246,46 @@ class CartProvider with ChangeNotifier {
           String extraInfo = '[Extra: ${item.extraChargeLabel ?? "Tambahan"} +Rp${item.extraCharge.toInt()}]';
           finalNotes = finalNotes != null && finalNotes.isNotEmpty ? '$finalNotes | $extraInfo' : extraInfo;
         }
+        if (item.isFree) {
+          String freeInfo = '[FREE CUP / GRATIS]';
+          finalNotes = finalNotes != null && finalNotes.isNotEmpty ? '$finalNotes | $freeInfo' : freeInfo;
+        }
+
+        double finalExtraCharge = item.extraCharge;
+        if (item.isFree) {
+          finalExtraCharge = -(item.product.price);
+        }
+
         return {
           'product_id': item.product.id,
           'quantity': item.quantity,
           'notes': finalNotes,
-          'extra_charge': item.extraCharge,
+          'extra_charge': finalExtraCharge,
         };
       }).toList(),
     };
 
     try {
-      bool success = await _apiService.createTransaction(payload, photo: photo);
-      if (success) {
+      final result = await _apiService.createTransaction(payload, photo: photo);
+      if (result['success'] == true) {
         clearCart();
         await checkShiftStatus();
+        return true;
+      } else {
+        // Stock shortage or other error
+        final details = result['details'];
+        if (details != null && details is List && details.isNotEmpty) {
+          _lastCheckoutError = details.join('\n');
+        } else {
+          _lastCheckoutError = result['error'] ?? 'Gagal membuat transaksi';
+        }
+        notifyListeners();
+        return false;
       }
-      return success;
     } catch (e) {
       print('Checkout Error: $e');
+      _lastCheckoutError = 'Terjadi kesalahan saat checkout';
+      notifyListeners();
       return false;
     }
   }

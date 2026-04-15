@@ -1,4 +1,4 @@
-import 'dart:ui';
+﻿import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -210,7 +210,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
               height: 54,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: const Color(0xFF5D4037),
                   foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -322,11 +322,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
             padding: const EdgeInsets.only(bottom: 24),
             child: Column(
               children: [
-                IconButton(
-                  icon: Icon(Icons.settings_outlined, color: Colors.grey[600]),
-                  onPressed: () {},
-                ),
-                SizedBox(height: 16),
+
                 IconButton(
                   icon: Icon(Icons.logout, color: Colors.red[400]),
                   onPressed: () async {
@@ -347,11 +343,13 @@ class _MainNavScreenState extends State<MainNavScreen> {
   }
 
   Widget _buildTabletLayout(BuildContext context) {
+    final cart = Provider.of<CartProvider>(context);
+    
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: Row(
         children: [
-          // 1. Sidebar Navigation (Left)
+          // 1. Sidebar Navigation 
           _buildTabletSidebar(context),
 
           // 2. Main Content
@@ -359,26 +357,80 @@ class _MainNavScreenState extends State<MainNavScreen> {
             child: Scaffold(
               backgroundColor: Colors.transparent,
               body: SafeArea(
-                child: IndexedStack(
-                  index: _selectedIndex,
-                  children: _pages,
+                child: Stack(
+                  children: [
+                    IndexedStack(
+                      index: _selectedIndex,
+                      children: _pages,
+                    ),
+                    if (_isSidebarMinimized)
+                      Positioned(
+                        right: 16,
+                        bottom: 16,
+                        child: FloatingActionButton.extended(
+                          backgroundColor: const Color(0xFF5D4037),
+                          foregroundColor: Colors.white,
+                          onPressed: () => setState(() => _isSidebarMinimized = false),
+                          icon: Stack(
+                             alignment: Alignment.center,
+                             children: [
+                               const Icon(Icons.shopping_cart),
+                               if (cart.items.isNotEmpty)
+                                 Positioned(
+                                   right: 0,
+                                   top: 0,
+                                   child: Container(
+                                     padding: const EdgeInsets.all(4),
+                                     decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                   )
+                                 )
+                             ]
+                          ),
+                          label: Text(
+                            'Cart (${cart.items.length})', 
+                            style: const TextStyle(fontWeight: FontWeight.bold)
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
           ),
 
           // 3. Cart / Orders Right Sidebar
-          if (_selectedIndex == 0) // Pin Cart to right side on Dashboard/Home
+          if (!_isSidebarMinimized)
             Container(
               width: MediaQuery.of(context).size.width * 0.35,
               decoration: BoxDecoration(
                 color: Colors.white,
                 border: Border(left: BorderSide(color: Colors.grey[200]!)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: Offset(-5, 0))
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(-5, 0))
                 ]
               ),
-              child: OrdersTab(onOrderFinished: () => _onItemTapped(2)),
+              child: Column(
+                children: [
+                  // Minimize Header
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Keranjang (${cart.items.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                        IconButton(
+                          icon: const Icon(Icons.close_fullscreen),
+                          tooltip: 'Minimize Cart',
+                          onPressed: () => setState(() => _isSidebarMinimized = true),
+                        )
+                      ]
+                    )
+                  ),
+                  Expanded(
+                    child: OrdersTab(onOrderFinished: () => _onItemTapped(2)),
+                  ),
+                ],
+              ),
             ),
         ],
       ),

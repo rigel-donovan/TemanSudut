@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/auth_provider.dart';
@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 52,
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
+                      backgroundColor: const Color(0xFF5D4037),
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -140,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Footer
                 Center(
                   child: Text(
-                    'v1.0.0 • TemanSudut',
+                    'v1.0.0 â€¢ TemanSudut',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[400],

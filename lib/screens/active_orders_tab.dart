@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:typed_data';
 import '../services/api_service.dart';
@@ -63,7 +63,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
     if (success) {
       PopupNotification.show(
         context,
-        title: 'Order Selesai! ✅',
+        title: 'Order Selesai! âœ…',
         message: 'Order #${order['id']} telah dipindahkan ke History.',
         type: PopupType.success,
       );
@@ -139,7 +139,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('Order #${order['id']} – ${order['customer_name'] ?? 'Tamu'}',
+                      Text('Order #${order['id']} â€“ ${order['customer_name'] ?? 'Tamu'}',
                           style: TextStyle(fontSize: 13, color: Colors.grey[700])),
                       const SizedBox(height: 20),
 
@@ -184,7 +184,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                         children: [
                           const Icon(Icons.camera_alt, size: 16, color: Colors.black87),
                           const SizedBox(width: 6),
-                          const Text('Foto Bukti (Wajib)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          const Text('Foto Bukti (Opsional)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                         ],
                       ),
                       const SizedBox(height: 12),
@@ -227,13 +227,13 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                           TextButton(onPressed: () => Navigator.pop(dialogCtx), child: Text('Batal', style: TextStyle(color: Colors.grey[600]))),
                           const SizedBox(width: 8),
                           ElevatedButton(
-                            onPressed: (photoBytes == null || selectedOrderType == null)
+                            onPressed: (selectedOrderType == null)
                                 ? null
                                 : () {
                                     Navigator.pop(dialogCtx);
                                     _markAsCompleted(order, photo: selectedPhoto, orderType: selectedOrderType);
                                   },
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.black, foregroundColor: Colors.white, disabledBackgroundColor: Colors.grey[300], disabledForegroundColor: Colors.grey[500], padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5D4037), foregroundColor: Colors.white, disabledBackgroundColor: Colors.grey[300], disabledForegroundColor: Colors.grey[500], padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
                             child: const Text('Ya, Selesai'),
                           ),
                         ],
@@ -437,20 +437,40 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Expanded(
-                                            child: Text(
-                                              '${item['quantity']}x ${item['product'] != null ? item['product']['name'] : 'Unknown'}',
-                                              style: const TextStyle(fontWeight: FontWeight.w500),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
+                                            child: Row(
+                                              children: [
+                                                Flexible(
+                                                  child: Text(
+                                                    '${item['quantity']}x ${item['product'] != null ? item['product']['name'] : 'Unknown'}',
+                                                    style: const TextStyle(fontWeight: FontWeight.w500),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (item['notes'] != null && item['notes'].toString().contains('[PESANAN GRATIS]')) ...[
+                                                  SizedBox(width: 6),
+                                                  Container(
+                                                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(4)),
+                                                    child: Text('FREE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green[800])),
+                                                  )
+                                                ]
+                                              ],
                                             ),
                                           ),
-                                          Text(
-                                            AppFormat.currency(item['subtotal'] ?? 0),
-                                            style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                          ),
+                                          if (item['notes'] != null && item['notes'].toString().contains('[PESANAN GRATIS]'))
+                                            Text(
+                                              'Gratis',
+                                              style: TextStyle(fontSize: 12, color: Colors.green[700], fontWeight: FontWeight.bold),
+                                            )
+                                          else
+                                            Text(
+                                              AppFormat.currency(item['subtotal'] ?? 0),
+                                              style: const TextStyle(fontSize: 12, color: Colors.grey),
+                                            ),
                                         ],
                                       ),
-                                      if (item['notes'] != null && item['notes'].toString().isNotEmpty)
+                                      if (item['notes'] != null && item['notes'].toString().isNotEmpty && item['notes'].toString().replaceAll('[PESANAN GRATIS]', '').replaceAll('|', '').trim().isNotEmpty)
                                         Container(
                                           margin: const EdgeInsets.only(top: 4),
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -466,7 +486,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                               const SizedBox(width: 4),
                                               Flexible(
                                                 child: Text(
-                                                  item['notes'],
+                                                  item['notes'].toString().replaceAll(RegExp(r'\s*\|\s*\[PESANAN GRATIS\]|\[PESANAN GRATIS\]\s*\|\s*|\[PESANAN GRATIS\]'), '').trim(),
                                                   style: TextStyle(fontSize: 11, color: Colors.amber[900], fontWeight: FontWeight.w500),
                                                   maxLines: 2,
                                                   overflow: TextOverflow.ellipsis,
@@ -569,7 +589,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
                                     ElevatedButton.icon(
                                       onPressed: () => _showCompletionDialog(order),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: Colors.black,
+                                        backgroundColor: const Color(0xFF5D4037),
                                         foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -602,7 +622,7 @@ class _CameraDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF5D4037),
       insetPadding: const EdgeInsets.all(0),
       child: Stack(
         children: [

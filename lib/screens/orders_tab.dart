@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/popup_notification.dart';
@@ -37,47 +37,7 @@ class OrdersTab extends StatelessWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange[50],
-                                foregroundColor: Colors.orange[800],
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              ),
-                              onPressed: () {}, // Add Customer placeholder
-                              icon: Icon(Icons.person_add_alt_1, size: 18),
-                              label: Text('Customer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            ),
-                          ),
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: Icon(Icons.qr_code_scanner, color: Colors.grey[600]), 
-                                onPressed: () {}
-                              ),
-                              IconButton(
-                                icon: Icon(Icons.sync, color: Colors.grey[600]), 
-                                onPressed: () {
-                                  // Add some feedback if wanted
-                                }
-                              ),
-                            ],
-                          )
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Divider(height: 1, thickness: 1, color: Colors.grey[200]),
-                    ),
+
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 24.0),
@@ -160,48 +120,90 @@ class OrdersTab extends StatelessWidget {
                                     ),
                                   ),
                                   SizedBox(height: 8),
-                                  // Extra Charge Button
-                                  InkWell(
-                                    onTap: () => _showExtraChargeDialog(context, cart, item),
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: item.extraCharge > 0 ? Colors.orange[50] : Colors.white,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: item.extraCharge > 0 ? Colors.orange[300]! : Colors.grey[200]!),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.add_circle_outline, size: 16, color: Colors.orange[700]),
-                                          SizedBox(width: 4),
-                                          Flexible(
-                                            child: Text(
-                                              item.extraCharge > 0
-                                                  ? '${item.extraChargeLabel ?? "Extra"}: +${AppFormat.currency(item.extraCharge)}'
-                                                  : 'Tambah Ekstra Biaya',
-                                              style: TextStyle(
-                                                color: item.extraCharge > 0 ? Colors.orange[800] : Colors.grey[600],
-                                                fontSize: 12,
-                                                fontWeight: item.extraCharge > 0 ? FontWeight.w600 : FontWeight.normal,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
+                                  // Action Buttons Row
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      // Extra Charge Button
+                                      if (!item.isFree)
+                                        InkWell(
+                                          onTap: () => _showExtraChargeDialog(context, cart, item),
+                                          borderRadius: BorderRadius.circular(8),
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                            decoration: BoxDecoration(
+                                              color: item.extraCharge > 0 ? Colors.orange[50] : Colors.white,
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: item.extraCharge > 0 ? Colors.orange[300]! : Colors.grey[200]!),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.add_circle_outline, size: 16, color: Colors.orange[700]),
+                                                SizedBox(width: 4),
+                                                Flexible(
+                                                  child: Text(
+                                                    item.extraCharge > 0
+                                                        ? '${item.extraChargeLabel ?? "Extra"}: +${AppFormat.currency(item.extraCharge)}'
+                                                        : 'Tambah Ekstra Biaya',
+                                                    style: TextStyle(
+                                                      color: item.extraCharge > 0 ? Colors.orange[800] : Colors.grey[600],
+                                                      fontSize: 12,
+                                                      fontWeight: item.extraCharge > 0 ? FontWeight.w600 : FontWeight.normal,
+                                                    ),
+                                                    maxLines: 1,
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (item.extraCharge > 0) ...[
+                                                  SizedBox(width: 4),
+                                                  GestureDetector(
+                                                    onTap: () {
+                                                      cart.updateExtraCharge(item, 0, label: null);
+                                                    },
+                                                    child: Icon(Icons.close, size: 14, color: Colors.orange[700]),
+                                                  ),
+                                                ],
+                                              ],
                                             ),
                                           ),
-                                          if (item.extraCharge > 0) ...[
-                                            SizedBox(width: 4),
-                                            GestureDetector(
-                                              onTap: () {
-                                                cart.updateExtraCharge(item, 0, label: null);
-                                              },
-                                              child: Icon(Icons.close, size: 14, color: Colors.orange[700]),
-                                            ),
-                                          ],
-                                        ],
+                                        ),
+                                      // Free Cup Button
+                                      InkWell(
+                                        onTap: () {
+                                          cart.toggleFreeCup(item);
+                                        },
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Container(
+                                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                          decoration: BoxDecoration(
+                                            color: item.isFree ? Colors.green[50] : Colors.white,
+                                            borderRadius: BorderRadius.circular(8),
+                                            border: Border.all(color: item.isFree ? Colors.green[300]! : Colors.grey[200]!),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.card_giftcard, size: 16, color: item.isFree ? Colors.green[700] : Colors.grey[600]),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                item.isFree ? 'Free Cup' : 'Jadikan Free/Gratis',
+                                                style: TextStyle(
+                                                  color: item.isFree ? Colors.green[800] : Colors.grey[600],
+                                                  fontSize: 12,
+                                                  fontWeight: item.isFree ? FontWeight.w600 : FontWeight.normal,
+                                                ),
+                                              ),
+                                              if (item.isFree) ...[
+                                                SizedBox(width: 4),
+                                                Icon(Icons.close, size: 14, color: Colors.green[700]),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
                                   SizedBox(height: 10),
                                   // Bottom row: qty stepper + subtotal + delete
@@ -332,37 +334,10 @@ class OrdersTab extends StatelessWidget {
                       ),
                       
                       const SizedBox(height: 24),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange[50], // Hold Order Style
-                                foregroundColor: Colors.orange[800],
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                side: BorderSide(color: Colors.orange[300]!)
-                              ),
-                              onPressed: () {
-                                // Hold Order Logic later
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pesanan ditahan (Hold)')));
-                              },
-                              child: Text('Hold Order', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green[600], // Proceed / Checkout Style
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              onPressed: cart.items.isEmpty ? null : () {
+                      SlideToFinish(
+                        text: 'Slide to Proceed',
+                        isEnabled: cart.items.isNotEmpty,
+                        onSlideSuccess: () {
                           if (cart.items.isEmpty) return;
                           final nameController = TextEditingController(text: cart.customerName);
                           final tableController = TextEditingController();
@@ -675,7 +650,7 @@ class OrdersTab extends StatelessWidget {
                                           height: 50,
                                           child: ElevatedButton(
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: Colors.black,
+                                              backgroundColor: const Color(0xFF5D4037),
                                               foregroundColor: Colors.white,
                                               shape: RoundedRectangleBorder(
                                                   borderRadius: BorderRadius.circular(12)),
@@ -699,7 +674,7 @@ class OrdersTab extends StatelessWidget {
                                               if (success) {
                                                 PopupNotification.show(
                                                   outerContext,
-                                                  title: 'Order Berhasil! 🎉',
+                                                  title: 'Order Berhasil! ðŸŽ‰',
                                                   message: 'Pesanan sedang diproses. Pantau di tab Orders.',
                                                   type: PopupType.success,
                                                 );
@@ -728,11 +703,7 @@ class OrdersTab extends StatelessWidget {
                             },
                           );
                         },
-                        child: Text('Proceed', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                       ),
-                    ),
-                  ],
-                ),
                     ],
                   ),
                 ),
@@ -770,7 +741,7 @@ class OrdersTab extends StatelessWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: const Color(0xFF5D4037),
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),

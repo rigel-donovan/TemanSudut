@@ -113,6 +113,18 @@ class HistoryTabState extends State<HistoryTab> {
         ),
         centerTitle: false,
         actions: [
+          Container(
+            margin: EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: Colors.blue[50],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.refresh, color: Colors.blue[700]),
+              onPressed: () => refreshHistory(),
+              tooltip: 'Refresh',
+            ),
+          ),
           if (auth.can('export_history'))
             Container(
               margin: EdgeInsets.only(right: 12),
@@ -548,11 +560,25 @@ class HistoryTabState extends State<HistoryTab> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Flexible(child: Text(item['product'] != null ? item['product']['name'] : 'Item', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                                  Flexible(
+                                    child: Row(
+                                      children: [
+                                        Flexible(child: Text(item['product'] != null ? item['product']['name'] : 'Item', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                        if (item['notes'] != null && item['notes'].toString().contains('[FREE CUP / GRATIS]')) ...[
+                                          SizedBox(width: 6),
+                                          Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                            decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(4)),
+                                            child: Text('FREE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green[800])),
+                                          )
+                                        ]
+                                      ],
+                                    )
+                                  ),
                                   Text('x${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                                 ],
                               ),
-                              if (item['notes'] != null && item['notes'].toString().isNotEmpty)
+                              if (item['notes'] != null && item['notes'].toString().isNotEmpty && item['notes'].toString().replaceAll('[FREE CUP / GRATIS]', '').replaceAll('|', '').trim().isNotEmpty)
                                 Container(
                                   margin: const EdgeInsets.only(top: 4),
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -567,7 +593,7 @@ class HistoryTabState extends State<HistoryTab> {
                                       const SizedBox(width: 4),
                                       Flexible(
                                         child: Text(
-                                          item['notes'],
+                                          item['notes'].toString().replaceAll(RegExp(r'\s*\|\s*\[FREE CUP / GRATIS\]|\[FREE CUP / GRATIS\]\s*\|\s*|\[FREE CUP / GRATIS\]'), '').trim(),
                                           style: TextStyle(fontSize: 10, color: Colors.amber[900], fontStyle: FontStyle.italic),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
@@ -577,7 +603,10 @@ class HistoryTabState extends State<HistoryTab> {
                                   ),
                                 ),
                               SizedBox(height: 2),
-                              Text(AppFormat.currency(item['subtotal']), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                              if (item['notes'] != null && item['notes'].toString().contains('[FREE CUP / GRATIS]'))
+                                Text('Gratis', style: TextStyle(color: Colors.green[700], fontSize: 12, fontWeight: FontWeight.bold))
+                              else
+                                Text(AppFormat.currency(item['subtotal']), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
                             ],
                           ),
                         ),
@@ -620,7 +649,7 @@ class HistoryTabState extends State<HistoryTab> {
                       showDialog(
                         context: context,
                         builder: (_) => Dialog(
-                          backgroundColor: Colors.black,
+                          backgroundColor: const Color(0xFF5D4037),
                           insetPadding: EdgeInsets.all(12),
                           child: Stack(
                             children: [

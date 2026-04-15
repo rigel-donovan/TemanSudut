@@ -1,4 +1,4 @@
-class TableModel {
+﻿class TableModel {
   final int id;
   final String name;
   final String status;

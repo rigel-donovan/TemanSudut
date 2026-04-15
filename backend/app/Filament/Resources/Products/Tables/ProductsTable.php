@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Products\Tables;
 
+use App\Filament\Pages\StockManagementPage;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -14,29 +15,60 @@ class ProductsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->query(\App\Models\Product::query()->with(['category', 'ingredients.rawMaterial']))
             ->columns([
-                TextColumn::make('category_id')
-                    ->numeric()
-                    ->sortable(),
+                ImageColumn::make('image')
+                    ->circular()
+                    ->toggleable(),
                 TextColumn::make('name')
-                    ->searchable(),
-                TextColumn::make('slug')
-                    ->searchable(),
+                    ->label('Produk')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('bold'),
+                TextColumn::make('category.name')
+                    ->label('Kategori')
+                    ->badge()
+                    ->color('gray')
+                    ->sortable(),
                 TextColumn::make('sku')
                     ->label('SKU')
-                    ->searchable(),
+                    ->searchable()
+                    ->color('gray'),
                 TextColumn::make('price')
-                    ->formatStateUsing(fn ($state) => 'Rp. ' . number_format($state, 0, '.', ','))
+                    ->label('Harga Jual')
+                    ->formatStateUsing(fn ($state) => 'Rp ' . number_format($state, 0, ',', '.'))
+                    ->sortable(),
+                TextColumn::make('hpp')
+                    ->label('HPP')
+                    ->formatStateUsing(fn ($state) => $state > 0 ? 'Rp ' . number_format($state, 0, ',', '.') : '—')
+                    ->color('gray')
                     ->sortable(),
                 TextColumn::make('stock')
-                    ->numeric()
-                    ->sortable(),
-                ImageColumn::make('image'),
-                TextColumn::make('created_at')
-                    ->dateTime()
+                    ->label('Stok')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('updated_at')
+                    ->badge()
+                    ->color(fn ($record) => match(true) {
+                        $record->stock <= 0   => 'danger',
+                        $record->stock <= 10  => 'warning',
+                        default               => 'success',
+                    })
+                    ->formatStateUsing(fn ($state) => $state . ' porsi'),
+                TextColumn::make('id')
+                    ->label('Maks')
+                    ->formatStateUsing(function ($record) {
+                        $max = StockManagementPage::calculateMaxServings($record);
+                        return $max === null ? '—' : $max;
+                    })
+                    ->badge()
+                    ->color(function ($record) {
+                        $max = StockManagementPage::calculateMaxServings($record);
+                        if ($max === null) return 'gray';
+                        if ($max <= 0) return 'danger';
+                        if ($max <= 10) return 'warning';
+                        return 'info';
+                    })
+                    ->tooltip('Stok maks berdasarkan bahan baku'),
+                TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

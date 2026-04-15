@@ -6,13 +6,30 @@ use Illuminate\Database\Eloquent\Model;
 
 class RawMaterial extends Model
 {
-    protected $fillable = ['name', 'stock', 'unit', 'min_stock', 'is_active', 'image'];
+    protected $fillable = [
+        'name', 'brand', 'stock', 'unit',
+        'unit_large', 'unit_small', 'conversion_value',
+        'price_per_large_unit', 'price_per_small_unit',
+        'min_stock', 'is_active', 'image',
+    ];
 
     protected $casts = [
         'stock' => 'decimal:2',
         'min_stock' => 'decimal:2',
+        'conversion_value' => 'decimal:2',
+        'price_per_large_unit' => 'decimal:2',
+        'price_per_small_unit' => 'decimal:4',
         'is_active' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (RawMaterial $material) {
+            if ($material->conversion_value > 0 && $material->price_per_large_unit > 0) {
+                $material->price_per_small_unit = $material->price_per_large_unit / $material->conversion_value;
+            }
+        });
+    }
 
     /**
      * Adjust stock for a raw material and record the log.
@@ -43,5 +60,10 @@ class RawMaterial extends Model
         ]);
 
         return $material;
+    }
+
+    public function ingredients()
+    {
+        return $this->hasMany(ProductIngredient::class);
     }
 }

@@ -1,4 +1,4 @@
-class RawMaterial {
+﻿class RawMaterial {
   final int id;
   final String name;
   final double stock;

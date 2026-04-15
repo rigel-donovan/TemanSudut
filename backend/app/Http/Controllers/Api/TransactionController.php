@@ -36,7 +36,40 @@ class TransactionController extends Controller
 
             // ── Fix N+1: Load all products in ONE query ──────────────────────
             $productIds = array_column($validated['items'], 'product_id');
-            $productMap = Product::whereIn('id', $productIds)->get()->keyBy('id');
+            $productMap = Product::with('ingredients.rawMaterial')->whereIn('id', $productIds)->get()->keyBy('id');
+
+            // ── Validate ingredient stock sufficiency ────────────────────────
+            $shortages = [];
+            foreach ($validated['items'] as $item) {
+                $product = $productMap[$item['product_id']];
+                foreach ($product->ingredients as $ingredient) {
+                    if (!$ingredient->rawMaterial) continue;
+                    $needed = $ingredient->quantity_used * $item['quantity'];
+                    $available = (float) $ingredient->rawMaterial->stock;
+                    if ($needed > $available) {
+                        $shortages[] = [
+                            'product' => $product->name,
+                            'ingredient' => $ingredient->rawMaterial->name,
+                            'needed' => $needed,
+                            'available' => $available,
+                            'unit' => $ingredient->rawMaterial->unit_small ?? $ingredient->rawMaterial->unit,
+                        ];
+                    }
+                }
+            }
+
+            if (!empty($shortages)) {
+                DB::rollBack();
+                $messages = array_map(fn($s) =>
+                    "{$s['ingredient']}: butuh {$s['needed']} {$s['unit']}, tersedia {$s['available']} {$s['unit']} (untuk {$s['product']})",
+                    $shortages
+                );
+                return response()->json([
+                    'message' => 'Stok bahan baku tidak mencukupi',
+                    'shortages' => $shortages,
+                    'details' => $messages,
+                ], 422);
+            }
 
             $subtotal = 0;
             $items = [];
@@ -65,7 +98,7 @@ class TransactionController extends Controller
             $total = $subtotal + $tax;
 
             $transaction = Transaction::create([
-                'user_id' => auth()->id(), 
+                'user_id' => auth()->id(),
                 'order_type' => $validated['order_type'],
                 'customer_name' => $validated['customer_name'] ?? null,
                 'subtotal' => $subtotal,
@@ -85,12 +118,14 @@ class TransactionController extends Controller
                 $path = $request->file('completion_photo')->store('completion_photos', 'public');
                 $url = url(\Storage::disk('public')->url($path));
                 $transaction->update(['completion_photo' => $url]);
-            } elseif ($request->filled('completion_photo_base64')) {
+            }
+            elseif ($request->filled('completion_photo_base64')) {
                 $imageData = $request->completion_photo_base64;
                 if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
                     $imageData = substr($imageData, strpos($imageData, ',') + 1);
                     $type = strtolower($type[1]);
-                } else {
+                }
+                else {
                     $type = 'jpg';
                 }
                 $imageData = base64_decode($imageData);
@@ -102,13 +137,29 @@ class TransactionController extends Controller
                 $transaction->update(['completion_photo' => $url]);
             }
 
-            // ── Fix: Bulk insert all items in ONE query ───────────────────────
             $now = now();
             TransactionItem::insert(array_map(fn($item) => array_merge($item, [
-                'transaction_id' => $transaction->id,
-                'created_at' => $now,
-                'updated_at' => $now,
+            'transaction_id' => $transaction->id,
+            'created_at' => $now,
+            'updated_at' => $now,
             ]), $items));
+
+            foreach ($validated['items'] as $item) {
+                $product = $productMap[$item['product_id']];
+                $product->load('ingredients.rawMaterial');
+
+                foreach ($product->ingredients as $ingredient) {
+                    $totalUsed = $ingredient->quantity_used * $item['quantity'];
+                    \App\Models\RawMaterial::adjustStock(
+                        $ingredient->raw_material_id,
+                        -$totalUsed,
+                        'order_deduction',
+                        'Pesanan #' . $transaction->id . ' - ' . $product->name . ' x' . $item['quantity'],
+                        null,
+                        auth()->id()
+                    );
+                }
+            }
 
             ActivityLog::log('order_created', 'Pesanan #' . $transaction->id . ' dibuat oleh ' . (auth()->user()->name ?? 'System'), [
                 'transaction_id' => $transaction->id,
@@ -125,7 +176,8 @@ class TransactionController extends Controller
                 'transaction' => $transaction->load('items.product')
             ], 201);
 
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Transaction failed', 'error' => $e->getMessage()], 500);
         }
@@ -135,20 +187,23 @@ class TransactionController extends Controller
     {
         $query = Transaction::with(['items.product', 'table', 'user'])
             ->where('kitchen_status', 'completed');
-        
+
         if ($filter === 'daily') {
             $query->whereDate('created_at', now()->toDateString());
-        } elseif ($filter === 'weekly') {
+        }
+        elseif ($filter === 'weekly') {
             $query->whereDate('created_at', '>=', now()->startOfWeek()->toDateString())
-                  ->whereDate('created_at', '<=', now()->endOfWeek()->toDateString());
-        } elseif ($filter === 'monthly') {
+                ->whereDate('created_at', '<=', now()->endOfWeek()->toDateString());
+        }
+        elseif ($filter === 'monthly') {
             $query->whereDate('created_at', '>=', now()->startOfMonth()->toDateString())
-                  ->whereDate('created_at', '<=', now()->endOfMonth()->toDateString());
-        } elseif ($filter && str_starts_with($filter, 'date:')) {
+                ->whereDate('created_at', '<=', now()->endOfMonth()->toDateString());
+        }
+        elseif ($filter && str_starts_with($filter, 'date:')) {
             $date = substr($filter, 5);
             $query->whereDate('created_at', $date);
         }
-        
+
         return $query->orderBy('created_at', 'desc');
     }
 
@@ -162,21 +217,21 @@ class TransactionController extends Controller
     private function resolveUser(Request $request)
     {
         $user = auth('sanctum')->user();
-        
+
         if (!$user && $request->filled('token')) {
             $token = \Laravel\Sanctum\PersonalAccessToken::findToken($request->token);
             if ($token) {
                 $user = $token->tokenable;
             }
         }
-        
+
         return $user;
     }
 
     public function exportExcel(Request $request)
     {
         $user = $this->resolveUser($request);
-        
+
         if (!$user) {
             return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
         }
@@ -192,7 +247,7 @@ class TransactionController extends Controller
     public function exportPdf(Request $request)
     {
         $user = $this->resolveUser($request);
-        
+
         if (!$user) {
             return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
         }
@@ -202,7 +257,7 @@ class TransactionController extends Controller
         }
 
         $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->get();
-        
+
         $totalProcessed = $transactions->sum('total');
         $startDate = $transactions->min('created_at');
         $endDate = $transactions->max('created_at');
@@ -230,7 +285,7 @@ class TransactionController extends Controller
     public function exportReceiptPdf(Request $request, $id)
     {
         $user = $this->resolveUser($request);
-        
+
         if (!$user) {
             return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
         }
@@ -251,7 +306,7 @@ class TransactionController extends Controller
 
         $pdf->setPaper([0, 0, 226.77, 800], 'portrait');
 
-        return $pdf->stream('receipt-'.$id.'.pdf');
+        return $pdf->stream('receipt-' . $id . '.pdf');
     }
 
     public function activeOrders()
@@ -261,14 +316,14 @@ class TransactionController extends Controller
             ->orderBy('created_at', 'asc')
             ->limit(200)
             ->get();
-            
+
         return response()->json($transactions);
     }
 
     public function updateStatus(Request $request, $id)
     {
         $transaction = Transaction::findOrFail($id);
-        
+
         $rules = [
             'kitchen_status' => 'required|in:pending,processing,completed',
             'order_type' => 'nullable|in:dine_in,take_away,online',
@@ -283,7 +338,7 @@ class TransactionController extends Controller
         }
 
         $validated = $request->validate($rules);
-        
+
         $oldStatus = $transaction->kitchen_status;
         $updateData = [
             'kitchen_status' => $validated['kitchen_status'],
@@ -309,7 +364,7 @@ class TransactionController extends Controller
             File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
             $path = $request->file('completion_photo')->store('completion_photos', 'public');
             $updateData['completion_photo'] = url(\Storage::disk('public')->url($path));
-        } 
+        }
         // Handle Base64 upload
         elseif ($request->filled('completion_photo_base64')) {
             if ($transaction->completion_photo) {
@@ -322,7 +377,8 @@ class TransactionController extends Controller
             if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
                 $imageData = substr($imageData, strpos($imageData, ',') + 1);
                 $type = strtolower($type[1]); // jpg, png, etc
-            } else {
+            }
+            else {
                 $type = 'jpg'; // Default
             }
 
@@ -330,7 +386,7 @@ class TransactionController extends Controller
             $fileName = 'completion_' . $id . '_' . time() . '.' . $type;
             File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
             $path = 'completion_photos/' . $fileName;
-            
+
             \Storage::disk('public')->put($path, $imageData);
             $updateData['completion_photo'] = url(\Storage::disk('public')->url($path));
         }
@@ -344,9 +400,9 @@ class TransactionController extends Controller
             'new_status' => $validated['kitchen_status'],
             'has_photo' => $request->hasFile('completion_photo'),
         ]);
-        
+
         return response()->json([
-            'message' => 'Status updated', 
+            'message' => 'Status updated',
             'transaction' => $transaction->load('items.product')
         ]);
     }
@@ -375,7 +431,8 @@ class TransactionController extends Controller
             DB::commit();
 
             return response()->json(['message' => 'Pesanan berhasil dihapus']);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Gagal menghapus pesanan', 'error' => $e->getMessage()], 500);
         }

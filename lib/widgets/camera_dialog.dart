@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -54,7 +54,7 @@ class CameraDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF5D4037),
       insetPadding: const EdgeInsets.all(0),
       child: Stack(
         children: [

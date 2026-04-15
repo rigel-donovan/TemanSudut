@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/product.dart';
+import '../models/raw_material.dart';
 import '../services/api_service.dart';
 import '../services/cache_service.dart';
 import '../widgets/popup_notification.dart';
 import 'user_management_tab.dart';
 import 'printer_settings_screen.dart';
-import '../models/raw_material.dart';
 import '../utils/app_format.dart';
 import '../providers/auth_provider.dart';
 
@@ -108,7 +108,7 @@ class _ManagementTabState extends State<ManagementTab> with SingleTickerProvider
   }
 }
 
-// ---- Stock Management (original ManagementTab content) ----
+// ---- Stock Management (Read-Only, synced from raw materials) ----
 
 class _StockManagementView extends StatefulWidget {
   @override
@@ -128,7 +128,6 @@ class _StockManagementViewState extends State<_StockManagementView> {
 
   Future<void> _fetchProducts({bool forceRefresh = false}) async {
     if (!mounted) return;
-    // Try cache first
     if (!forceRefresh) {
       final cached = await CacheService.getMgmtStock();
       if (cached != null && mounted) {
@@ -160,7 +159,7 @@ class _StockManagementViewState extends State<_StockManagementView> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: Colors.black));
+      return Center(child: CircularProgressIndicator(color: const Color(0xFF5D4037)));
     }
 
     if (_products.isEmpty) {
@@ -191,6 +190,12 @@ class _StockManagementViewState extends State<_StockManagementView> {
         itemCount: _products.length,
         itemBuilder: (context, index) {
           final product = _products[index];
+          final stockColor = product.stock <= 0
+              ? Colors.red
+              : product.stock <= 10
+                  ? Colors.orange
+                  : Colors.green;
+
           return Container(
             margin: EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
@@ -224,114 +229,27 @@ class _StockManagementViewState extends State<_StockManagementView> {
                       ),
               ),
               title: Text(product.name, style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('${AppFormat.currency(product.price)} · Stok: ${product.stock}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.remove_circle_outline, color: Colors.red),
-                    onPressed: product.stock > 0
-                      ? () async {
-                          final success = await _apiService.updateProduct(product.id, {'stock': product.stock - 1});
-                          if (success) { await CacheService.invalidateProducts(); _fetchProducts(forceRefresh: true); }
-                        }
-                      : null,
+              subtitle: Text(AppFormat.currency(product.price)),
+              trailing: Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: stockColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: stockColor.withOpacity(0.3)),
+                ),
+                child: Text(
+                  '${product.stock} porsi',
+                  style: TextStyle(
+                    color: stockColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
-                  Text('${product.stock}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  IconButton(
-                    icon: Icon(Icons.add_circle_outline, color: Colors.green),
-                    onPressed: () async {
-                      final success = await _apiService.updateProduct(product.id, {'stock': product.stock + 1});
-                      if (success) { await CacheService.invalidateProducts(); _fetchProducts(forceRefresh: true); }
-                    },
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.edit_outlined, color: Colors.black),
-                    onPressed: () => _showEditDialog(product),
-                  ),
-                ],
+                ),
               ),
             ),
           );
         },
       ),
-    );
-  }
-
-  void _showEditDialog(Product product) {
-    final stockCtrl = TextEditingController(text: product.stock.toString());
-    final priceCtrl = TextEditingController(text: product.price.toStringAsFixed(0));
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Edit ${product.name}', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: stockCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Stok',
-                  prefixIcon: Icon(Icons.inventory),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: priceCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Harga (Rp)',
-                  prefixIcon: Icon(Icons.attach_money),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text('Batal', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black, foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-              onPressed: () async {
-                Navigator.pop(dialogCtx);
-                final success = await _apiService.updateProduct(product.id, {
-                  'stock': int.tryParse(stockCtrl.text) ?? product.stock,
-                  'price': double.tryParse(priceCtrl.text) ?? product.price,
-                });
-
-                if (success) {
-                  PopupNotification.show(
-                    context,
-                    title: 'Berhasil Diperbarui ✏️',
-                    message: '${product.name} telah diupdate.',
-                    type: PopupType.success,
-                  );
-                  await CacheService.invalidateProducts();
-                  _fetchProducts(forceRefresh: true);
-                } else {
-                  PopupNotification.show(
-                    context,
-                    title: 'Gagal Memperbarui',
-                    message: 'Tidak bisa mengupdate ${product.name}.',
-                    type: PopupType.error,
-                  );
-                }
-              },
-              child: Text('Simpan'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -498,7 +416,7 @@ class _RawMaterialsViewState extends State<_RawMaterialsView> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
+              backgroundColor: const Color(0xFF5D4037),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
@@ -513,7 +431,7 @@ class _RawMaterialsViewState extends State<_RawMaterialsView> {
               if (success) {
                 PopupNotification.show(
                   context,
-                  title: 'Berhasil Diperbarui ✏️',
+                  title: 'Berhasil Diperbarui âœï¸',
                   message: '${material.name} telah diupdate.',
                   type: PopupType.success,
                 );

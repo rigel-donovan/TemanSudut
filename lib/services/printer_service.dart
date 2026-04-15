@@ -1,4 +1,4 @@
-import 'printer_service_stub.dart'
+﻿import 'printer_service_stub.dart'
   if (dart.library.io) 'printer_service_mobile.dart';
 
 abstract class PrinterService {

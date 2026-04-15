@@ -1,4 +1,4 @@
-import 'dart:convert';
+﻿import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CacheService {
@@ -10,7 +10,6 @@ class CacheService {
   static const String _keyMgmtUsers = 'cache_mgmt_users';
   static const String _suffixTs = '_ts';
 
-  // ─── Internal helpers ───────────────────────────────────────────────────────
 
   static Future<bool> _isValid(String key) async {
     final prefs = await SharedPreferences.getInstance();
@@ -33,8 +32,6 @@ class CacheService {
     return jsonDecode(raw);
   }
 
-  // ─── Public API ─────────────────────────────────────────────────────────────
-
   static Future<List<dynamic>?> getProducts() async {
     if (!await _isValid(_keyProducts)) return null;
     return (await _loadJson(_keyProducts)) as List<dynamic>?;
@@ -51,7 +48,7 @@ class CacheService {
   static Future<void> saveCategories(List<dynamic> data) =>
       _saveJson(_keyCategories, data);
 
-  /// Call this to bust cached products (e.g. after an admin product update).
+  /// Call this to bust cached products 
   static Future<void> invalidateProducts() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_keyProducts);

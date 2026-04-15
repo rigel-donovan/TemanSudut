@@ -5,7 +5,6 @@ namespace App\Filament\Pages;
 use App\Models\Product;
 use App\Models\StockLog;
 use Filament\Pages\Page;
-use Filament\Tables\Columns\BadgeColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -49,6 +48,7 @@ class StockLogPage extends Page implements HasTable
                 StockLog::query()
                     ->with(['product', 'user'])
                     ->when($this->productId, fn ($q) => $q->where('product_id', $this->productId))
+                    ->whereNotNull('product_id')
                     ->latest()
             )
             ->columns([
@@ -59,42 +59,51 @@ class StockLogPage extends Page implements HasTable
                 TextColumn::make('product.name')
                     ->label('Produk')
                     ->searchable()
+                    ->sortable()
                     ->hidden(fn () => $this->productId !== null),
+                TextColumn::make('user.name')
+                    ->label('Oleh')
+                    ->searchable(),
                 TextColumn::make('type')
                     ->label('Tipe')
                     ->badge()
-                    ->formatStateUsing(fn ($state) => match($state) {
-                        'in'         => 'Stok Masuk',
-                        'out'        => 'Stok Keluar',
-                        'adjustment' => 'Koreksi',
-                        default      => $state,
+                    ->color(fn (string $state): string => match ($state) {
+                        'in' => 'success',
+                        'out', 'order_deduction' => 'danger',
+                        'adjustment' => 'warning',
+                        default => 'gray',
                     })
-                    ->color(fn ($state) => match($state) {
-                        'in'  => 'success',
-                        'out' => 'danger',
-                        default => 'warning',
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'in' => 'Masuk',
+                        'out' => 'Keluar',
+                        'order_deduction' => 'Pesanan',
+                        'adjustment' => 'Sinkronisasi',
+                        default => ucfirst($state),
                     }),
-                TextColumn::make('quantity')
-                    ->label('Jumlah')
-                    ->formatStateUsing(fn ($state) => ($state > 0 ? '+' : '') . $state . ' unit')
-                    ->color(fn ($state) => $state > 0 ? 'success' : 'danger'),
                 TextColumn::make('stock_before')
-                    ->label('Stok Sebelum')
-                    ->suffix(' unit')
-                    ->color('gray'),
+                    ->label('Stok Awal')
+                    ->numeric(),
+                TextColumn::make('quantity')
+                    ->label('Perubahan')
+                    ->weight('bold')
+                    ->color(fn ($record) => $record->quantity > 0 ? 'success' : 'danger')
+                    ->formatStateUsing(fn ($state) => $state > 0 ? "+$state" : $state),
                 TextColumn::make('stock_after')
-                    ->label('Stok Sesudah')
-                    ->suffix(' unit')
-                    ->weight('bold'),
+                    ->label('Stok Akhir')
+                    ->numeric(),
                 TextColumn::make('reason')
                     ->label('Alasan')
-                    ->wrap(),
-                TextColumn::make('user.name')
-                    ->label('Oleh')
-                    ->default('System'),
+                    ->limit(30)
+                    ->tooltip(function (TextColumn $column): ?string {
+                        $state = $column->getState();
+                        if (strlen($state) <= $column->getCharacterLimit()) {
+                            return null;
+                        }
+                        return $state;
+                    }),
             ])
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('Belum ada riwayat stok')
-            ->emptyStateDescription('Sesuaikan stok produk untuk mulai merekam riwayat.');
+            ->emptyStateDescription('Riwayat perubahan stok produk akan muncul di sini.');
     }
 }

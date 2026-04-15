@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../services/cache_service.dart';
 import '../widgets/popup_notification.dart';
@@ -134,7 +134,7 @@ class UserManagementTabState extends State<UserManagementTab> {
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: const Color(0xFF5D4037),
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -169,7 +169,7 @@ class UserManagementTabState extends State<UserManagementTab> {
                     LoadingOverlay.hide(context);
 
                     if (success) {
-                      PopupNotification.show(context, title: 'Berhasil! ✅', message: isEdit ? 'User berhasil diperbarui.' : 'User baru berhasil ditambahkan.', type: PopupType.success);
+                      PopupNotification.show(context, title: 'Berhasil! âœ…', message: isEdit ? 'User berhasil diperbarui.' : 'User baru berhasil ditambahkan.', type: PopupType.success);
                       await CacheService.invalidateMgmtUsers();
                       _fetchUsers(forceRefresh: true);
                     } else {
@@ -207,7 +207,7 @@ class UserManagementTabState extends State<UserManagementTab> {
                 final success = await _apiService.deleteUser(user['id']);
                 LoadingOverlay.hide(context);
                 if (success) {
-                  PopupNotification.show(context, title: 'Dihapus 🗑️', message: '"${user['name']}" telah dihapus.', type: PopupType.success);
+                  PopupNotification.show(context, title: 'Dihapus ðŸ—‘ï¸', message: '"${user['name']}" telah dihapus.', type: PopupType.success);
                   await CacheService.invalidateMgmtUsers();
                   _fetchUsers(forceRefresh: true);
                 } else {
@@ -237,7 +237,7 @@ class UserManagementTabState extends State<UserManagementTab> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF5D4037),
         foregroundColor: Colors.white,
         icon: Icon(Icons.person_add),
         label: Text('Tambah User'),

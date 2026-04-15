@@ -1,4 +1,4 @@
-import 'package:dio/dio.dart';
+﻿import 'package:dio/dio.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/category.dart';
@@ -147,10 +147,16 @@ class ApiService {
           },
         );
       } else {
-        response = await _dio.put('/transactions/$id/status', data: {
-          'kitchen_status': status,
-          if (orderType != null) 'order_type': orderType,
-        });
+        response = await _dio.put(
+          '/transactions/$id/status',
+          data: {
+            'kitchen_status': status,
+            'completion_photo_base64': 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+            if (orderType != null) 'order_type': orderType,
+            if (amountReceived != null) 'amount_received': amountReceived,
+            if (changeAmount != null) 'change_amount': changeAmount,
+          },
+        );
       }
 
       if (response.statusCode == 200) {
@@ -220,7 +226,8 @@ class ApiService {
     }
   }
 
-  Future<bool> createTransaction(Map<String, dynamic> transactionData, {dynamic photo}) async {
+  /// Returns {'success': true} on success, or {'success': false, 'error': '...', 'details': [...]} on failure
+  Future<Map<String, dynamic>> createTransaction(Map<String, dynamic> transactionData, {dynamic photo}) async {
     try {
       if (photo != null) {
         final xfile = photo as dynamic;
@@ -229,10 +236,18 @@ class ApiService {
         transactionData['completion_photo_base64'] = 'data:image/jpeg;base64,$base64Image';
       }
       final response = await _dio.post('/transactions', data: transactionData);
-      return response.statusCode == 201;
+      return {'success': response.statusCode == 201};
     } catch (e) {
+      if (e is DioException && e.response?.statusCode == 422) {
+        final data = e.response?.data;
+        return {
+          'success': false,
+          'error': data?['message'] ?? 'Stok bahan baku tidak mencukupi',
+          'details': data?['details'] ?? [],
+        };
+      }
       print('Failed to create transaction: $e');
-      return false;
+      return {'success': false, 'error': 'Gagal membuat transaksi'};
     }
   }
 

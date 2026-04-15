@@ -6,6 +6,9 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Placeholder;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 
 class ProductForm
@@ -33,15 +36,66 @@ class ProductForm
                 TextInput::make('sku')
                     ->label('SKU'),
                 TextInput::make('price')
+                    ->label('Harga Jual')
                     ->required()
                     ->numeric()
-                    ->prefix('Rp. '),
-                TextInput::make('stock')
-                    ->required()
-                    ->numeric()
-                    ->default(0),
+                    ->prefix('Rp'),
+                Placeholder::make('stock_display')
+                    ->label('Stok (dari bahan baku)')
+                    ->content(fn ($record) => $record 
+                        ? $record->stock . ' porsi' 
+                        : 'Otomatis dihitung setelah simpan'),
                 FileUpload::make('image')
                     ->image(),
+                
+                Section::make('Resep Bahan Baku')
+                    ->description('Tentukan bahan baku yang dibutuhkan per porsi produk ini')
+                    ->icon('heroicon-o-beaker')
+                    ->collapsible()
+                    ->collapsed(fn (string $operation) => $operation === 'edit')
+                    ->schema([
+                        Repeater::make('ingredients')
+                            ->relationship()
+                            ->label('')
+                            ->schema([
+                                Select::make('raw_material_id')
+                                    ->label('Bahan Baku')
+                                    ->relationship('rawMaterial', 'name')
+                                    ->searchable()
+                                    ->preload()
+                                    ->required(),
+                                TextInput::make('quantity_used')
+                                    ->label('Jumlah per Porsi')
+                                    ->numeric()
+                                    ->required()
+                                    ->suffix(fn ($get) => \App\Models\RawMaterial::find($get('raw_material_id'))?->unit_small ?? ''),
+                            ])
+                            ->columns(['default' => 1, 'sm' => 2])
+                            ->addActionLabel('+ Tambah Bahan Baku')
+                            ->reorderable(false)
+                            ->defaultItems(0),
+                    ])
+                    ->columnSpanFull(),
+
+                Section::make('HPP & Profit')
+                    ->description('Dihitung otomatis berdasarkan resep bahan baku')
+                    ->icon('heroicon-o-calculator')
+                    ->schema([
+                        Placeholder::make('hpp_display')
+                            ->label('HPP (Harga Pokok Produksi)')
+                            ->content(fn ($record) => $record ? 'Rp ' . number_format($record->hpp, 0, ',', '.') : 'Simpan produk terlebih dahulu'),
+                        Placeholder::make('profit_display')
+                            ->label('Profit per Porsi')
+                            ->content(fn ($record) => $record ? 'Rp ' . number_format($record->profit, 0, ',', '.') : '-'),
+                        Placeholder::make('margin_display')
+                            ->label('Margin')
+                            ->content(fn ($record) => $record && $record->price > 0
+                                ? round(($record->profit / $record->price) * 100, 1) . '%'
+                                : '-'),
+                    ])
+                    ->columns(3)
+                    ->visible(fn (string $operation) => $operation === 'edit')
+                    ->columnSpanFull(),
             ]);
     }
 }

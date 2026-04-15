@@ -12,7 +12,7 @@ class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with('category')->where('is_active', true);
+        $query = Product::with(['category', 'ingredients.rawMaterial'])->where('is_active', true);
         
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);
@@ -27,7 +27,7 @@ class ProductController extends Controller
 
     public function show(string $id)
     {
-        $product = Product::with('category')->find($id);
+        $product = Product::with(['category', 'ingredients.rawMaterial'])->find($id);
         
         if (!$product) {
             return response()->json(['message' => 'Product not found'], 404);

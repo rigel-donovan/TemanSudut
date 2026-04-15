@@ -4,9 +4,6 @@ namespace App\Filament\Pages;
 
 use App\Models\Product;
 use App\Models\StockLog;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
@@ -33,10 +30,34 @@ class StockManagementPage extends Page implements HasTable
         return 'filament.pages.stock-management';
     }
 
+    /**
+     * Calculate max possible servings based on ingredient stock.
+     */
+    public static function calculateMaxServings(Product $product): ?int
+    {
+        $product->loadMissing('ingredients.rawMaterial');
+
+        if ($product->ingredients->isEmpty()) {
+            return null; 
+        }
+
+        $maxServings = PHP_INT_MAX;
+
+        foreach ($product->ingredients as $ingredient) {
+            if (!$ingredient->rawMaterial || $ingredient->quantity_used <= 0) continue;
+
+            $available = (float) $ingredient->rawMaterial->stock;
+            $possible = (int) floor($available / $ingredient->quantity_used);
+            $maxServings = min($maxServings, $possible);
+        }
+
+        return $maxServings === PHP_INT_MAX ? 0 : $maxServings;
+    }
+
     public function table(Table $table): Table
     {
         return $table
-            ->query(Product::query()->with('category')->orderBy('name'))
+            ->query(Product::query()->with(['category', 'ingredients.rawMaterial'])->orderBy('name'))
             ->columns([
                 TextColumn::make('name')
                     ->label('Produk')
@@ -60,54 +81,56 @@ class StockManagementPage extends Page implements HasTable
                         $record->stock <= 10  => 'warning',
                         default               => 'success',
                     })
-                    ->formatStateUsing(fn ($state) => $state . ' unit'),
+                    ->formatStateUsing(fn ($state) => $state . ' porsi'),
+                TextColumn::make('hpp')
+                    ->label('HPP')
+                    ->money('IDR')
+                    ->color('gray'),
+                TextColumn::make('id')
+                    ->label('Stok Maks (Bahan Baku)')
+                    ->formatStateUsing(function ($record) {
+                        $max = self::calculateMaxServings($record);
+                        if ($max === null) return '—';
+                        return $max . ' porsi';
+                    })
+                    ->badge()
+                    ->color(function ($record) {
+                        $max = self::calculateMaxServings($record);
+                        if ($max === null) return 'gray';
+                        if ($max <= 0) return 'danger';
+                        if ($max <= 10) return 'warning';
+                        return 'info';
+                    }),
             ])
             ->actions([
-                Action::make('adjust')
-                    ->label('Sesuaikan Stok')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('primary')
-                    ->form([
-                        Select::make('type')
-                            ->label('Tipe')
-                            ->options([
-                                'in'         => '📦 Stok Masuk',
-                                'out'        => '📤 Stok Keluar',
-                                'adjustment' => '✏️ Koreksi Manual',
-                            ])
-                            ->required()
-                            ->default('in')
-                            ->live(),
-                        TextInput::make('quantity')
-                            ->label('Jumlah')
-                            ->numeric()
-                            ->required()
-                            ->minValue(1)
-                            ->helperText('Masukkan jumlah unit yang ditambah/dikurangi.'),
-                        TextInput::make('reason')
-                            ->label('Alasan')
-                            ->placeholder('Contoh: Restok dari supplier, barang rusak, dll.')
-                            ->required(),
-                        Textarea::make('notes')
-                            ->label('Catatan Tambahan')
-                            ->rows(2)
-                            ->placeholder('Opsional'),
-                    ])
-                    ->action(function (array $data, $record): void {
-                        $qty = (int) $data['quantity'];
-                        $adjustedQty = $data['type'] === 'out' ? -$qty : $qty;
+                Action::make('sync_stock')
+                    ->label('Sinkron Stok')
+                    ->icon('heroicon-o-arrow-path')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->modalHeading('Sinkron Stok dari Bahan Baku')
+                    ->modalDescription(fn ($record) => $this->getSyncDescription($record))
+                    ->visible(fn ($record) => $record->ingredients->isNotEmpty())
+                    ->action(function ($record): void {
+                        $maxServings = self::calculateMaxServings($record);
+                        if ($maxServings === null) return;
 
-                        StockLog::adjustStock(
-                            productId: $record->id,
-                            quantity: $adjustedQty,
-                            type: $data['type'],
-                            reason: $data['reason'],
-                            notes: $data['notes'] ?? null,
-                        );
+                        $oldStock = $record->stock;
+                        $record->update(['stock' => $maxServings]);
+
+                        StockLog::create([
+                            'product_id' => $record->id,
+                            'user_id' => auth()->id(),
+                            'type' => 'adjustment',
+                            'quantity' => $maxServings - $oldStock,
+                            'stock_before' => $oldStock,
+                            'stock_after' => $maxServings,
+                            'reason' => 'Sinkronisasi stok berdasarkan bahan baku',
+                        ]);
 
                         Notification::make()
-                            ->title('Stok berhasil diperbarui')
-                            ->body("Stok {$record->name} telah disesuaikan sebesar " . ($adjustedQty > 0 ? "+$adjustedQty" : $adjustedQty) . " unit.")
+                            ->title('Stok disinkronkan')
+                            ->body("Stok {$record->name}: {$oldStock} → {$maxServings} porsi")
                             ->success()
                             ->send();
                     }),
@@ -120,5 +143,67 @@ class StockManagementPage extends Page implements HasTable
             ])
             ->emptyStateHeading('Tidak ada produk')
             ->emptyStateDescription('Tambahkan produk terlebih dahulu di menu Products.');
+    }
+
+    protected function getSyncDescription($record): string
+    {
+        $max = self::calculateMaxServings($record);
+        $lines = ["Sinkronkan stok {$record->name} dari bahan baku?\n"];
+
+        foreach ($record->ingredients as $ing) {
+            if (!$ing->rawMaterial) continue;
+            $rm = $ing->rawMaterial;
+            $possible = (int) floor($rm->stock / $ing->quantity_used);
+            $lines[] = "• {$rm->name}: {$rm->stock} {$rm->unit} ÷ {$ing->quantity_used} = {$possible} porsi";
+        }
+
+        $lines[] = "\nStok akan diubah: {$record->stock} → {$max} porsi";
+        return implode("\n", $lines);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('sync_all')
+                ->label('Sinkron Semua Stok')
+                ->icon('heroicon-o-arrow-path')
+                ->color('info')
+                ->requiresConfirmation()
+                ->modalHeading('Sinkron Semua Stok Produk')
+                ->modalDescription('Sinkronkan stok SEMUA produk yang punya resep bahan baku?')
+                ->action(function (): void {
+                    $products = Product::with('ingredients.rawMaterial')
+                        ->whereHas('ingredients')
+                        ->get();
+
+                    $count = 0;
+                    foreach ($products as $product) {
+                        $maxServings = self::calculateMaxServings($product);
+                        if ($maxServings === null) continue;
+
+                        $oldStock = $product->stock;
+                        if ($oldStock == $maxServings) continue;
+
+                        $product->update(['stock' => $maxServings]);
+
+                        StockLog::create([
+                            'product_id' => $product->id,
+                            'user_id' => auth()->id(),
+                            'type' => 'adjustment',
+                            'quantity' => $maxServings - $oldStock,
+                            'stock_before' => $oldStock,
+                            'stock_after' => $maxServings,
+                            'reason' => 'Sinkronisasi stok massal berdasarkan bahan baku',
+                        ]);
+                        $count++;
+                    }
+
+                    Notification::make()
+                        ->title('Semua stok disinkronkan')
+                        ->body("$count produk telah diperbarui berdasarkan bahan baku.")
+                        ->success()
+                        ->send();
+                }),
+        ];
     }
 }
