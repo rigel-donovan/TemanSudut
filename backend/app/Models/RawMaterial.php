@@ -29,6 +29,17 @@ class RawMaterial extends Model
                 $material->price_per_small_unit = $material->price_per_large_unit / $material->conversion_value;
             }
         });
+
+        static::saved(function (RawMaterial $material) {
+            $products = \App\Models\Product::whereHas('ingredients', function ($q) use ($material) {
+                $q->where('raw_material_id', $material->id);
+            })->get();
+            
+            foreach ($products as $product) {
+                $product->syncStock();
+                $product->calculateHpp(); 
+            }
+        });
     }
 
     /**

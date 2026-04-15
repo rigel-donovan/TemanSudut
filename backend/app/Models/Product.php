@@ -39,8 +39,44 @@ class Product extends Model
             }
         }
 
-        $this->update(['hpp' => round($hpp, 2)]);
+        $this->updateQuietly(['hpp' => round($hpp, 2)]);
         return $hpp;
+    }
+
+    /**
+     * Calculate max possible stock from ingredients and save to database.
+     */
+    public function syncStock(): int
+    {
+        $this->load('ingredients.rawMaterial');
+        $maxServings = null;
+
+        if ($this->ingredients->isEmpty()) {
+            return (int) $this->stock; 
+        }
+
+        foreach ($this->ingredients as $ingredient) {
+            if (!$ingredient->rawMaterial) continue;
+
+            $available = (float) $ingredient->rawMaterial->stock;
+            $needed = (float) $ingredient->quantity_used;
+
+            if ($needed > 0) {
+                $servings = floor($available / $needed);
+                if ($maxServings === null || $servings < $maxServings) {
+                    $maxServings = $servings;
+                }
+            }
+        }
+
+        $newStock = $maxServings === null ? 0 : (int) $maxServings;
+        
+        if ($this->stock != $newStock) {
+            // updateQuietly prevents firing 'saved' again if we had observers
+            $this->updateQuietly(['stock' => $newStock]);
+        }
+
+        return $newStock;
     }
 
     /**

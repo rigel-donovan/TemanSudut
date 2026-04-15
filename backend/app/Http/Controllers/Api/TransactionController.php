@@ -13,6 +13,41 @@ use Illuminate\Support\Facades\File;
 
 class TransactionController extends Controller
 {
+    /**
+     * Get compressed logo as base64 for PDF embedding.
+     * Resizes to max 150px and compresses to JPEG quality 60.
+     */
+    private function getCompressedLogoBase64(int $maxSize = 150, int $quality = 60): string
+    {
+        $logoPath = public_path('images/logo.png');
+        if (!file_exists($logoPath)) return '';
+
+        $info = getimagesize($logoPath);
+        if (!$info) return '';
+
+        $src = imagecreatefrompng($logoPath);
+        if (!$src) return '';
+
+        $origW = imagesx($src);
+        $origH = imagesy($src);
+        $ratio = min($maxSize / $origW, $maxSize / $origH, 1);
+        $newW = (int) round($origW * $ratio);
+        $newH = (int) round($origH * $ratio);
+
+        $dst = imagecreatetruecolor($newW, $newH);
+        // Preserve transparency as white background
+        $white = imagecolorallocate($dst, 255, 255, 255);
+        imagefill($dst, 0, 0, $white);
+        imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
+        imagedestroy($src);
+
+        ob_start();
+        imagejpeg($dst, null, $quality);
+        $data = ob_get_clean();
+        imagedestroy($dst);
+
+        return 'data:image/jpeg;base64,' . base64_encode($data);
+    }
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -230,6 +265,9 @@ class TransactionController extends Controller
 
     public function exportExcel(Request $request)
     {
+        ini_set('memory_limit', '256M');
+        set_time_limit(120);
+
         $user = $this->resolveUser($request);
 
         if (!$user) {
@@ -240,12 +278,19 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Akses ditolak. Anda tidak memiliki izin untuk export.'], 403);
         }
 
-        $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->get();
-        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\HistoryExport($transactions), 'history_transactions.xlsx');
+        try {
+            $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->limit(2000)->get();
+            return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\HistoryExport($transactions), 'history_transactions.xlsx');
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Export gagal: ' . $e->getMessage()], 500);
+        }
     }
 
     public function exportPdf(Request $request)
     {
+        ini_set('memory_limit', '256M');
+        set_time_limit(120);
+
         $user = $this->resolveUser($request);
 
         if (!$user) {
@@ -256,30 +301,33 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Akses ditolak. Anda tidak memiliki izin untuk export.'], 403);
         }
 
-        $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->get();
+        try {
+            // Limit PDF to 500 rows — DomPDF can't handle very large tables
+            $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->limit(500)->get();
 
-        $totalProcessed = $transactions->sum('total');
-        $startDate = $transactions->min('created_at');
-        $endDate = $transactions->max('created_at');
-        $generatedOn = now();
+            $totalProcessed = $transactions->sum('total');
+            $startDate = $transactions->min('created_at');
+            $endDate = $transactions->max('created_at');
+            $generatedOn = now();
 
-        $logoPath = public_path('images/logo.png');
-        $logoBase64 = '';
-        if (file_exists($logoPath)) {
-            $logoData = file_get_contents($logoPath);
-            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
+            $logoBase64 = $this->getCompressedLogoBase64();
+
+            $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.history_pdf', [
+                'transactions' => $transactions,
+                'totalProcessed' => $totalProcessed,
+                'startDate' => $startDate,
+                'endDate' => $endDate,
+                'generatedOn' => $generatedOn,
+                'logoBase64' => $logoBase64,
+                'totalCount' => $transactions->count(),
+            ]);
+
+            $pdf->setPaper('A4', 'landscape');
+
+            return $pdf->download('history_transactions.pdf');
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Export PDF gagal: ' . $e->getMessage()], 500);
         }
-
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.history_pdf', [
-            'transactions' => $transactions,
-            'totalProcessed' => $totalProcessed,
-            'startDate' => $startDate,
-            'endDate' => $endDate,
-            'generatedOn' => $generatedOn,
-            'logoBase64' => $logoBase64,
-            'totalCount' => $transactions->count(),
-        ]);
-        return $pdf->download('history_transactions.pdf');
     }
 
     public function exportReceiptPdf(Request $request, $id)
@@ -292,19 +340,14 @@ class TransactionController extends Controller
 
         $transaction = Transaction::with(['items.product', 'user', 'table'])->findOrFail($id);
 
-        $logoPath = public_path('images/logo.png');
-        $logoBase64 = '';
-        if (file_exists($logoPath)) {
-            $logoData = file_get_contents($logoPath);
-            $logoBase64 = 'data:image/png;base64,' . base64_encode($logoData);
-        }
+        $logoBase64 = $this->getCompressedLogoBase64();
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.receipt_80mm', [
             'transaction' => $transaction,
             'logoBase64' => $logoBase64,
         ]);
 
-        $pdf->setPaper([0, 0, 226.77, 800], 'portrait');
+        $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
 
         return $pdf->stream('receipt-' . $id . '.pdf');
     }

@@ -115,10 +115,13 @@ class _StockManagementView extends StatefulWidget {
   _StockManagementViewState createState() => _StockManagementViewState();
 }
 
-class _StockManagementViewState extends State<_StockManagementView> {
+class _StockManagementViewState extends State<_StockManagementView> with AutomaticKeepAliveClientMixin {
   final ApiService _apiService = ApiService();
   List<Product> _products = [];
   bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -158,6 +161,7 @@ class _StockManagementViewState extends State<_StockManagementView> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_isLoading) {
       return Center(child: CircularProgressIndicator(color: const Color(0xFF5D4037)));
     }
@@ -183,72 +187,118 @@ class _StockManagementViewState extends State<_StockManagementView> {
       );
     }
 
+    final lowStock = _products.where((p) => p.stock <= 5).length;
+    final outOfStock = _products.where((p) => p.stock <= 0).length;
+
     return RefreshIndicator(
       onRefresh: () => _fetchProducts(forceRefresh: true),
-      child: ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: _products.length,
-        itemBuilder: (context, index) {
-          final product = _products[index];
-          final stockColor = product.stock <= 0
-              ? Colors.red
-              : product.stock <= 10
-                  ? Colors.orange
-                  : Colors.green;
-
-          return Container(
+      child: ListView(
+        padding: EdgeInsets.all(12),
+        children: [
+          // Summary header
+          Container(
+            padding: EdgeInsets.all(12),
             margin: EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))
+              color: const Color(0xFF5D4037).withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                _summaryChip('Total', '${_products.length}', Colors.blueGrey),
+                SizedBox(width: 8),
+                if (outOfStock > 0) ...[
+                  _summaryChip('Habis', '$outOfStock', Colors.red),
+                  SizedBox(width: 8),
+                ],
+                if (lowStock > 0)
+                  _summaryChip('Rendah', '$lowStock', Colors.orange),
               ],
             ),
-            child: ListTile(
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: ClipRRect(
+          ),
+          // Product list
+          ..._products.map((product) {
+            final stockColor = product.stock <= 0
+                ? Colors.red
+                : product.stock <= 10
+                    ? Colors.orange
+                    : Colors.green;
+
+            return Container(
+              margin: EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                child: product.image != null
-                    ? CachedNetworkImage(
-                        imageUrl: _apiService.getImageUrl(product.image),
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
-                          child: Icon(Icons.broken_image, color: Colors.grey),
-                        ),
-                      )
-                    : Container(
-                        width: 50, height: 50,
-                        decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(12)),
-                        child: Icon(Icons.fastfood, color: Colors.grey),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: Offset(0, 2))
+                ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: product.image != null
+                          ? CachedNetworkImage(
+                              imageUrl: _apiService.getImageUrl(product.image),
+                              width: 44, height: 44, fit: BoxFit.cover,
+                              errorWidget: (c, u, e) => Container(width: 44, height: 44,
+                                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
+                                child: Icon(Icons.broken_image, size: 20, color: Colors.grey)),
+                            )
+                          : Container(width: 44, height: 44,
+                              decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10)),
+                              child: Icon(Icons.fastfood, size: 20, color: Colors.grey)),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(product.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                            overflow: TextOverflow.ellipsis),
+                          SizedBox(height: 2),
+                          Text(AppFormat.currency(product.price), style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                        ],
                       ),
-              ),
-              title: Text(product.name, style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(AppFormat.currency(product.price)),
-              trailing: Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: stockColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: stockColor.withOpacity(0.3)),
-                ),
-                child: Text(
-                  '${product.stock} porsi',
-                  style: TextStyle(
-                    color: stockColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+                    ),
+                    SizedBox(width: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: stockColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: stockColor.withOpacity(0.3)),
+                      ),
+                      child: Text('${product.stock}',
+                        style: TextStyle(color: stockColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                    ),
+                  ],
                 ),
               ),
-            ),
-          );
-        },
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryChip(String label, String count, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(count, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
+          SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 11, color: color)),
+        ],
       ),
     );
   }
@@ -261,10 +311,13 @@ class _RawMaterialsView extends StatefulWidget {
   _RawMaterialsViewState createState() => _RawMaterialsViewState();
 }
 
-class _RawMaterialsViewState extends State<_RawMaterialsView> {
+class _RawMaterialsViewState extends State<_RawMaterialsView> with AutomaticKeepAliveClientMixin {
   final ApiService _apiService = ApiService();
   List<RawMaterial> _materials = [];
   bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -292,75 +345,151 @@ class _RawMaterialsViewState extends State<_RawMaterialsView> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: Colors.black));
+      return Center(child: CircularProgressIndicator(color: const Color(0xFF5D4037)));
     }
+
+    if (_materials.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.bakery_dining, size: 56, color: Colors.grey[400]),
+            SizedBox(height: 12),
+            Text('Tidak ada bahan baku', style: TextStyle(fontSize: 16, color: Colors.grey[600], fontWeight: FontWeight.w500)),
+            SizedBox(height: 20),
+            OutlinedButton.icon(
+              onPressed: _fetchMaterials,
+              icon: Icon(Icons.refresh),
+              label: Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final lowStock = _materials.where((m) => m.isActive && m.stock <= m.minStock).length;
 
     return RefreshIndicator(
       onRefresh: _fetchMaterials,
-      child: ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: _materials.length,
-        itemBuilder: (context, index) {
-          final material = _materials[index];
-          return Container(
+      child: ListView(
+        padding: EdgeInsets.all(12),
+        children: [
+          // Summary header
+          Container(
+            padding: EdgeInsets.all(12),
             margin: EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))
+              color: Colors.amber.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                _chip('Total', '${_materials.length}', Colors.blueGrey),
+                SizedBox(width: 8),
+                if (lowStock > 0)
+                  _chip('Stok Rendah', '$lowStock', Colors.orange),
               ],
             ),
-            child: ListTile(
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: Container(
-                width: 50, height: 50,
-                decoration: BoxDecoration(
-                  color: Colors.amber[50], 
-                  borderRadius: BorderRadius.circular(12),
-                  image: material.image != null && material.image!.isNotEmpty
-                      ? DecorationImage(
-                          image: NetworkImage(_apiService.getImageUrl(material.image)),
-                          fit: BoxFit.cover,
-                        )
-                      : null,
-                ),
-                child: material.image == null || material.image!.isEmpty
-                    ? Icon(Icons.bakery_dining, color: Colors.amber[700])
-                    : null,
-              ),
-              title: Text(material.name, style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('Stok: ${material.stock} ${material.unit}'),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.edit_outlined, color: Colors.blue),
-                    onPressed: () => _showEditDialog(material),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.remove_circle_outline, color: Colors.red),
-                    onPressed: material.stock > 0
-                        ? () async {
-                            final success = await _apiService.updateRawMaterial(material.id, {'stock': material.stock - 1});
-                            if (success) _fetchMaterials();
-                          }
-                        : null,
-                  ),
-                  Text('${material.stock.toStringAsFixed(1)}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  IconButton(
-                    icon: Icon(Icons.add_circle_outline, color: Colors.green),
-                    onPressed: () async {
-                      final success = await _apiService.updateRawMaterial(material.id, {'stock': material.stock + 1});
-                      if (success) _fetchMaterials();
-                    },
-                  ),
+          ),
+          // Material list
+          ..._materials.map((material) {
+            final isLow = material.isActive && material.stock <= material.minStock;
+            final stockColor = material.stock <= 0 ? Colors.red : isLow ? Colors.orange : Colors.green;
+
+            return Container(
+              margin: EdgeInsets.only(bottom: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: Offset(0, 2))
                 ],
               ),
-            ),
-          );
-        },
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => _showEditDialog(material),
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44, height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.amber[50],
+                          borderRadius: BorderRadius.circular(10),
+                          image: material.image != null && material.image!.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(_apiService.getImageUrl(material.image)),
+                                  fit: BoxFit.cover,
+                                )
+                              : null,
+                        ),
+                        child: material.image == null || material.image!.isEmpty
+                            ? Icon(Icons.bakery_dining, size: 22, color: Colors.amber[700])
+                            : null,
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(material.name, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              overflow: TextOverflow.ellipsis),
+                            SizedBox(height: 2),
+                            Text('${material.stock.toStringAsFixed(material.stock == material.stock.roundToDouble() ? 0 : 1)} ${material.unit}',
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: stockColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: stockColor.withOpacity(0.3)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(isLow ? Icons.warning_amber_rounded : Icons.check_circle_outline,
+                              size: 14, color: stockColor),
+                            SizedBox(width: 4),
+                            Text(material.stock <= 0 ? 'Habis' : isLow ? 'Rendah' : 'OK',
+                              style: TextStyle(color: stockColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      SizedBox(width: 4),
+                      Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label, String count, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(count, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: color)),
+          SizedBox(width: 4),
+          Text(label, style: TextStyle(fontSize: 11, color: color)),
+        ],
       ),
     );
   }
@@ -431,7 +560,7 @@ class _RawMaterialsViewState extends State<_RawMaterialsView> {
               if (success) {
                 PopupNotification.show(
                   context,
-                  title: 'Berhasil Diperbarui âœï¸',
+                  title: 'Berhasil Diperbarui ✏️',
                   message: '${material.name} telah diupdate.',
                   type: PopupType.success,
                 );

@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/cart_provider.dart';
@@ -13,9 +13,12 @@ class HomeTab extends StatefulWidget {
   State<HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<HomeTab> {
+class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
   bool _isSearching = false;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void dispose() {
@@ -25,6 +28,7 @@ class _HomeTabState extends State<HomeTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Consumer<CartProvider>(
       builder: (context, cart, child) {
         return Scaffold(

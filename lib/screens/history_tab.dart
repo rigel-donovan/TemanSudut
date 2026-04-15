@@ -16,12 +16,15 @@ class HistoryTab extends StatefulWidget {
   HistoryTabState createState() => HistoryTabState();
 }
 
-class HistoryTabState extends State<HistoryTab> {
+class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMixin {
   final ApiService _apiService = ApiService();
   final PrinterService _printerService = PrinterService();
   String _selectedFilter = 'daily';
   List<dynamic> _transactions = [];
   bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   String get _filterTitle {
     if (_selectedFilter == 'daily') return 'Hari Ini';
@@ -96,6 +99,7 @@ class HistoryTabState extends State<HistoryTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     return Scaffold(

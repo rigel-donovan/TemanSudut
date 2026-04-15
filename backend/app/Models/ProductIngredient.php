@@ -21,4 +21,21 @@ class ProductIngredient extends Model
     {
         return $this->belongsTo(RawMaterial::class);
     }
+
+    protected static function booted(): void
+    {
+        static::saved(function (ProductIngredient $ingredient) {
+            if ($ingredient->product) {
+                $ingredient->product->syncStock();
+                $ingredient->product->calculateHpp();
+            }
+        });
+
+        static::deleted(function (ProductIngredient $ingredient) {
+            if ($ingredient->product) {
+                $ingredient->product->syncStock();
+                $ingredient->product->calculateHpp();
+            }
+        });
+    }
 }

@@ -4,150 +4,157 @@
     <title>Struk Belanja</title>
     <style>
         @page { 
-            margin: 0; 
-            size: 80mm 200mm;
+            margin: 0;
+            size: 80mm auto;
         }
+        * { box-sizing: border-box; }
         body { 
-            font-family: 'Courier', monospace; 
-            font-size: 10px; 
+            font-family: 'Helvetica', 'Arial', sans-serif; 
+            font-size: 12px; 
             color: #000; 
             margin: 0; 
+            padding: 0;
+        }
+        .receipt {
+            width: 100%;
             padding: 5mm 3mm;
-            width: 74mm;
         }
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .bold { font-weight: bold; }
-        .dashed-line { border-top: 1px dashed #000; margin: 3px 0; }
+        .dashed-line { border-top: 2px dashed #999; margin: 8px 0; }
         
-        .header { margin-bottom: 5px; }
-        .logo { margin-bottom: 3px; }
-        .store-name { font-size: 14px; font-weight: 900; }
-        .store-info { font-size: 9px; margin-bottom: 2px; }
+        .header { margin-bottom: 8px; }
+        .logo { margin-bottom: 5px; }
+        .store-name { font-size: 18px; font-weight: 900; letter-spacing: 2px; color: #3E2723; }
+        .store-info { font-size: 11px; margin-bottom: 3px; color: #555; }
         
-        .meta-info { font-size: 10px; margin-bottom: 5px; }
+        .meta-table { width: 100%; font-size: 12px; }
+        .meta-table td { padding: 2px 0; }
         
-        .items-table { width: 100%; border-collapse: collapse; font-size: 9px; }
-        .item-row td { padding: 2px 0; vertical-align: top; }
-        .item-details { font-size: 9px; color: #333; }
+        .items-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .item-name { font-weight: bold; font-size: 13px; }
+        .item-qty { font-size: 11px; color: #555; }
+        .item-extra { font-size: 10px; color: #888; font-style: italic; }
+        .item-price { text-align: right; font-weight: bold; font-size: 13px; vertical-align: bottom; }
+        .item-row td { padding: 5px 0; border-bottom: 1px dotted #ddd; }
         
-        .totals-section { margin-top: 5px; font-size: 10px; }
-        .total-row { margin-bottom: 2px; }
-        .grand-total { font-size: 12px; margin-top: 3px; border-top: 1px solid #000; padding-top: 3px; }
+        .totals-table { width: 100%; font-size: 13px; margin-top: 5px; }
+        .totals-table td { padding: 3px 0; }
+        .grand-total td { 
+            font-size: 16px; 
+            font-weight: 900; 
+            padding-top: 8px;
+            border-top: 2px solid #000; 
+        }
         
-        .footer { margin-top: 10px; font-size: 9px; }
+        .footer { margin-top: 15px; font-size: 11px; color: #777; }
     </style>
 </head>
 <body>
-    <div class="header text-center">
-        @if($logoBase64)
-            <div class="logo">
-                <img src="{{ $logoBase64 }}" style="width: 30mm; height: 30mm; object-fit: cover; border-radius: 50%; border: 1px solid #000;">
-            </div>
-        @endif
-        <div class="store-name">s u d u t  k o p i.</div>
-        <div class="store-info">Jl. Keruang, RT.15/RW.No 35, Gn. Bahagia, Kecamatan Balikpapan Selatan, Kota Balikpapan, Kalimantan Timur 76114</div>
-        <div class="store-info">No. Telp: 085245436632</div>
-    </div>
-
-    <div class="dashed-line"></div>
-
-    <div class="meta-info">
-        <table style="width: 100%;">
-            @php
-                $custName = $transaction->customer_name ?? 'Guest';
-                $tableNum = '-';
-                if (str_contains($custName, ' - Meja ')) {
-                    $parts = explode(' - Meja ', $custName);
-                    $custName = $parts[0];
-                    $tableNum = $parts[1];
-                }
-            @endphp
-            <tr>
-                <td>No. INV:</td>
-                <td class="text-right">#{{ $transaction->id }}</td>
-            </tr>
-            <tr>
-                <td>Tanggal:</td>
-                <td class="text-right">{{ $transaction->created_at->format('d/m/Y') }}</td>
-            </tr>
-            <tr>
-                <td>Waktu:</td>
-                <td class="text-right">{{ $transaction->created_at->format('H:i:s') }}</td>
-            </tr>
-            <tr>
-                <td>Kasir:</td>
-                <td class="text-right">{{ $transaction->user->name ?? 'Staff' }}</td>
-            </tr>
-            <tr>
-                <td>Pelanggan:</td>
-                <td class="text-right">{{ $custName }}</td>
-            </tr>
-            <tr>
-                <td>Meja:</td>
-                <td class="text-right">{{ $tableNum }}</td>
-            </tr>
-        </table>
-    </div>
-
-    <div class="dashed-line"></div>
-
-    <table class="items-table">
-        @foreach($transaction->items as $index => $item)
-        <tr class="item-row">
-            <td colspan="2">
-                <div class="bold">{{ $index + 1 }}. {{ $item->product->name }}</div>
-                <div class="item-details">
-                    {{ $item->quantity }} x {{ number_format($item->unit_price, 0, ',', '.') }}
+    <div class="receipt">
+        <div class="header text-center">
+            @if($logoBase64)
+                <div class="logo">
+                    <img src="{{ $logoBase64 }}" style="width: 60px; height: 60px;">
                 </div>
-                @if($item->extra_charge > 0)
-                <div class="item-details" style="font-style: italic; color: #555;">
-                    + Extra: {{ number_format($item->extra_charge, 0, ',', '.') }} / item
-                </div>
+            @endif
+            <div class="store-name">SUDUT KOPI</div>
+            <div class="store-info">Jl. Keruang, RT.15/RW.No 35, Gn. Bahagia</div>
+            <div class="store-info">Kec. Balikpapan Selatan, Kota Balikpapan</div>
+            <div class="store-info">Telp: 085245436632</div>
+        </div>
+
+        <div class="dashed-line"></div>
+
+        <div>
+            <table class="meta-table">
+                @php
+                    $custName = $transaction->customer_name ?? 'Guest';
+                    $tableNum = '-';
+                    if (str_contains($custName, ' - Meja ')) {
+                        $parts = explode(' - Meja ', $custName);
+                        $custName = $parts[0];
+                        $tableNum = $parts[1];
+                    }
+                @endphp
+                <tr>
+                    <td>No. INV</td>
+                    <td class="text-right bold">#{{ $transaction->id }}</td>
+                </tr>
+                <tr>
+                    <td>Tanggal</td>
+                    <td class="text-right">{{ $transaction->created_at->format('d/m/Y H:i') }}</td>
+                </tr>
+                <tr>
+                    <td>Kasir</td>
+                    <td class="text-right">{{ $transaction->user->name ?? 'Staff' }}</td>
+                </tr>
+                <tr>
+                    <td>Pelanggan</td>
+                    <td class="text-right">{{ $custName }}</td>
+                </tr>
+                @if($tableNum !== '-')
+                <tr>
+                    <td>Meja</td>
+                    <td class="text-right">{{ $tableNum }}</td>
+                </tr>
                 @endif
-            </td>
-            <td class="text-right" style="vertical-align: bottom;">
-                Rp {{ number_format($item->subtotal, 0, ',', '.') }}
-            </td>
-        </tr>
-        @endforeach
-    </table>
+            </table>
+        </div>
 
-    <div class="dashed-line"></div>
+        <div class="dashed-line"></div>
 
-    <div class="totals-section">
-        <table style="width: 100%;">
-            <tr class="total-row">
+        <table class="items-table">
+            @foreach($transaction->items as $index => $item)
+            <tr class="item-row">
+                <td>
+                    <div class="item-name">{{ $item->product->name }}</div>
+                    <div class="item-qty">{{ $item->quantity }} x Rp {{ number_format($item->unit_price, 0, ',', '.') }}</div>
+                    @if($item->extra_charge > 0)
+                    <div class="item-extra">+ Extra Rp {{ number_format($item->extra_charge, 0, ',', '.') }}/item</div>
+                    @endif
+                </td>
+                <td class="item-price">
+                    Rp {{ number_format($item->subtotal, 0, ',', '.') }}
+                </td>
+            </tr>
+            @endforeach
+        </table>
+
+        <div class="dashed-line"></div>
+
+        <table class="totals-table">
+            <tr>
                 <td>Sub Total</td>
                 <td class="text-right">Rp {{ number_format($transaction->subtotal, 0, ',', '.') }}</td>
             </tr>
             @if($transaction->tax > 0)
-            <tr class="total-row">
+            <tr>
                 <td>Pajak (PPN)</td>
                 <td class="text-right">Rp {{ number_format($transaction->tax, 0, ',', '.') }}</td>
             </tr>
             @endif
-            <tr class="total-row bold grand-total">
+            <tr class="grand-total">
                 <td>TOTAL</td>
                 <td class="text-right">Rp {{ number_format($transaction->total, 0, ',', '.') }}</td>
             </tr>
-            <tr class="total-row" style="margin-top: 5px;">
+            <tr>
                 <td>Bayar ({{ strtoupper($transaction->payment_method) }})</td>
                 <td class="text-right">Rp {{ number_format($transaction->amount_received ?? $transaction->total, 0, ',', '.') }}</td>
             </tr>
-            <tr class="total-row">
+            <tr>
                 <td>Kembali</td>
-                <td class="text-right">Rp {{ number_format($transaction->change_amount ?? 0, 0, ',', '.') }}</td>
+                <td class="text-right bold">Rp {{ number_format($transaction->change_amount ?? 0, 0, ',', '.') }}</td>
             </tr>
         </table>
-    </div>
 
-    <div class="dashed-line"></div>
+        <div class="dashed-line"></div>
 
-    <div class="footer text-center">
-        <div class="bold">Terima Kasih Telah Berbelanja</div>
-        <div style="margin-top: 5px;">Link Kritik dan Saran:</div>
-        <div style="font-size: 10px;">farisatsal@gmail.com</div>
+        <div class="footer text-center">
+            <div class="bold" style="color: #3E2723; font-size: 13px;">Terima Kasih!</div>
+            <div style="margin-top: 5px;">Kritik & Saran: farisatsal@gmail.com</div>
+        </div>
     </div>
 </body>
 </html>

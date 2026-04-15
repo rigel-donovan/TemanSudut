@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'dart:typed_data';
 import '../services/api_service.dart';
@@ -19,11 +19,14 @@ class ActiveOrdersTab extends StatefulWidget {
   ActiveOrdersTabState createState() => ActiveOrdersTabState();
 }
 
-class ActiveOrdersTabState extends State<ActiveOrdersTab> {
+class ActiveOrdersTabState extends State<ActiveOrdersTab> with AutomaticKeepAliveClientMixin {
   final ApiService _apiService = ApiService();
   final PrinterService _printerService = PrinterService();
   List<dynamic> _activeOrders = [];
   bool _isLoading = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -305,6 +308,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
