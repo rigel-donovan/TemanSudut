@@ -7,6 +7,8 @@ import '../utils/app_format.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/stock_alert_dialog.dart';
+import '../widgets/popup_notification.dart';
+import '../utils/app_animations.dart';
 
 class HomeTab extends StatefulWidget {
   @override
@@ -107,7 +109,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                           ),
                         ),
                       )
-                    : SliverGrid(
+                       : SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : (MediaQuery.of(context).size.width > 600 ? 3 : 2),
                           childAspectRatio: 0.8,
@@ -117,7 +119,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final product = cart.availableProducts[index];
-                            return _ProductCard(cart: cart, product: product);
+                            return FadeSlideIn(
+                              delay: Duration(milliseconds: 40 * index),
+                              child: _ProductCard(cart: cart, product: product),
+                            );
                           },
                           childCount: cart.availableProducts.length,
                         ),
@@ -431,13 +436,23 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) {
-        _controller.reverse();
+      onTap: () async {
+        await _controller.forward();
+        await _controller.reverse();
+        if (!mounted) return;
+
         widget.cart.addToCart(widget.product);
         ScaffoldMessenger.of(context).clearSnackBars();
+        
+        PopupNotification.show(
+          context,
+          title: 'Berhasil',
+          message: '${widget.product.name} ditambahkan',
+          type: PopupType.success,
+          duration: const Duration(milliseconds: 1500),
+        );
+        _showFloatingPlusOne(context);
       },
-      onTapCancel: () => _controller.reverse(),
       child: AnimatedBuilder(
         animation: _scaleAnimation,
         builder: (context, child) => Transform.scale(
@@ -533,4 +548,97 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
       ),
     );
   }
+  void _showFloatingPlusOne(BuildContext context) {
+    if (!mounted) return;
+    final overlay = Overlay.of(context);
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    
+    final size = renderBox.size;
+    final position = renderBox.localToGlobal(Offset.zero);
+
+    late OverlayEntry entry;
+    entry = OverlayEntry(
+      builder: (context) => _FloatingPlusOne(
+        startPosition: Offset(
+          position.dx + size.width / 2 - 15, 
+          position.dy + size.height / 2 - 15
+        ),
+        onComplete: () {
+          if (entry.mounted) entry.remove();
+        },
+      ),
+    );
+    overlay.insert(entry);
+  }
 }
+
+class _FloatingPlusOne extends StatefulWidget {
+  final Offset startPosition;
+  final VoidCallback onComplete;
+
+  const _FloatingPlusOne({required this.startPosition, required this.onComplete});
+
+  @override
+  State<_FloatingPlusOne> createState() => _FloatingPlusOneState();
+}
+
+class _FloatingPlusOneState extends State<_FloatingPlusOne> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+  late Animation<double> _dy;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _opacity = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 1.0), weight: 20),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.0), weight: 40),
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.0), weight: 40),
+    ]).animate(_controller);
+
+    _dy = Tween<double>(begin: widget.startPosition.dy, end: widget.startPosition.dy - 60).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _controller.forward().then((_) => widget.onComplete());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Positioned(
+          left: widget.startPosition.dx,
+          top: _dy.value,
+          child: Opacity(
+            opacity: _opacity.value,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(color: Colors.orange.withOpacity(0.5), blurRadius: 8, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: const Text(
+                '+1',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+

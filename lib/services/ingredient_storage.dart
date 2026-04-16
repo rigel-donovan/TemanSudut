@@ -5,7 +5,6 @@ import '../models/product_ingredient.dart';
 class IngredientStorage {
   static const String _key = 'product_ingredients';
 
-  /// Get all ingredients for a specific product
   static Future<List<ProductIngredient>> getIngredients(int productId) async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);

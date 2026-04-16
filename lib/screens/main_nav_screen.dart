@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../utils/app_animations.dart';
 
 import 'home_tab.dart';
 import 'orders_tab.dart';
@@ -162,13 +163,16 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
 
   Widget _buildOpenShiftCard(BuildContext context, CartProvider cart) {
-    return Card(
-      elevation: 20,
-      shadowColor: Colors.black26,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        width: 380,
-        padding: EdgeInsets.all(32),
+    return FadeSlideIn(
+      delay: const Duration(milliseconds: 100),
+      begin: const Offset(0, 0.25),
+      child: Card(
+        elevation: 20,
+        shadowColor: Colors.black26,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          width: 380,
+          padding: EdgeInsets.all(32),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -242,9 +246,10 @@ class _MainNavScreenState extends State<MainNavScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
+        ),    // closes Column
+      ),      // closes Container
+     ),       // closes Card
+    );        // closes FadeSlideIn
   }
 
   Widget _buildTabletSidebar(BuildContext context) {
@@ -359,7 +364,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
               body: SafeArea(
                 child: Stack(
                   children: [
-                    IndexedStack(
+                    AnimatedIndexedStack(
                       index: _selectedIndex,
                       children: _pages,
                     ),
@@ -442,7 +447,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
       backgroundColor: Colors.white,
       drawer: CustomDrawer(),
       body: SafeArea(
-        child: IndexedStack(
+        child: AnimatedIndexedStack(
           index: _selectedIndex,
           children: _pages,
         ),
@@ -473,7 +478,24 @@ class _MainNavScreenState extends State<MainNavScreen> {
         unselectedFontSize: 12,
         currentIndex: _selectedIndex >= _navItems.length ? 0 : _selectedIndex,
         onTap: _onItemTapped,
-        items: _navItems,
+        items: _navItems.map((item) {
+          final isSelected = _navItems.indexOf(item) == (_selectedIndex >= _navItems.length ? 0 : _selectedIndex);
+          return BottomNavigationBarItem(
+            icon: AnimatedScale(
+              scale: isSelected ? 1.15 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutBack,
+              child: item.icon,
+            ),
+            activeIcon: AnimatedScale(
+              scale: isSelected ? 1.15 : 1.0,
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutBack,
+              child: item.activeIcon ?? item.icon,
+            ),
+            label: item.label,
+          );
+        }).toList(),
       ),
     );
   }

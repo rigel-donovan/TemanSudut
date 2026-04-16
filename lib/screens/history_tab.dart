@@ -171,12 +171,23 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
               ? Center(child: CircularProgressIndicator(color: Colors.black))
               : _transactions.isEmpty
                 ? _buildEmptyState()
-                : ListView.builder(
-                    padding: EdgeInsets.all(16),
-                    itemCount: _transactions.length,
-                    itemBuilder: (context, index) {
-                      final transaction = _transactions[index];
-                      return _buildHistoryCard(transaction);
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cardWidth = (constraints.maxWidth - 34) / 2; // Subtract horizontal padding (24) and spacing (10)
+                      return SingleChildScrollView(
+                        padding: const EdgeInsets.all(12),
+                        child: Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          crossAxisAlignment: WrapCrossAlignment.start,
+                          children: _transactions.map((transaction) {
+                            return SizedBox(
+                              width: cardWidth,
+                              child: _buildHistoryCard(transaction),
+                            );
+                          }).toList(),
+                        ),
+                      );
                     },
                   ),
           ),
@@ -279,440 +290,443 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
     final date = transaction['created_at'].toString().substring(0, 10);
     final invoice = 'INV-${transaction['id']}';
     final customer = transaction['customer_name'] ?? 'Guest';
-    final cashier = transaction['user'] != null ? transaction['user']['name'] : 'Unknown';
     final itemsCount = (transaction['items'] as List).length;
     final total = double.tryParse(transaction['total'].toString()) ?? 0;
     final paymentMethod = (transaction['payment_method'] ?? 'cash').toString().toUpperCase();
-    
-    final String photoUrl = ApiService().getImageUrl(transaction['completion_photo']);
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04), 
-            blurRadius: 15, 
-            offset: Offset(0, 8)
-          )
-        ],
-        border: Border.all(color: Colors.grey[100]!)
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Header Section
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white, 
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-              border: Border(bottom: BorderSide(color: Colors.grey[100]!))
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(invoice, style: TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 2),
-                    Text(date, style: TextStyle(color: Colors.grey[500], fontSize: 11)),
-                  ],
-                ),
-                Row(
-                  children: [
-                    if (transaction['order_type'] != null) ...[
-                      Builder(builder: (_) {
-                        final type = transaction['order_type'].toString();
-                        String label = type;
-                        MaterialColor color = Colors.grey;
-                        IconData iconData = Icons.receipt;
+    // Order type badge
+    String? orderTypeLabel;
+    Color? orderTypeColor;
+    IconData? orderTypeIcon;
+    if (transaction['order_type'] != null) {
+      final type = transaction['order_type'].toString();
+      if (type == 'dine_in') { orderTypeLabel = 'Dine In'; orderTypeColor = Colors.blue; orderTypeIcon = Icons.restaurant; }
+      else if (type == 'take_away') { orderTypeLabel = 'Take Away'; orderTypeColor = Colors.orange; orderTypeIcon = Icons.takeout_dining; }
+      else if (type == 'online') { orderTypeLabel = 'Online'; orderTypeColor = Colors.green; orderTypeIcon = Icons.moped; }
+    }
 
-                        if (type == 'dine_in') {
-                          label = 'Dine In';
-                          color = Colors.blue;
-                          iconData = Icons.restaurant;
-                        } else if (type == 'take_away') {
-                          label = 'Take Away';
-                          color = Colors.orange;
-                          iconData = Icons.takeout_dining;
-                        } else if (type == 'online') {
-                          label = 'Online';
-                          color = Colors.green;
-                          iconData = Icons.moped;
-                        }
-
-                        return Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: color.withOpacity(0.2), width: 1),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(iconData, size: 12, color: color[700]),
-                              SizedBox(width: 4),
-                              Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color[700])),
-                            ],
-                          ),
-                        );
-                      }),
-                      SizedBox(width: 8),
-                    ],
-                    Consumer<AuthProvider>(
-                      builder: (context, auth, _) {
-                        if (auth.can('print_receipt')) {
-                          return GestureDetector(
-                            onTap: () {
-                              showModalBottomSheet(
-                                context: context,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-                                builder: (context) {
-                                  return SafeArea(
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.only(top: 24.0, bottom: 16, left: 24, right: 24),
-                                          child: Row(
-                                            children: [
-                                              Icon(Icons.print, color: Colors.black87),
-                                              SizedBox(width: 12),
-                                              Text('Cetak Struk Transaksi', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-                                            ],
-                                          ),
-                                        ),
-                                        ListTile(
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-                                          leading: Container(
-                                            padding: EdgeInsets.all(8),
-                                            decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(8)),
-                                            child: Icon(Icons.bluetooth, color: Colors.blue[700])
-                                          ),
-                                          title: Text('Printer Thermal (Bluetooth)', style: TextStyle(fontWeight: FontWeight.w600)),
-                                          subtitle: Text('Cetak langsung via bluetooth'),
-                                          onTap: () async {
-                                            final messenger = ScaffoldMessenger.of(context);
-                                            Navigator.pop(context);
-                                            if (await _printerService.isConnected) {
-                                              if (!mounted) return;
-                                              try {
-                                                await _printerService.printReceipt(
-                                                  transaction: transaction, 
-                                                  items: transaction['items'] ?? [], 
-                                                  isHistory: true
-                                                );
-                                                messenger.showSnackBar(SnackBar(content: Text('Mencetak struk...')));
-                                              } catch (e) {
-                                                messenger.showSnackBar(SnackBar(content: Text('Gagal mencetak: $e')));
-                                              }
-                                            } else {
-                                              messenger.showSnackBar(SnackBar(
-                                                content: Text('Printer belum terhubung!'), 
-                                                backgroundColor: Colors.red,
-                                                action: SnackBarAction(label: 'Settings', textColor: Colors.white, onPressed: () {
-                                                  Navigator.pushNamed(context, '/printer_settings');
-                                                }),
-                                              ));
-                                            }
-                                          },
-                                        ),
-                                        ListTile(
-                                          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-                                          leading: Container(
-                                            padding: EdgeInsets.all(8),
-                                            decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)),
-                                            child: Icon(Icons.picture_as_pdf, color: Colors.red[700])
-                                          ),
-                                          title: Text('Simpan PDF (80mm)', style: TextStyle(fontWeight: FontWeight.w600)),
-                                          subtitle: Text('Download format PDF'),
-                                          onTap: () async {
-                                            final messenger = ScaffoldMessenger.of(context);
-                                            Navigator.pop(context);
-                                            try {
-                                              await _printerService.downloadReceiptPdf(transaction['id']);
-                                              messenger.showSnackBar(SnackBar(content: Text('Membuka struk PDF...')));
-                                            } catch (e) {
-                                              messenger.showSnackBar(SnackBar(content: Text('Gagal membuat PDF: $e'), backgroundColor: Colors.red));
-                                            }
-                                          },
-                                        ),
-                                        SizedBox(height: 16),
-                                      ],
-                                    ),
-                                  );
-                                }
-                              );
-                            },
-                            child: Container(
-                              padding: EdgeInsets.all(6),
-                              decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
-                              child: Icon(Icons.print, size: 16, color: Colors.grey[700]),
-                            ),
-                          );
-                        }
-                        return SizedBox.shrink();
-                      },
+    return GestureDetector(
+      onTap: () => _showDetailSheet(transaction),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+          ],
+          border: Border.all(color: Colors.grey[100]!),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF5D4037).withOpacity(0.06),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      invoice,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF5D4037)),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // Info Grid
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Pelanggan', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
-                          SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Icon(Icons.person, size: 12, color: Colors.black54),
-                              SizedBox(width: 4),
-                              Flexible(child: Text(customer, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Kasir', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
-                          SizedBox(height: 2),
-                          Row(
-                            children: [
-                              Icon(Icons.badge, size: 12, color: Colors.indigo[400]),
-                              SizedBox(width: 4),
-                              Flexible(child: Text(cashier, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: Colors.indigo[700]), overflow: TextOverflow.ellipsis)),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Jumlah Item', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
-                          SizedBox(height: 2),
-                          Text('$itemsCount item', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Pembayaran', style: TextStyle(color: Colors.grey[500], fontSize: 11)),
-                          SizedBox(height: 2),
-                          Text(paymentMethod, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green[700])),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                
-                SizedBox(height: 16),
-                Divider(color: Colors.grey[200], thickness: 1, height: 1),
-                SizedBox(height: 16),
-                
-                // Item List inside History
-                ...(transaction['items'] as List).map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12.0),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 42, height: 42, 
-                          decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(10)),
-                          clipBehavior: Clip.antiAlias,
-                          child: item['product'] != null && item['product']['image'] != null
-                            ? Image.network(
-                                ApiService().getImageUrl(item['product']['image']),
-                                fit: BoxFit.cover,
-                                errorBuilder: (c, e, s) => Icon(Icons.fastfood, size: 20, color: Colors.black12),
-                              )
-                            : Icon(Icons.fastfood, size: 20, color: Colors.black12),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Flexible(
-                                    child: Row(
-                                      children: [
-                                        Flexible(child: Text(item['product'] != null ? item['product']['name'] : 'Item', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
-                                        if (item['notes'] != null && item['notes'].toString().contains('[FREE CUP / GRATIS]')) ...[
-                                          SizedBox(width: 6),
-                                          Container(
-                                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                            decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(4)),
-                                            child: Text('FREE', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green[800])),
-                                          )
-                                        ]
-                                      ],
-                                    )
-                                  ),
-                                  Text('x${item['quantity']}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                                ],
-                              ),
-                              if (item['notes'] != null && item['notes'].toString().isNotEmpty && item['notes'].toString().replaceAll('[FREE CUP / GRATIS]', '').replaceAll('|', '').trim().isNotEmpty)
-                                Container(
-                                  margin: const EdgeInsets.only(top: 4),
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber[50],
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.edit_note, size: 12, color: Colors.amber[800]),
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: Text(
-                                          item['notes'].toString().replaceAll(RegExp(r'\s*\|\s*\[FREE CUP / GRATIS\]|\[FREE CUP / GRATIS\]\s*\|\s*|\[FREE CUP / GRATIS\]'), '').trim(),
-                                          style: TextStyle(fontSize: 10, color: Colors.amber[900], fontStyle: FontStyle.italic),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              SizedBox(height: 2),
-                              if (item['notes'] != null && item['notes'].toString().contains('[FREE CUP / GRATIS]'))
-                                Text('Gratis', style: TextStyle(color: Colors.green[700], fontSize: 12, fontWeight: FontWeight.bold))
-                              else
-                                Text(AppFormat.currency(item['subtotal']), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-
-                SizedBox(height: 8),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!)
                   ),
+                  if (orderTypeLabel != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: orderTypeColor!.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(orderTypeIcon, size: 11, color: orderTypeColor),
+                    ),
+                ],
+              ),
+            ),
+            // Body
+            // Body
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Total (prominent)
+                  Text(
+                    AppFormat.currency(total),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.green[700]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  
+                  // Item Pesanan Summary
+                  if (transaction['items'] != null && (transaction['items'] as List).isNotEmpty) ...[
+                    ...((transaction['items'] as List).take(3).map((item) {
+                      final name = item['product'] != null ? item['product']['name'] : 'Item';
+                      final qty = item['quantity'];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 2),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${qty}x ', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black87)),
+                            Expanded(child: Text(name, style: const TextStyle(fontSize: 10, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                          ],
+                        ),
+                      );
+                    }).toList()),
+                    if ((transaction['items'] as List).length > 3)
+                      Text('+ ${(transaction['items'] as List).length - 3} item lainnya', style: TextStyle(fontSize: 9, color: Colors.grey[500], fontStyle: FontStyle.italic)),
+                    const SizedBox(height: 6),
+                  ],
+
+                  // Customer
+                  Row(
+                    children: [
+                      Icon(Icons.person_outline, size: 10, color: Colors.grey[500]),
+                      const SizedBox(width: 3),
+                      Expanded(
+                        child: Text(
+                          customer,
+                          style: TextStyle(fontSize: 10, color: Colors.grey[700]),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  // Date
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 10, color: Colors.grey[500]),
+                      const SizedBox(width: 3),
+                      Text(date, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  // Footer row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green[50],
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          paymentMethod,
+                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green[700]),
+                        ),
+                      ),
+                      Text(
+                        '$itemsCount item',
+                        style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDetailSheet(dynamic transaction) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.85,
+        maxChildSize: 0.95,
+        minChildSize: 0.4,
+        builder: (_, scrollCtrl) {
+          final date = transaction['created_at'].toString().substring(0, 10);
+          final invoice = 'INV-${transaction['id']}';
+          final customer = transaction['customer_name'] ?? 'Guest';
+          final cashier = transaction['user'] != null ? transaction['user']['name'] : 'Unknown';
+          final total = double.tryParse(transaction['total'].toString()) ?? 0;
+          final paymentMethod = (transaction['payment_method'] ?? 'cash').toString().toUpperCase();
+          final String photoUrl = ApiService().getImageUrl(transaction['completion_photo']);
+
+          return Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                // Handle bar
+                Container(
+                  width: 36, height: 4,
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                ),
+                // Header
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Total Pembayaran', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.w500)),
-                      Text(AppFormat.currency(total), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green[700])),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(invoice, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                          Text(date, style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                        ],
+                      ),
+                      Consumer<AuthProvider>(
+                        builder: (context, auth, _) {
+                          if (auth.can('print_receipt')) {
+                            return GestureDetector(
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                showModalBottomSheet(
+                                  context: context,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+                                  builder: (context) {
+                                    return SafeArea(
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 24.0, bottom: 16, left: 24, right: 24),
+                                            child: Row(children: [ Icon(Icons.print, color: Colors.black87), SizedBox(width: 12), Text('Cetak Struk', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)) ]),
+                                          ),
+                                          ListTile(
+                                            contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                                            leading: Container(padding: EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(8)), child: Icon(Icons.bluetooth, color: Colors.blue[700])),
+                                            title: Text('Printer Thermal', style: TextStyle(fontWeight: FontWeight.w600)),
+                                            subtitle: Text('Cetak via bluetooth'),
+                                            onTap: () async {
+                                              final messenger = ScaffoldMessenger.of(context);
+                                              Navigator.pop(context);
+                                              if (await _printerService.isConnected) {
+                                                if (!mounted) return;
+                                                try {
+                                                  await _printerService.printReceipt(transaction: transaction, items: transaction['items'] ?? [], isHistory: true);
+                                                  messenger.showSnackBar(SnackBar(content: Text('Mencetak struk...')));
+                                                } catch (e) {
+                                                  messenger.showSnackBar(SnackBar(content: Text('Gagal: $e')));
+                                                }
+                                              } else {
+                                                messenger.showSnackBar(SnackBar(content: Text('Printer belum terhubung!'), backgroundColor: Colors.red));
+                                              }
+                                            },
+                                          ),
+                                          ListTile(
+                                            contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                                            leading: Container(padding: EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.red[50], borderRadius: BorderRadius.circular(8)), child: Icon(Icons.picture_as_pdf, color: Colors.red[700])),
+                                            title: Text('Simpan PDF', style: TextStyle(fontWeight: FontWeight.w600)),
+                                            subtitle: Text('Download format PDF'),
+                                            onTap: () async {
+                                              final messenger = ScaffoldMessenger.of(context);
+                                              Navigator.pop(context);
+                                              try {
+                                                await _printerService.downloadReceiptPdf(transaction['id']);
+                                                messenger.showSnackBar(SnackBar(content: Text('Membuka PDF...')));
+                                              } catch (e) {
+                                                messenger.showSnackBar(SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red));
+                                              }
+                                            },
+                                          ),
+                                          SizedBox(height: 16),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                );
+                              },
+                              child: Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(color: Colors.grey[100], shape: BoxShape.circle),
+                                child: Icon(Icons.print, size: 18, color: Colors.grey[700]),
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                     ],
                   ),
                 ),
-
-                // Completion Photo (if exists)
-                if (photoUrl.isNotEmpty) ...
-                [
-                  SizedBox(height: 12),
-                  Row(
+                const SizedBox(height: 12),
+                Divider(height: 1, color: Colors.grey[200]),
+                // Scrollable content
+                Expanded(
+                  child: ListView(
+                    controller: scrollCtrl,
+                    padding: const EdgeInsets.all(20),
                     children: [
-                      Icon(Icons.camera_alt, size: 14, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text('Foto Bukti', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  GestureDetector(
-                    onTap: () {
-                      showDialog(
-                        context: context,
-                        builder: (_) => Dialog(
-                          backgroundColor: const Color(0xFF5D4037),
-                          insetPadding: EdgeInsets.all(12),
-                          child: Stack(
+                      // Info Grid
+                      Row(
+                        children: [
+                          Expanded(child: _infoCell('Pelanggan', customer, Icons.person_outline)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _infoCell('Kasir', cashier, Icons.badge_outlined, color: Colors.indigo[400]!)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(child: _infoCell('Pembayaran', paymentMethod, Icons.payments_outlined, color: Colors.green[600]!)),
+                          const SizedBox(width: 12),
+                          Expanded(child: _infoCell('Total', AppFormat.currency(total), Icons.attach_money, color: Colors.green[700]!)),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Divider(color: Colors.grey[200]),
+                      const SizedBox(height: 12),
+                      Text('Item Pesanan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const SizedBox(height: 10),
+                      // Items
+                      ...(transaction['items'] as List).map((item) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Center(
-                                child: CachedNetworkImage(
-                                  imageUrl: photoUrl,
-                                  fit: BoxFit.contain,
-                                  placeholder: (context, url) => const Center(child: CircularProgressIndicator(color: Colors.white)),
-                                  errorWidget: (context, url, error) => Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: const [
-                                      Icon(Icons.broken_image, color: Colors.white, size: 60),
-                                      SizedBox(height: 8),
-                                      Text('Gagal memuat gambar', style: TextStyle(color: Colors.white, fontSize: 12)),
-                                    ],
-                                  ),
+                              Container(
+                                width: 42, height: 42,
+                                decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(10)),
+                                clipBehavior: Clip.antiAlias,
+                                child: item['product'] != null && item['product']['image'] != null
+                                  ? Image.network(ApiService().getImageUrl(item['product']['image']), fit: BoxFit.cover,
+                                      errorBuilder: (c, e, s) => Icon(Icons.fastfood, size: 20, color: Colors.black12))
+                                  : Icon(Icons.fastfood, size: 20, color: Colors.black12),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Flexible(child: Text(item['product'] != null ? item['product']['name'] : 'Item', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                        Text('x${item['quantity']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                      ],
+                                    ),
+                                    if (item['notes'] != null && item['notes'].toString().isNotEmpty &&
+                                        item['notes'].toString().replaceAll('[FREE CUP / GRATIS]', '').replaceAll('|', '').trim().isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          item['notes'].toString().replaceAll(RegExp(r'\s*\|\s*\[FREE CUP / GRATIS\]|\[FREE CUP / GRATIS\]\s*\|\s*|\[FREE CUP / GRATIS\]'), '').trim(),
+                                          style: TextStyle(fontSize: 11, color: Colors.amber[800], fontStyle: FontStyle.italic),
+                                        ),
+                                      ),
+                                    const SizedBox(height: 2),
+                                    if (item['notes'] != null && item['notes'].toString().contains('[FREE CUP / GRATIS]'))
+                                      Text('Gratis', style: TextStyle(color: Colors.green[700], fontSize: 12, fontWeight: FontWeight.bold))
+                                    else
+                                      Text(AppFormat.currency(item['subtotal']), style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                                  ],
                                 ),
                               ),
-                              Positioned(
-                                top: 8, right: 8,
-                                child: IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: Icon(Icons.close, color: Colors.white),
-                                  style: IconButton.styleFrom(backgroundColor: Colors.black45),
-                                ),
-                              )
                             ],
                           ),
+                        );
+                      }).toList(),
+                      // Total
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
                         ),
-                      );
-                    },
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: CachedNetworkImage(
-                        imageUrl: photoUrl,
-                        height: 120,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        placeholder: (context, url) => Container(
-                          height: 120,
-                          color: Colors.grey[200],
-                          child: const Center(child: CircularProgressIndicator()),
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          height: 80,
-                          color: Colors.grey[200],
-                          child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Total Pembayaran', style: TextStyle(fontWeight: FontWeight.w500)),
+                            Text(AppFormat.currency(total), style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green[700])),
+                          ],
                         ),
                       ),
-                    ),
+                      // Photo
+                      if (photoUrl.isNotEmpty) ...[
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          Icon(Icons.camera_alt, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Text('Foto Bukti', style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                        ]),
+                        const SizedBox(height: 8),
+                        GestureDetector(
+                          onTap: () {
+                            showDialog(
+                              context: context,
+                              builder: (_) => Dialog(
+                                backgroundColor: const Color(0xFF5D4037),
+                                insetPadding: const EdgeInsets.all(12),
+                                child: Stack(children: [
+                                  Center(child: CachedNetworkImage(
+                                    imageUrl: photoUrl, fit: BoxFit.contain,
+                                    placeholder: (_, __) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+                                    errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.white, size: 60),
+                                  )),
+                                  Positioned(top: 8, right: 8, child: IconButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    icon: const Icon(Icons.close, color: Colors.white),
+                                    style: IconButton.styleFrom(backgroundColor: Colors.black45),
+                                  )),
+                                ]),
+                              ),
+                            );
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: CachedNetworkImage(
+                              imageUrl: photoUrl, height: 120, width: double.infinity, fit: BoxFit.cover,
+                              placeholder: (_, __) => Container(height: 120, color: Colors.grey[200], child: const Center(child: CircularProgressIndicator())),
+                              errorWidget: (_, __, ___) => Container(height: 80, color: Colors.grey[200], child: const Center(child: Icon(Icons.broken_image, color: Colors.grey))),
+                            ),
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                    ],
                   ),
-                ],
-
-                SizedBox(height: 16),
+                ),
               ],
             ),
-          ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _infoCell(String label, String value, IconData icon, {Color color = Colors.black54}) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(icon, size: 12, color: color),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+          ]),
+          const SizedBox(height: 4),
+          Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: color == Colors.black54 ? Colors.black87 : color), overflow: TextOverflow.ellipsis, maxLines: 1),
         ],
-      )
+      ),
     );
   }
 }

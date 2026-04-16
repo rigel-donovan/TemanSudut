@@ -46,7 +46,9 @@ class ProductForm
                         ? $record->stock . ' porsi' 
                         : 'Otomatis dihitung setelah simpan'),
                 FileUpload::make('image')
-                    ->image(),
+                    ->image()
+                    ->disk('public')
+                    ->directory('products'),
                 
                 Section::make('Resep Bahan Baku')
                     ->description('Tentukan bahan baku yang dibutuhkan per porsi produk ini')

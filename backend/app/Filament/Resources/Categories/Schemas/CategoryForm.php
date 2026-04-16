@@ -20,7 +20,9 @@ class CategoryForm
                 Textarea::make('description')
                     ->columnSpanFull(),
                 FileUpload::make('image')
-                    ->image(),
+                    ->image()
+                    ->disk('public')
+                    ->directory('categories'),
             ]);
     }
 }

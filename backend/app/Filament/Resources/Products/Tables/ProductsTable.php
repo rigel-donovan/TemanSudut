@@ -19,6 +19,7 @@ class ProductsTable
             ->columns([
                 ImageColumn::make('image')
                     ->circular()
+                    ->disk('public')
                     ->toggleable(),
                 TextColumn::make('name')
                     ->label('Produk')

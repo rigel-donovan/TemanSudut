@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../services/printer_service.dart';
 import '../widgets/camera_dialog.dart';
 import '../widgets/loading_overlay.dart';
+import '../utils/app_animations.dart';
 import 'package:provider/provider.dart';
 
 class ActiveOrdersTab extends StatefulWidget {
@@ -354,7 +355,9 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> with AutomaticKeepAliv
                     final items = order['items'] as List;
                     final status = order['kitchen_status'];
 
-                    return Container(
+                    return FadeSlideIn(
+                      delay: Duration(milliseconds: 60 * index),
+                      child: Container(
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -611,7 +614,8 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> with AutomaticKeepAliv
                           ],
                         ),
                       ),
-                    );
+                    ),   // closes Container (inside FadeSlideIn)
+                    );   // closes FadeSlideIn
                   },
                 ),
     );

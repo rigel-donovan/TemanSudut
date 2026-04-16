@@ -48,6 +48,8 @@ class RawMaterialResource extends Resource
                             ->default(true),
                         FileUpload::make('image')
                             ->image()
+                            ->disk('public')
+                            ->directory('raw-materials')
                             ->columnSpanFull(),
                     ])->columns(2),
 
@@ -116,7 +118,8 @@ class RawMaterialResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\ImageColumn::make('image')
-                    ->circular(),
+                    ->circular()
+                    ->disk('public'),
                 Tables\Columns\TextColumn::make('name')
                     ->label('Nama')
                     ->description(fn ($record) => $record->brand)

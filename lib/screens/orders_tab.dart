@@ -6,6 +6,7 @@ import '../utils/app_format.dart';
 import '../widgets/slide_to_finish.dart';
 import '../services/api_service.dart';
 import '../widgets/camera_dialog.dart';
+import '../utils/app_animations.dart';
 import 'package:camera/camera.dart';
 
 class OrdersTab extends StatelessWidget {
@@ -219,9 +220,9 @@ class OrdersTab extends StatelessWidget {
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            InkWell(
+                                            AnimatedBounceButton(
+                                              scaleTo: 0.80,
                                               onTap: () => cart.updateQuantity(item, item.quantity - 1),
-                                              borderRadius: BorderRadius.only(topLeft: Radius.circular(8), bottomLeft: Radius.circular(8)),
                                               child: Container(
                                                 width: 30, height: 30,
                                                 alignment: Alignment.center,
@@ -241,9 +242,9 @@ class OrdersTab extends StatelessWidget {
                                               width: 1, height: 30,
                                               color: Colors.grey[200],
                                             ),
-                                            InkWell(
+                                            AnimatedBounceButton(
+                                              scaleTo: 0.80,
                                               onTap: () => cart.updateQuantity(item, item.quantity + 1),
-                                              borderRadius: BorderRadius.only(topRight: Radius.circular(8), bottomRight: Radius.circular(8)),
                                               child: Container(
                                                 width: 30, height: 30,
                                                 alignment: Alignment.center,
