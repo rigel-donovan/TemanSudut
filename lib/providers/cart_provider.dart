@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../models/product.dart';
 import '../models/table_model.dart';
 import '../models/category.dart';
@@ -114,7 +114,7 @@ class CartProvider with ChangeNotifier {
 
   /// Initial load: use cache if valid, otherwise fetch and store in cache.
   Future<void> _fetchProducts() async {
-    // â”€â”€ Categories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Categories --
     if (_categories.isEmpty) {
       final cachedCats = await CacheService.getCategories();
       if (cachedCats != null) {
@@ -125,7 +125,7 @@ class CartProvider with ChangeNotifier {
       }
     }
 
-    // â”€â”€ Products (all, unfiltered) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Products (all, unfiltered) --
     if (_allProducts.isEmpty) {
       final cachedProds = await CacheService.getProducts();
       if (cachedProds != null) {
@@ -139,7 +139,7 @@ class CartProvider with ChangeNotifier {
     _applyFilter();
   }
 
-  /// Force refresh from network (e.g. after admin edits a product).
+  /// Force refresh from network
   Future<void> refreshProducts() async {
     await CacheService.invalidateAll();
     _allProducts = [];

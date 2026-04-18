@@ -67,7 +67,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> with AutomaticKeepAliv
     if (success) {
       PopupNotification.show(
         context,
-        title: 'Order Selesai! âœ…',
+        title: 'Order Selesai!',
         message: 'Order #${order['id']} telah dipindahkan ke History.',
         type: PopupType.success,
       );
@@ -143,7 +143,7 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> with AutomaticKeepAliv
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('Order #${order['id']} â€“ ${order['customer_name'] ?? 'Tamu'}',
+                      Text('Order #${order['id']} - ${order['customer_name'] ?? 'Tamu'}',
                           style: TextStyle(fontSize: 13, color: Colors.grey[700])),
                       const SizedBox(height: 20),
 

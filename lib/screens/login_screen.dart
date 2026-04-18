@@ -140,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Footer
                 Center(
                   child: Text(
-                    'v1.0.0 â€¢ TemanSudut',
+                    'v2.1.0 TemanSudut',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.grey[400],

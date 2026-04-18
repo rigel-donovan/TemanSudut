@@ -4,7 +4,7 @@
     <title>Struk Pembelian</title>
     <style>
         @page { 
-            margin: 10mm;
+            margin: 0mm 5mm;
         }
         * { box-sizing: border-box; }
         body { 

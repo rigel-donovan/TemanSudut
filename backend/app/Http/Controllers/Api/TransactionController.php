@@ -348,10 +348,10 @@ class TransactionController extends Controller
         ]);
 
         $itemCount = $transaction->items->count();
-        $baseHeight = 550;  
-        $perItemHeight = 75; 
+        $baseHeight = 650;  
+        $perItemHeight = 120; 
         $calculatedHeight = $baseHeight + ($itemCount * $perItemHeight);
-        $minHeight = 600; 
+        $minHeight = 800; 
         $pageHeight = max($minHeight, $calculatedHeight);
 
         $pdf->setPaper([0, 0, 226.77, $pageHeight], 'portrait');
