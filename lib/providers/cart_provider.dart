@@ -125,7 +125,7 @@ class CartProvider with ChangeNotifier {
       }
     }
 
-    // -- Products (all, unfiltered) --
+    // -- Products --
     if (_allProducts.isEmpty) {
       final cachedProds = await CacheService.getProducts();
       if (cachedProds != null) {
@@ -139,7 +139,6 @@ class CartProvider with ChangeNotifier {
     _applyFilter();
   }
 
-  /// Force refresh from network
   Future<void> refreshProducts() async {
     await CacheService.invalidateAll();
     _allProducts = [];
