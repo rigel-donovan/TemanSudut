@@ -52,4 +52,3 @@ Jika di masa depan Anda mengganti Laptop Utama atau login dengan akun Tailscale 
 - Pindahkan file *APK* murni racikan baru tersebut ke Tablet dan Install.
 - Selesai! Kasir langsung siap jualan kembali selamanya!
 
-*(Catatan : Jangan lupa ganti juga tulisan angka 100... di `README` ini dengan IP Anda yang baru)*
