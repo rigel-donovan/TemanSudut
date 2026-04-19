@@ -459,7 +459,7 @@ class TransactionController extends Controller
 
     public function destroy($id)
     {
-        $transaction = Transaction::with('items')->findOrFail($id);
+        $transaction = Transaction::with(['items.product.ingredients.rawMaterial'])->findOrFail($id);
 
         if ($transaction->payment_status === 'paid') {
             return response()->json(['message' => 'Pesanan yang sudah dibayar tidak dapat dihapus'], 400);
@@ -469,9 +469,23 @@ class TransactionController extends Controller
             DB::beginTransaction();
 
             foreach ($transaction->items as $item) {
-                $product = Product::find($item->product_id);
+                // Restore product stock
+                $product = $item->product;
                 if ($product) {
                     $product->increment('stock', $item->quantity);
+
+                    foreach ($product->ingredients as $ingredient) {
+                        if (!$ingredient->rawMaterial) continue;
+                        $totalToRestore = $ingredient->quantity_used * $item->quantity;
+                        \App\Models\RawMaterial::adjustStock(
+                            $ingredient->raw_material_id,
+                            $totalToRestore,
+                            'order_cancelled',
+                            'Pembatalan Pesanan #' . $transaction->id . ' - ' . $product->name . ' x' . $item->quantity,
+                            null,
+                            auth()->id()
+                        );
+                    }
                 }
             }
 
