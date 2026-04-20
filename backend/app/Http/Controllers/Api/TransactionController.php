@@ -396,7 +396,7 @@ class TransactionController extends Controller
             'change_amount' => $validated['change_amount'] ?? $transaction->change_amount,
         ];
 
-        // Save order_type if provided (set during order completion)
+        // Save order_type if provided 
         if ($request->filled('order_type')) {
             $updateData['order_type'] = $request->input('order_type');
         }
