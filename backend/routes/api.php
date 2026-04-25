@@ -76,4 +76,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Raw Materials
     Route::get('/raw-materials', [RawMaterialController::class, 'index']);
     Route::put('/raw-materials/{id}', [RawMaterialController::class, 'update']);
+
+    // Finance Entries
+    Route::get('/finance-entries', [\App\Http\Controllers\Api\FinanceController::class, 'index']);
+    Route::post('/finance-entries', [\App\Http\Controllers\Api\FinanceController::class, 'store']);
+    Route::put('/finance-entries/{id}', [\App\Http\Controllers\Api\FinanceController::class, 'update']);
+    Route::delete('/finance-entries/{id}', [\App\Http\Controllers\Api\FinanceController::class, 'destroy']);
+    Route::get('/finance-entries/summary', [\App\Http\Controllers\Api\FinanceController::class, 'summary']);
+    Route::get('/finance-entries/chart', [\App\Http\Controllers\Api\FinanceController::class, 'chart']);
 });

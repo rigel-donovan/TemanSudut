@@ -22,6 +22,7 @@ class RolePermissionSeeder extends Seeder
         'manage_stock'      => ['label' => 'Manajemen Stok',            'owner' => true,  'cashier' => false],
         'manage_printer'    => ['label' => 'Manajemen Printer',         'owner' => true,  'cashier' => true],
         'manage_raw_materials' => ['label' => 'Bahan Baku',             'owner' => true,  'cashier' => false],
+        'view_finance'      => ['label' => 'Laporan Keuangan',          'owner' => true,  'cashier' => false],
     ];
 
     public function run(): void

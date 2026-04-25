@@ -6,6 +6,7 @@ import '../utils/app_animations.dart';
 import 'home_tab.dart';
 import 'orders_tab.dart';
 import 'history_tab.dart';
+import 'finance_tab.dart';
 import 'profile_tab.dart';
 import 'management_tab.dart';
 import 'active_orders_tab.dart';
@@ -42,11 +43,13 @@ class _MainNavScreenState extends State<MainNavScreen> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     
     final bool canHistory = auth.can('view_history');
+    final bool canFinance = auth.can('view_finance');
     final bool canManagement = auth.can('manage_stock') || auth.can('manage_employees') || auth.can('manage_printer');
 
     _pages = [
       HomeTab(),
       if (canHistory) HistoryTab(key: _historyKey),
+      if (canFinance) const FinanceTab(),
       ActiveOrdersTab(
         key: _activeOrdersKey, 
         onNavigateToHistory: canHistory ? () {
@@ -62,6 +65,8 @@ class _MainNavScreenState extends State<MainNavScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), activeIcon: Icon(Icons.storefront), label: 'Home'),
       if (canHistory) 
         BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'History'),
+      if (canFinance)
+        BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Keuangan'),
       BottomNavigationBarItem(icon: Icon(Icons.list_alt), activeIcon: Icon(Icons.list), label: 'Orders'),
       if (canManagement) 
         BottomNavigationBarItem(icon: Icon(Icons.grid_view_outlined), activeIcon: Icon(Icons.grid_view), label: 'Management'),

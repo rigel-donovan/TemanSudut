@@ -1,4 +1,4 @@
-﻿import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/category.dart';
@@ -364,4 +364,69 @@ class ApiService {
       return false;
     }
   }
+
+  // ---- Finance Entries ----
+
+  Future<List<dynamic>> getFinanceEntries({String? type}) async {
+    try {
+      final response = await _dio.get('/finance-entries', queryParameters: {
+        if (type != null && type.isNotEmpty) 'type': type,
+      });
+      return response.data as List;
+    } catch (e) {
+      print('Failed to get finance entries: $e');
+      return [];
+    }
+  }
+
+  Future<bool> createFinanceEntry(Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.post('/finance-entries', data: data);
+      return response.statusCode == 201;
+    } catch (e) {
+      print('Failed to create finance entry: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateFinanceEntry(int id, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put('/finance-entries/$id', data: data);
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Failed to update finance entry: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteFinanceEntry(int id) async {
+    try {
+      final response = await _dio.delete('/finance-entries/$id');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Failed to delete finance entry: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getFinanceSummary(String filter) async {
+    try {
+      final response = await _dio.get('/finance-entries/summary', queryParameters: {'filter': filter});
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      print('Failed to get finance summary: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getFinanceChart(String period) async {
+    try {
+      final response = await _dio.get('/finance-entries/chart', queryParameters: {'period': period});
+      return response.data as Map<String, dynamic>;
+    } catch (e) {
+      print('Failed to get finance chart: $e');
+      return null;
+    }
+  }
 }
+

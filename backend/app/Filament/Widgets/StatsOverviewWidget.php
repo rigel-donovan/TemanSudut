@@ -2,6 +2,7 @@
 
 namespace App\Filament\Widgets;
 
+use App\Models\FinanceEntry;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\User;
@@ -31,7 +32,6 @@ class StatsOverviewWidget extends BaseWidget
             ? round((($revenueToday - $revenueYesterday) / $revenueYesterday) * 100, 1)
             : ($revenueToday > 0 ? 100 : 0);
 
-        // Orders today
         $ordersToday = Transaction::whereDate('created_at', $today)->count();
         $ordersYesterday = Transaction::whereDate('created_at', $yesterday)->count();
         $ordersChange = $ordersYesterday > 0
@@ -84,6 +84,24 @@ class StatsOverviewWidget extends BaseWidget
                 ->description('Kasir & Owner')
                 ->descriptionIcon('heroicon-m-users')
                 ->color('info'),
+
+            Stat::make('Net Profit Hari Ini', (function () use ($today) {
+                $income  = (float) FinanceEntry::where('type', 'income')->whereDate('date', $today)->sum('amount');
+                $expense = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $today)->sum('amount');
+                $net = $income - $expense;
+                return ($net >= 0 ? '+' : '-') . 'Rp. ' . number_format(abs($net), 0, '.', ',');
+            })())
+                ->description((function () use ($today) {
+                    $income  = (float) FinanceEntry::where('type', 'income')->whereDate('date', $today)->sum('amount');
+                    $expense = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $today)->sum('amount');
+                    return 'Masuk: Rp ' . number_format($income, 0, '.', ',') . '  |  Keluar: Rp ' . number_format($expense, 0, '.', ',');
+                })())
+                ->descriptionIcon('heroicon-m-banknotes')
+                ->color((function () use ($today) {
+                    $income  = (float) FinanceEntry::where('type', 'income')->whereDate('date', $today)->sum('amount');
+                    $expense = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $today)->sum('amount');
+                    return ($income - $expense) >= 0 ? 'success' : 'danger';
+                })()),
         ];
     }
 }
