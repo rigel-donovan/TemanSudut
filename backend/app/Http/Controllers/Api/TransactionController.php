@@ -20,13 +20,16 @@ class TransactionController extends Controller
     private function getCompressedLogoBase64(int $maxSize = 150, int $quality = 60): string
     {
         $logoPath = public_path('images/logo.png');
-        if (!file_exists($logoPath)) return '';
+        if (!file_exists($logoPath))
+            return '';
 
         $info = getimagesize($logoPath);
-        if (!$info) return '';
+        if (!$info)
+            return '';
 
         $src = imagecreatefrompng($logoPath);
-        if (!$src) return '';
+        if (!$src)
+            return '';
 
         $origW = imagesx($src);
         $origH = imagesy($src);
@@ -35,7 +38,6 @@ class TransactionController extends Controller
         $newH = (int) round($origH * $ratio);
 
         $dst = imagecreatetruecolor($newW, $newH);
-        // Preserve transparency as white background
         $white = imagecolorallocate($dst, 255, 255, 255);
         imagefill($dst, 0, 0, $white);
         imagecopyresampled($dst, $src, 0, 0, 0, 0, $newW, $newH, $origW, $origH);
@@ -69,7 +71,6 @@ class TransactionController extends Controller
         try {
             DB::beginTransaction();
 
-            // ── Fix N+1: Load all products in ONE query ──────────────────────
             $productIds = array_column($validated['items'], 'product_id');
             $productMap = Product::with('ingredients.rawMaterial')->whereIn('id', $productIds)->get()->keyBy('id');
 
@@ -78,7 +79,8 @@ class TransactionController extends Controller
             foreach ($validated['items'] as $item) {
                 $product = $productMap[$item['product_id']];
                 foreach ($product->ingredients as $ingredient) {
-                    if (!$ingredient->rawMaterial) continue;
+                    if (!$ingredient->rawMaterial)
+                        continue;
                     $needed = $ingredient->quantity_used * $item['quantity'];
                     $available = (float) $ingredient->rawMaterial->stock;
                     if ($needed > $available) {
@@ -95,7 +97,8 @@ class TransactionController extends Controller
 
             if (!empty($shortages)) {
                 DB::rollBack();
-                $messages = array_map(fn($s) =>
+                $messages = array_map(
+                    fn($s) =>
                     "{$s['ingredient']}: butuh {$s['needed']} {$s['unit']}, tersedia {$s['available']} {$s['unit']} (untuk {$s['product']})",
                     $shortages
                 );
@@ -153,14 +156,12 @@ class TransactionController extends Controller
                 $path = $request->file('completion_photo')->store('completion_photos', 'public');
                 $url = url(\Storage::disk('public')->url($path));
                 $transaction->update(['completion_photo' => $url]);
-            }
-            elseif ($request->filled('completion_photo_base64')) {
+            } elseif ($request->filled('completion_photo_base64')) {
                 $imageData = $request->completion_photo_base64;
                 if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
                     $imageData = substr($imageData, strpos($imageData, ',') + 1);
                     $type = strtolower($type[1]);
-                }
-                else {
+                } else {
                     $type = 'jpg';
                 }
                 $imageData = base64_decode($imageData);
@@ -174,9 +175,9 @@ class TransactionController extends Controller
 
             $now = now();
             TransactionItem::insert(array_map(fn($item) => array_merge($item, [
-            'transaction_id' => $transaction->id,
-            'created_at' => $now,
-            'updated_at' => $now,
+                'transaction_id' => $transaction->id,
+                'created_at' => $now,
+                'updated_at' => $now,
             ]), $items));
 
             foreach ($validated['items'] as $item) {
@@ -211,8 +212,7 @@ class TransactionController extends Controller
                 'transaction' => $transaction->load('items.product')
             ], 201);
 
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Transaction failed', 'error' => $e->getMessage()], 500);
         }
@@ -225,18 +225,43 @@ class TransactionController extends Controller
 
         if ($filter === 'daily') {
             $query->whereDate('created_at', now()->toDateString());
-        }
-        elseif ($filter === 'weekly') {
+        } elseif ($filter === 'weekly') {
             $query->whereDate('created_at', '>=', now()->startOfWeek()->toDateString())
                 ->whereDate('created_at', '<=', now()->endOfWeek()->toDateString());
-        }
-        elseif ($filter === 'monthly') {
+        } elseif ($filter === 'monthly') {
             $query->whereDate('created_at', '>=', now()->startOfMonth()->toDateString())
                 ->whereDate('created_at', '<=', now()->endOfMonth()->toDateString());
-        }
-        elseif ($filter && str_starts_with($filter, 'date:')) {
+        } elseif ($filter && str_starts_with($filter, 'date:')) {
+            // Single date: date:YYYY-MM-DD
             $date = substr($filter, 5);
             $query->whereDate('created_at', $date);
+        } elseif ($filter && str_starts_with($filter, 'date_range:')) {
+            // Date range: date_range:YYYY-MM-DD,YYYY-MM-DD
+            $parts = explode(',', substr($filter, 11));
+            if (count($parts) === 2) {
+                $query->whereDate('created_at', '>=', trim($parts[0]))
+                    ->whereDate('created_at', '<=', trim($parts[1]));
+            }
+        } elseif ($filter && str_starts_with($filter, 'week:')) {
+            // Specific week: week:YEAR,WEEK_NUM (ISO week)
+            $parts = explode(',', substr($filter, 5));
+            if (count($parts) === 2) {
+                $year = (int) $parts[0];
+                $week = (int) $parts[1];
+                $start = \Carbon\Carbon::now()->setISODate($year, $week)->startOfWeek()->toDateString();
+                $end = \Carbon\Carbon::now()->setISODate($year, $week)->endOfWeek()->toDateString();
+                $query->whereDate('created_at', '>=', $start)
+                    ->whereDate('created_at', '<=', $end);
+            }
+        } elseif ($filter && str_starts_with($filter, 'month:')) {
+            // Specific month: month:YEAR,MONTH
+            $parts = explode(',', substr($filter, 6));
+            if (count($parts) === 2) {
+                $year = (int) $parts[0];
+                $month = (int) $parts[1];
+                $query->whereYear('created_at', $year)
+                    ->whereMonth('created_at', $month);
+            }
         }
 
         return $query->orderBy('created_at', 'desc');
@@ -244,7 +269,6 @@ class TransactionController extends Controller
 
     public function history(Request $request)
     {
-        // Cap at 500 records per query — enough for daily/weekly/monthly reports
         $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->limit(500)->get();
         return response()->json($transactions);
     }
@@ -348,10 +372,10 @@ class TransactionController extends Controller
         ]);
 
         $itemCount = $transaction->items->count();
-        $baseHeight = 650;  
-        $perItemHeight = 120; 
+        $baseHeight = 650;
+        $perItemHeight = 120;
         $calculatedHeight = $baseHeight + ($itemCount * $perItemHeight);
-        $minHeight = 800; 
+        $minHeight = 800;
         $pageHeight = max($minHeight, $calculatedHeight);
 
         $pdf->setPaper([0, 0, 226.77, $pageHeight], 'portrait');
@@ -423,12 +447,10 @@ class TransactionController extends Controller
             }
 
             $imageData = $request->completion_photo_base64;
-            // Strip data:image/png;base64, if it exists
             if (preg_match('/^data:image\/(\w+);base64,/', $imageData, $type)) {
                 $imageData = substr($imageData, strpos($imageData, ',') + 1);
                 $type = strtolower($type[1]); // jpg, png, etc
-            }
-            else {
+            } else {
                 $type = 'jpg'; // Default
             }
 
@@ -475,7 +497,8 @@ class TransactionController extends Controller
                     $product->increment('stock', $item->quantity);
 
                     foreach ($product->ingredients as $ingredient) {
-                        if (!$ingredient->rawMaterial) continue;
+                        if (!$ingredient->rawMaterial)
+                            continue;
                         $totalToRestore = $ingredient->quantity_used * $item->quantity;
                         \App\Models\RawMaterial::adjustStock(
                             $ingredient->raw_material_id,
@@ -495,8 +518,7 @@ class TransactionController extends Controller
             DB::commit();
 
             return response()->json(['message' => 'Pesanan berhasil dihapus']);
-        }
-        catch (\Exception $e) {
+        } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['message' => 'Gagal menghapus pesanan', 'error' => $e->getMessage()], 500);
         }

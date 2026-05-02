@@ -57,7 +57,7 @@ class _ManagementTabState extends State<ManagementTab> with SingleTickerProvider
       children: [
         // Tab bar header
         Container(
-          color: Colors.black,
+          color: Colors.white,
           child: SafeArea(
             bottom: false,
             child: Column(
@@ -65,12 +65,12 @@ class _ManagementTabState extends State<ManagementTab> with SingleTickerProvider
               children: [
                 Padding(
                   padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: Text('Management', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  child: Text('Management', style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
                 ),
                 TabBar(
                   controller: _tabCtrl,
-                  indicatorColor: Colors.white,
-                  labelColor: Colors.white,
+                  indicatorColor: const Color(0xFF5D4037),
+                  labelColor: const Color(0xFF5D4037),
                   unselectedLabelColor: Colors.grey[400],
                   tabs: [
                     if (Provider.of<AuthProvider>(context, listen: false).can('manage_stock')) 

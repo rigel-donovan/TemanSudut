@@ -22,15 +22,37 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
   String _selectedFilter = 'daily';
   List<dynamic> _transactions = [];
   bool _isLoading = true;
+  bool _showAdvancedFilter = false;
+  DateTimeRange? _dateRange;
+  int? _weekYear;
+  int? _weekNum;
+  final Set<int> _selectedMonths = {};
 
   @override
   bool get wantKeepAlive => true;
+
+  static const List<String> _monthNames = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+    'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+  ];
 
   String get _filterTitle {
     if (_selectedFilter == 'daily') return 'Hari Ini';
     if (_selectedFilter == 'weekly') return 'Minggu Ini';
     if (_selectedFilter == 'monthly') return 'Bulan Ini';
     if (_selectedFilter.startsWith('date:')) return 'Tanggal ${_selectedFilter.substring(5)}';
+    if (_selectedFilter.startsWith('date_range:')) {
+      final parts = _selectedFilter.substring(11).split(',');
+      return '${parts[0]} s/d ${parts[1]}';
+    }
+    if (_selectedFilter.startsWith('week:')) {
+      final parts = _selectedFilter.substring(5).split(',');
+      return 'Minggu ${parts[1]} / ${parts[0]}';
+    }
+    if (_selectedFilter.startsWith('month:')) {
+      final parts = _selectedFilter.split(';');
+      return '${parts.length} Bulan Dipilih';
+    }
     return '';
   }
 
@@ -117,54 +139,24 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
         ),
         centerTitle: false,
         actions: [
-          Container(
-            margin: EdgeInsets.only(right: 8),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.refresh, color: Colors.blue[700]),
-              onPressed: () => refreshHistory(),
-              tooltip: 'Refresh',
-            ),
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.black),
+            onPressed: () => refreshHistory(),
+            tooltip: 'Refresh',
           ),
           if (auth.can('export_history'))
-            Container(
-              margin: EdgeInsets.only(right: 12),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: IconButton(
-                icon: Icon(Icons.file_download_outlined, color: Colors.green[700]), 
-                onPressed: () => _showDownloadOptions(context),
-                tooltip: 'Export Laporan',
-              ),
+            IconButton(
+              icon: const Icon(Icons.file_download_outlined, color: Colors.black), 
+              onPressed: () => _showDownloadOptions(context),
+              tooltip: 'Export Laporan',
             ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
-          // Filter Chips Row
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('Hari Ini', 'daily'),
-                  SizedBox(width: 8),
-                  _buildFilterChip('Minggu Ini', 'weekly'),
-                  SizedBox(width: 8),
-                  _buildFilterChip('Bulan Ini', 'monthly'),
-                  SizedBox(width: 8),
-                  _buildDateFilterChip(),
-                ],
-              ),
-            ),
-          ),
+          _buildFilterBar(),
+          if (_showAdvancedFilter) _buildAdvancedFilterPanel(),
           
           Expanded(
             child: _isLoading 
@@ -173,7 +165,7 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
                 ? _buildEmptyState()
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      final cardWidth = (constraints.maxWidth - 34) / 2; // Subtract horizontal padding (24) and spacing (10)
+                      final cardWidth = (constraints.maxWidth - 34) / 2; 
                       return SingleChildScrollView(
                         padding: const EdgeInsets.all(12),
                         child: Wrap(
@@ -196,73 +188,307 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
     );
   }
 
-  Widget _buildFilterChip(String label, String value) {
-    final isSelected = _selectedFilter == value;
-    return ChoiceChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) {
-          setState(() => _selectedFilter = value);
-          _fetchHistory();
-        }
-      },
-      selectedColor: Colors.black,
-      labelStyle: TextStyle(
-        color: isSelected ? Colors.white : Colors.grey[700],
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        fontSize: 13,
+  // ── Filter bar (quick chips + toggle advanced) ────────────────────────────
+  Widget _buildFilterBar() {
+    final quickFilters = [
+      {'val': 'daily',   'label': 'Hari Ini'},
+      {'val': 'weekly',  'label': 'Minggu Ini'},
+      {'val': 'monthly', 'label': 'Bulan Ini'},
+    ];
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: quickFilters.map((f) {
+                  final sel = _selectedFilter == f['val'];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() { _selectedFilter = f['val']!; _showAdvancedFilter = false; });
+                        _fetchHistory();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: sel ? Colors.black : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: sel ? Colors.black : Colors.grey[300]!),
+                        ),
+                        child: Text(f['label']!, style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.w600,
+                          color: sel ? Colors.white : Colors.grey[700],
+                        )),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+          // Advanced filter toggle button
+          GestureDetector(
+            onTap: () => setState(() => _showAdvancedFilter = !_showAdvancedFilter),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: _showAdvancedFilter ? const Color(0xFF5D4037) : Colors.grey[100],
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _showAdvancedFilter ? const Color(0xFF5D4037) : Colors.grey[300]!),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.tune, size: 14, color: _showAdvancedFilter ? Colors.white : Colors.grey[700]),
+                const SizedBox(width: 4),
+                Text('Filter', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600,
+                  color: _showAdvancedFilter ? Colors.white : Colors.grey[700])),
+              ]),
+            ),
+          ),
+        ],
       ),
-      backgroundColor: Colors.grey[100],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      side: BorderSide(color: isSelected ? Colors.black : Colors.grey[300]!, width: 1),
     );
   }
 
-  Widget _buildDateFilterChip() {
-    final isDateFilter = _selectedFilter.startsWith('date:');
-    final label = isDateFilter ? _selectedFilter.substring(5) : 'Pilih Tanggal';
-    
-    return ChoiceChip(
-      avatar: Icon(Icons.calendar_month, size: 16, color: isDateFilter ? Colors.white : Colors.grey[700]),
-      label: Text(label),
-      selected: isDateFilter,
-      onSelected: (selected) async {
-        final DateTime? pickedDate = await showDatePicker(
-          context: context,
-          initialDate: DateTime.now(),
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
-          builder: (context, child) {
-            return Theme(
-              data: Theme.of(context).copyWith(
-                colorScheme: ColorScheme.light(
-                  primary: Colors.black, 
-                  onPrimary: Colors.white, 
-                  onSurface: Colors.black, 
-                ),
-              ),
-              child: child!,
-            );
-          },
-        );
-        
-        if (pickedDate != null) {
-          final String formattedDate = "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
-          setState(() => _selectedFilter = 'date:$formattedDate');
-          _fetchHistory();
-        }
-      },
-      selectedColor: Colors.black,
-      labelStyle: TextStyle(
-        color: isDateFilter ? Colors.white : Colors.grey[700],
-        fontWeight: isDateFilter ? FontWeight.bold : FontWeight.normal,
-        fontSize: 13,
+  // ── Advanced filter panel ─────────────────────────────────────────────────
+  Widget _buildAdvancedFilterPanel() {
+    final now = DateTime.now();
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 4))],
       ),
-      backgroundColor: Colors.grey[100],
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      side: BorderSide(color: isDateFilter ? Colors.black : Colors.grey[300]!, width: 1),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Section 1: Date Range ─────────────────────
+          _sectionLabel('Rentang Tanggal', Icons.date_range),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: _filterOptionBtn(
+                label: _dateRange == null
+                    ? 'Pilih Rentang'
+                    : '${_fmt(_dateRange!.start)} – ${_fmt(_dateRange!.end)}',
+                icon: Icons.calendar_month,
+                active: _selectedFilter.startsWith('date_range:'),
+                onTap: () async {
+                  final range = await showDateRangePicker(
+                    context: context,
+                    firstDate: DateTime(2020),
+                    lastDate: now,
+                    initialDateRange: _dateRange,
+                    builder: (ctx, child) => Theme(data: _pickerTheme(ctx), child: child!),
+                  );
+                  if (range != null) {
+                    setState(() {
+                      _dateRange = range;
+                      _selectedFilter = 'date_range:${_fmtIso(range.start)},${_fmtIso(range.end)}';
+                      _showAdvancedFilter = false;
+                    });
+                    _fetchHistory();
+                  }
+                },
+              ),
+            ),
+          ]),
+          const SizedBox(height: 14),
+
+          // ── Section 2: Week picker ────────────────────
+          _sectionLabel('Pilih Minggu Spesifik', Icons.view_week_outlined),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 36,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: 12,
+              itemBuilder: (ctx, i) {
+                // Last 12 weeks, newest first
+                final weekDate = now.subtract(Duration(days: 7 * (11 - i)));
+                final isoWeek = _isoWeekNumber(weekDate);
+                final isoYear = _isoWeekYear(weekDate);
+                final key = '$isoYear,$isoWeek';
+                final sel = _selectedFilter == 'week:$key';
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedFilter = 'week:$key';
+                        _weekYear = isoYear;
+                        _weekNum = isoWeek;
+                        _showAdvancedFilter = false;
+                      });
+                      _fetchHistory();
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: sel ? const Color(0xFF5D4037) : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: sel ? const Color(0xFF5D4037) : Colors.grey[300]!),
+                      ),
+                      child: Text('Mg $isoWeek', style: TextStyle(
+                        fontSize: 11, fontWeight: FontWeight.w600,
+                        color: sel ? Colors.white : Colors.grey[700],
+                      )),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // ── Section 3: Month picker (multi-select) ────
+          _sectionLabel('Pilih Bulan (bisa lebih dari satu)', Icons.calendar_month_outlined),
+          const SizedBox(height: 8),
+          // Year selector
+          Row(children: [
+            ...[now.year - 1, now.year].map((yr) {
+              final ysel = _selectedMonths.any((m) => m ~/ 100 == yr);
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Text(yr.toString(), style: TextStyle(
+                  fontWeight: ysel ? FontWeight.bold : FontWeight.normal,
+                  fontSize: 12, color: ysel ? const Color(0xFF5D4037) : Colors.grey[500],
+                )),
+              );
+            }),
+          ]),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: List.generate(24, (i) {
+              // Last 24 months
+              final date = DateTime(now.year, now.month - (23 - i));
+              final key = date.year * 100 + date.month;
+              final sel = _selectedMonths.contains(key);
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    if (sel) {
+                      _selectedMonths.remove(key);
+                    } else {
+                      _selectedMonths.add(key);
+                    }
+                  });
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 120),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: sel ? const Color(0xFF5D4037) : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: sel ? const Color(0xFF5D4037) : Colors.grey[300]!),
+                  ),
+                  child: Text(
+                    '${_monthNames[date.month - 1]} ${date.year}',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600,
+                      color: sel ? Colors.white : Colors.grey[700]),
+                  ),
+                ),
+              );
+            }),
+          ),
+          if (_selectedMonths.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5D4037),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                ),
+                onPressed: () {
+                  // Build multi-month filter — we'll send multiple requests and merge
+                  final sortedMonths = _selectedMonths.toList()..sort();
+                  // For simplicity, pick earliest & latest and use date_range
+                  final first = DateTime(sortedMonths.first ~/ 100, sortedMonths.first % 100);
+                  final last = DateTime(sortedMonths.last ~/ 100, sortedMonths.last % 100,
+                    DateUtils.getDaysInMonth(sortedMonths.last ~/ 100, sortedMonths.last % 100));
+                  setState(() {
+                    _selectedFilter = 'date_range:${_fmtIso(first)},${_fmtIso(last)}';
+                    _showAdvancedFilter = false;
+                  });
+                  _fetchHistory();
+                },
+                child: Text('Terapkan ${_selectedMonths.length} Bulan', style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ],
+      ),
     );
+  }
+
+  Widget _sectionLabel(String label, IconData icon) {
+    return Row(children: [
+      Icon(icon, size: 14, color: Colors.grey[600]),
+      const SizedBox(width: 6),
+      Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+    ]);
+  }
+
+  Widget _filterOptionBtn({required String label, required IconData icon, required bool active, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: active ? const Color(0xFF5D4037).withOpacity(0.08) : Colors.grey[100],
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: active ? const Color(0xFF5D4037) : Colors.grey[300]!),
+        ),
+        child: Row(children: [
+          Icon(icon, size: 14, color: active ? const Color(0xFF5D4037) : Colors.grey[600]),
+          const SizedBox(width: 8),
+          Expanded(child: Text(label, style: TextStyle(
+            fontSize: 12, color: active ? const Color(0xFF5D4037) : Colors.grey[700],
+            fontWeight: active ? FontWeight.w600 : FontWeight.normal,
+          ))),
+          Icon(Icons.chevron_right, size: 16, color: Colors.grey[400]),
+        ]),
+      ),
+    );
+  }
+
+  ThemeData _pickerTheme(BuildContext ctx) => Theme.of(ctx).copyWith(
+    colorScheme: const ColorScheme.light(
+      primary: Color(0xFF5D4037),
+      onPrimary: Colors.white,
+      onSurface: Colors.black87,
+    ),
+  );
+
+  String _fmt(DateTime d) => '${d.day}/${d.month}/${d.year}';
+  String _fmtIso(DateTime d) => '${d.year}-${d.month.toString().padLeft(2,'0')}-${d.day.toString().padLeft(2,'0')}';
+
+  int _isoWeekNumber(DateTime date) {
+    final startOfYear = DateTime(date.year, 1, 1);
+    final dayOfYear = date.difference(startOfYear).inDays + 1;
+    final weekday = startOfYear.weekday;
+    return ((dayOfYear + weekday - 2) / 7).ceil();
+  }
+
+  int _isoWeekYear(DateTime date) {
+    final week = _isoWeekNumber(date);
+    if (week >= 52 && date.month == 1) return date.year - 1;
+    if (week == 1 && date.month == 12) return date.year + 1;
+    return date.year;
   }
 
   Widget _buildEmptyState() {
