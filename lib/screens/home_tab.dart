@@ -111,10 +111,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                       )
                        : SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : (MediaQuery.of(context).size.width > 600 ? 3 : 2),
-                          childAspectRatio: 0.72,
+                          crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+                          childAspectRatio: 0.9,
                           crossAxisSpacing: 16,
-                          mainAxisSpacing: 24, 
+                          mainAxisSpacing: 30, 
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
@@ -464,7 +464,7 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
           children: [
             // Main Card Container
             Positioned.fill(
-              top: 45, 
+              top: 38, 
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -474,22 +474,22 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
                   ],
                   border: Border.all(color: Colors.grey[200]!)
                 ),
-                padding: EdgeInsets.fromLTRB(12, 72, 12, 12),
+                padding: EdgeInsets.fromLTRB(8, 58, 8, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
                       widget.product.name, 
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87), 
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87), 
                       maxLines: 2, 
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(height: 4),
                     Text(
                       AppFormat.currency(widget.product.price), 
-                      style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.w800, fontSize: 13)
+                      style: TextStyle(color: Colors.orange[700], fontWeight: FontWeight.w800, fontSize: 12)
                     ),
                   ],
                 ),
@@ -504,8 +504,8 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
               child: Align(
                 alignment: Alignment.topCenter,
                 child: Container(
-                  width: 110,
-                  height: 110,
+                  width: 90,
+                  height: 90,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
@@ -519,9 +519,9 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
                           imageUrl: ApiService().getImageUrl(widget.product.image),
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Center(child: CircularProgressIndicator(color: Colors.orange, strokeWidth: 2)),
-                          errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 40, color: Colors.black12),
+                          errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 30, color: Colors.black12),
                         )
-                      : Icon(Icons.fastfood, size: 44, color: Colors.black26),
+                      : Icon(Icons.fastfood, size: 36, color: Colors.black26),
                   ),
                 ),
               ),
@@ -530,7 +530,7 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
             // Stock Badge if low/empty
             if (widget.product.stock <= 5)
               Positioned(
-                top: 55, right: 0,
+                top: 48, right: 0,
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(

@@ -144,27 +144,6 @@ class _MainNavScreenState extends State<MainNavScreen> {
             );
           }
 
-          if (!cart.isShiftOpen) {
-            return Scaffold(
-              body: Stack(
-                children: [
-                  mainContent,
-                  Positioned.fill(
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5.0, sigmaY: 5.0),
-                      child: Container(
-                        color: Colors.white.withOpacity(0.5),
-                        child: Center(
-                          child: _buildOpenShiftCard(context, cart),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
           return mainContent;
         },
       ),
@@ -378,7 +357,16 @@ class _MainNavScreenState extends State<MainNavScreen> {
                       index: _selectedIndex,
                       children: _pages,
                     ),
-                    if (_isSidebarMinimized)
+                    if (!cart.isShiftOpen && _pages[_selectedIndex] is HomeTab)
+                      Positioned.fill(
+                        child: Container(
+                          color: Colors.black.withOpacity(0.4),
+                          child: Center(
+                            child: _buildOpenShiftCard(context, cart),
+                          ),
+                        ),
+                      ),
+                    if (_isSidebarMinimized && cart.isShiftOpen)
                       Positioned(
                         right: 16,
                         bottom: 16,
@@ -414,7 +402,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
           ),
 
           // 3. Cart / Orders Right Sidebar
-          if (!_isSidebarMinimized)
+          if (!_isSidebarMinimized && cart.isShiftOpen)
             Container(
               width: MediaQuery.of(context).size.width * 0.35,
               decoration: BoxDecoration(
@@ -453,13 +441,27 @@ class _MainNavScreenState extends State<MainNavScreen> {
   }
 
   Widget _buildMobileLayout(BuildContext context) {
+    final cart = Provider.of<CartProvider>(context, listen: false);
     return Scaffold(
       backgroundColor: Colors.white,
       drawer: CustomDrawer(),
       body: SafeArea(
-        child: AnimatedIndexedStack(
-          index: _selectedIndex,
-          children: _pages,
+        child: Stack(
+          children: [
+            AnimatedIndexedStack(
+              index: _selectedIndex,
+              children: _pages,
+            ),
+            if (!cart.isShiftOpen && _pages[_selectedIndex] is HomeTab)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.4),
+                  child: Center(
+                    child: _buildOpenShiftCard(context, cart),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
       bottomNavigationBar: _buildBottomNav(),
@@ -484,6 +486,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
         unselectedItemColor: Colors.grey,
         showSelectedLabels: true,
         showUnselectedLabels: true,
+        iconSize: 28,
         selectedFontSize: 12,
         unselectedFontSize: 12,
         currentIndex: _selectedIndex >= _navItems.length ? 0 : _selectedIndex,
