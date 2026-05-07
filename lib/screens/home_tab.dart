@@ -112,7 +112,7 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                        : SliverGrid(
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: MediaQuery.of(context).size.width > 800 ? 4 : (MediaQuery.of(context).size.width > 600 ? 3 : 2),
-                          childAspectRatio: 0.8,
+                          childAspectRatio: 0.72,
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 24, 
                         ),
@@ -464,7 +464,7 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
           children: [
             // Main Card Container
             Positioned.fill(
-              top: 30, // Space for circular image to protrude
+              top: 45, 
               child: Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -474,7 +474,7 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
                   ],
                   border: Border.all(color: Colors.grey[200]!)
                 ),
-                padding: EdgeInsets.fromLTRB(12, 55, 12, 12),
+                padding: EdgeInsets.fromLTRB(12, 72, 12, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -504,13 +504,13 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
               child: Align(
                 alignment: Alignment.topCenter,
                 child: Container(
-                  width: 80,
-                  height: 80,
+                  width: 110,
+                  height: 110,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: Offset(0, 4))
+                      BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 4))
                     ],
                   ),
                   child: ClipOval(
@@ -519,9 +519,9 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
                           imageUrl: ApiService().getImageUrl(widget.product.image),
                           fit: BoxFit.cover,
                           placeholder: (context, url) => Center(child: CircularProgressIndicator(color: Colors.orange, strokeWidth: 2)),
-                          errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 30, color: Colors.black12),
+                          errorWidget: (context, url, error) => Icon(Icons.broken_image_outlined, size: 40, color: Colors.black12),
                         )
-                      : Icon(Icons.fastfood, size: 30, color: Colors.black26),
+                      : Icon(Icons.fastfood, size: 44, color: Colors.black26),
                   ),
                 ),
               ),
@@ -530,7 +530,7 @@ class _ProductCardState extends State<_ProductCard> with SingleTickerProviderSta
             // Stock Badge if low/empty
             if (widget.product.stock <= 5)
               Positioned(
-                top: 40, right: 0,
+                top: 55, right: 0,
                 child: Container(
                   padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(

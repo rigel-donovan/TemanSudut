@@ -49,14 +49,19 @@ class _MainNavScreenState extends State<MainNavScreen> {
     _pages = [
       HomeTab(),
       if (canHistory) HistoryTab(key: _historyKey),
-      if (canFinance) const FinanceTab(),
       ActiveOrdersTab(
         key: _activeOrdersKey, 
         onNavigateToHistory: canHistory ? () {
           int idx = _pages.indexWhere((p) => p is HistoryTab);
           if (idx != -1) _onItemTapped(idx);
-        } : null
+        } : null,
+        onOrderCompleted: canHistory ? () {
+          _historyKey.currentState?.refreshHistory();
+          int idx = _pages.indexWhere((p) => p is HistoryTab);
+          if (idx != -1) _onItemTapped(idx);
+        } : null,
       ),
+      if (canFinance) const FinanceTab(),
       if (canManagement) ManagementTab(),
       ProfileTab(),
     ];
@@ -65,9 +70,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.storefront_outlined), activeIcon: Icon(Icons.storefront), label: 'Home'),
       if (canHistory) 
         BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long), label: 'History'),
+        BottomNavigationBarItem(icon: Icon(Icons.list_alt), activeIcon: Icon(Icons.list), label: 'Orders'),
       if (canFinance)
         BottomNavigationBarItem(icon: Icon(Icons.account_balance_wallet_outlined), activeIcon: Icon(Icons.account_balance_wallet), label: 'Keuangan'),
-      BottomNavigationBarItem(icon: Icon(Icons.list_alt), activeIcon: Icon(Icons.list), label: 'Orders'),
       if (canManagement) 
         BottomNavigationBarItem(icon: Icon(Icons.grid_view_outlined), activeIcon: Icon(Icons.grid_view), label: 'Management'),
       BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),

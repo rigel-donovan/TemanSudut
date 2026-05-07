@@ -220,47 +220,61 @@ class TransactionController extends Controller
 
     private function getFilteredHistoryQuery($filter)
     {
+        $tz = config('app.timezone', 'Asia/Makassar');
+
         $query = Transaction::with(['items.product', 'table', 'user'])
             ->where('kitchen_status', 'completed');
 
         if ($filter === 'daily') {
-            $query->whereDate('created_at', now()->toDateString());
+            $start = \Carbon\Carbon::now($tz)->startOfDay();
+            $end = \Carbon\Carbon::now($tz)->endOfDay();
+            $query->whereBetween('created_at', [$start, $end]);
+
         } elseif ($filter === 'weekly') {
-            $query->whereDate('created_at', '>=', now()->startOfWeek()->toDateString())
-                ->whereDate('created_at', '<=', now()->endOfWeek()->toDateString());
+            $start = \Carbon\Carbon::now($tz)->startOfWeek();
+            $end = \Carbon\Carbon::now($tz)->endOfWeek();
+            $query->whereBetween('created_at', [$start, $end]);
+
         } elseif ($filter === 'monthly') {
-            $query->whereDate('created_at', '>=', now()->startOfMonth()->toDateString())
-                ->whereDate('created_at', '<=', now()->endOfMonth()->toDateString());
+            $start = \Carbon\Carbon::now($tz)->startOfMonth();
+            $end = \Carbon\Carbon::now($tz)->endOfMonth();
+            $query->whereBetween('created_at', [$start, $end]);
+
         } elseif ($filter && str_starts_with($filter, 'date:')) {
             // Single date: date:YYYY-MM-DD
             $date = substr($filter, 5);
-            $query->whereDate('created_at', $date);
+            $start = \Carbon\Carbon::parse($date, $tz)->startOfDay();
+            $end = \Carbon\Carbon::parse($date, $tz)->endOfDay();
+            $query->whereBetween('created_at', [$start, $end]);
+
         } elseif ($filter && str_starts_with($filter, 'date_range:')) {
             // Date range: date_range:YYYY-MM-DD,YYYY-MM-DD
             $parts = explode(',', substr($filter, 11));
             if (count($parts) === 2) {
-                $query->whereDate('created_at', '>=', trim($parts[0]))
-                    ->whereDate('created_at', '<=', trim($parts[1]));
+                $start = \Carbon\Carbon::parse(trim($parts[0]), $tz)->startOfDay();
+                $end = \Carbon\Carbon::parse(trim($parts[1]), $tz)->endOfDay();
+                $query->whereBetween('created_at', [$start, $end]);
             }
+
         } elseif ($filter && str_starts_with($filter, 'week:')) {
-            // Specific week: week:YEAR,WEEK_NUM (ISO week)
             $parts = explode(',', substr($filter, 5));
             if (count($parts) === 2) {
                 $year = (int) $parts[0];
                 $week = (int) $parts[1];
-                $start = \Carbon\Carbon::now()->setISODate($year, $week)->startOfWeek()->toDateString();
-                $end = \Carbon\Carbon::now()->setISODate($year, $week)->endOfWeek()->toDateString();
-                $query->whereDate('created_at', '>=', $start)
-                    ->whereDate('created_at', '<=', $end);
+                $start = \Carbon\Carbon::now($tz)->setISODate($year, $week)->startOfWeek()->startOfDay();
+                $end = \Carbon\Carbon::now($tz)->setISODate($year, $week)->endOfWeek()->endOfDay();
+                $query->whereBetween('created_at', [$start, $end]);
             }
+
         } elseif ($filter && str_starts_with($filter, 'month:')) {
             // Specific month: month:YEAR,MONTH
             $parts = explode(',', substr($filter, 6));
             if (count($parts) === 2) {
                 $year = (int) $parts[0];
                 $month = (int) $parts[1];
-                $query->whereYear('created_at', $year)
-                    ->whereMonth('created_at', $month);
+                $start = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->startOfMonth();
+                $end = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->endOfMonth();
+                $query->whereBetween('created_at', [$start, $end]);
             }
         }
 
@@ -326,7 +340,6 @@ class TransactionController extends Controller
         }
 
         try {
-            // Limit PDF to 500 rows — DomPDF can't handle very large tables
             $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->limit(500)->get();
 
             $totalProcessed = $transactions->sum('total');

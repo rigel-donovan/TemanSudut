@@ -499,84 +499,130 @@ class _RawMaterialsViewState extends State<_RawMaterialsView> with AutomaticKeep
     final stockCtrl = TextEditingController(text: material.stock.toString());
     final unitCtrl = TextEditingController(text: material.unit);
 
-    showDialog(
+    InputDecoration _fieldDeco(String label, IconData icon) => InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, size: 20, color: Colors.grey[600]),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF5D4037), width: 2)),
+      fillColor: Colors.grey[50],
+      filled: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+    );
+
+    showModalBottomSheet(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Edit ${material.name}', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Handle bar
+              Center(
+                child: Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 20),
+                  width: 40, height: 4,
+                  decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              // Title
+              Row(children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFF5D4037).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.bakery_dining, size: 18, color: Color(0xFF5D4037)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text('Edit ${material.name}',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                  overflow: TextOverflow.ellipsis)),
+              ]),
+              const SizedBox(height: 20),
+              // Fields
               TextField(
                 controller: nameCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Nama Bahan',
-                  prefixIcon: Icon(Icons.shopping_bag),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
+                decoration: _fieldDeco('Nama Bahan', Icons.shopping_bag_outlined),
+                textCapitalization: TextCapitalization.words,
               ),
-              SizedBox(height: 12),
-              TextField(
-                controller: stockCtrl,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'Stok',
-                  prefixIcon: Icon(Icons.inventory),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: stockCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: _fieldDeco('Stok', Icons.inventory_2_outlined),
+                  ),
                 ),
-              ),
-              SizedBox(height: 12),
-              TextField(
-                controller: unitCtrl,
-                decoration: InputDecoration(
-                  labelText: 'Satuan (kg, gr, dll)',
-                  prefixIcon: Icon(Icons.straighten),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: unitCtrl,
+                    decoration: _fieldDeco('Satuan', Icons.straighten),
+                  ),
                 ),
-              ),
+              ]),
+              const SizedBox(height: 24),
+              // Buttons
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.grey[700],
+                      side: BorderSide(color: Colors.grey[300]!),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: const Text('Batal'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5D4037),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      final success = await _apiService.updateRawMaterial(material.id, {
+                        'name': nameCtrl.text,
+                        'stock': double.tryParse(stockCtrl.text) ?? material.stock,
+                        'unit': unitCtrl.text,
+                      });
+                      if (success) {
+                        PopupNotification.show(context,
+                          title: 'Berhasil Diperbarui ✏️',
+                          message: '${material.name} telah diupdate.',
+                          type: PopupType.success);
+                        _fetchMaterials();
+                      } else {
+                        PopupNotification.show(context,
+                          title: 'Gagal Memperbarui',
+                          message: 'Tidak bisa mengupdate ${material.name}.',
+                          type: PopupType.error);
+                      }
+                    },
+                    child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ]),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: Text('Batal', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5D4037),
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              final success = await _apiService.updateRawMaterial(material.id, {
-                'name': nameCtrl.text,
-                'stock': double.tryParse(stockCtrl.text) ?? material.stock,
-                'unit': unitCtrl.text,
-              });
-
-              if (success) {
-                PopupNotification.show(
-                  context,
-                  title: 'Berhasil Diperbarui ✏️',
-                  message: '${material.name} telah diupdate.',
-                  type: PopupType.success,
-                );
-                _fetchMaterials();
-              } else {
-                PopupNotification.show(
-                  context,
-                  title: 'Gagal Memperbarui',
-                  message: 'Tidak bisa mengupdate ${material.name}.',
-                  type: PopupType.error,
-                );
-              }
-            },
-            child: Text('Simpan'),
-          ),
-        ],
       ),
     );
   }

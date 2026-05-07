@@ -13,8 +13,9 @@ import 'package:provider/provider.dart';
 
 class ActiveOrdersTab extends StatefulWidget {
   final VoidCallback? onNavigateToHistory;
+  final VoidCallback? onOrderCompleted;
 
-  const ActiveOrdersTab({Key? key, this.onNavigateToHistory}) : super(key: key);
+  const ActiveOrdersTab({Key? key, this.onNavigateToHistory, this.onOrderCompleted}) : super(key: key);
 
   @override
   ActiveOrdersTabState createState() => ActiveOrdersTabState();
@@ -65,16 +66,22 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> with AutomaticKeepAliv
     if (!mounted) return;
     LoadingOverlay.hide(context);
     if (success) {
+      // Always refresh the active orders list first (remove completed item)
+      await _fetchActiveOrders();
+      if (!mounted) return;
+
       PopupNotification.show(
         context,
         title: 'Order Selesai!',
         message: 'Order #${order['id']} telah dipindahkan ke History.',
         type: PopupType.success,
       );
-      if (widget.onNavigateToHistory != null) {
+
+      // Trigger parent: refresh history tab then navigate to it
+      if (widget.onOrderCompleted != null) {
+        widget.onOrderCompleted!();
+      } else if (widget.onNavigateToHistory != null) {
         widget.onNavigateToHistory!();
-      } else {
-        _fetchActiveOrders();
       }
     } else {
       PopupNotification.show(
