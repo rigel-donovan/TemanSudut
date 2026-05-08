@@ -327,8 +327,8 @@ class TransactionController extends Controller
 
     public function exportPdf(Request $request)
     {
-        ini_set('memory_limit', '256M');
-        set_time_limit(120);
+        ini_set('memory_limit', '512M');
+        set_time_limit(300);
 
         $user = $this->resolveUser($request);
 
@@ -341,26 +341,38 @@ class TransactionController extends Controller
         }
 
         try {
-            $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->limit(500)->get();
+            $filter = $request->query('filter');
 
-            $totalProcessed = $transactions->sum('total');
-            $startDate = $transactions->min('created_at');
-            $endDate = $transactions->max('created_at');
+            // Aggregate by day — works for any number of rows without memory issues
+            $query = $this->getFilteredHistoryQuery($filter);
+
+            $totalProcessed = (clone $query)->sum('total');
+            $totalCount     = (clone $query)->count();
+            $startDate      = (clone $query)->min('created_at');
+            $endDate        = (clone $query)->max('created_at');
+
+            // Group by date (SQLite-compatible: strftime)
+            $dailySummary = (clone $query)
+                ->selectRaw("strftime('%Y-%m-%d', created_at) as day, COUNT(*) as trx_count, SUM(total) as day_total, SUM(CASE WHEN payment_method='cash' THEN 1 ELSE 0 END) as cash_count, SUM(CASE WHEN payment_method='qris' THEN 1 ELSE 0 END) as qris_count")
+                ->groupByRaw("strftime('%Y-%m-%d', created_at)")
+                ->orderByRaw("strftime('%Y-%m-%d', created_at) DESC")
+                ->get();
+
             $generatedOn = now();
-
-            $logoBase64 = $this->getCompressedLogoBase64();
+            $logoBase64  = $this->getCompressedLogoBase64();
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.history_pdf', [
-                'transactions' => $transactions,
+                'dailySummary'   => $dailySummary,
                 'totalProcessed' => $totalProcessed,
-                'startDate' => $startDate,
-                'endDate' => $endDate,
-                'generatedOn' => $generatedOn,
-                'logoBase64' => $logoBase64,
-                'totalCount' => $transactions->count(),
+                'totalCount'     => $totalCount,
+                'startDate'      => $startDate ? \Carbon\Carbon::parse($startDate) : null,
+                'endDate'        => $endDate   ? \Carbon\Carbon::parse($endDate)   : null,
+                'generatedOn'    => $generatedOn,
+                'logoBase64'     => $logoBase64,
+                'filter'         => $filter,
             ]);
 
-            $pdf->setPaper('A4', 'landscape');
+            $pdf->setPaper('A4', 'portrait');
 
             return $pdf->download('history_transactions.pdf');
         } catch (\Exception $e) {

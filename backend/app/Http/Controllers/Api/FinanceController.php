@@ -36,12 +36,12 @@ class FinanceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'type'        => 'required|in:income,expense',
-            'category'    => 'nullable|string|max:100',
+            'type' => 'required|in:income,expense',
+            'category' => 'nullable|string|max:100',
             'description' => 'required|string|max:255',
-            'amount'      => 'required|numeric|min:1',
-            'date'        => 'required|date',
-            'notes'       => 'nullable|string|max:500',
+            'amount' => 'required|numeric|min:1',
+            'date' => 'required|date',
+            'notes' => 'nullable|string|max:500',
         ]);
 
         $entry = FinanceEntry::create(array_merge($validated, ['user_id' => auth()->id()]));
@@ -55,20 +55,18 @@ class FinanceController extends Controller
         $entry = FinanceEntry::findOrFail($id);
 
         $validated = $request->validate([
-            'type'        => 'sometimes|in:income,expense',
-            'category'    => 'nullable|string|max:100',
+            'type' => 'sometimes|in:income,expense',
+            'category' => 'nullable|string|max:100',
             'description' => 'sometimes|string|max:255',
-            'amount'      => 'sometimes|numeric|min:1',
-            'date'        => 'sometimes|date',
-            'notes'       => 'nullable|string|max:500',
+            'amount' => 'sometimes|numeric|min:1',
+            'date' => 'sometimes|date',
+            'notes' => 'nullable|string|max:500',
         ]);
 
         $entry->update($validated);
 
         return response()->json($entry->load('user:id,name'));
     }
-
-    /** DELETE /finance-entries/{id} */
     public function destroy($id)
     {
         FinanceEntry::findOrFail($id)->delete();
@@ -90,14 +88,14 @@ class FinanceController extends Controller
             $query->whereMonth('date', now()->month)->whereYear('date', now()->year);
         }
 
-        $income  = (float) (clone $query)->where('type', 'income')->sum('amount');
+        $income = (float) (clone $query)->where('type', 'income')->sum('amount');
         $expense = (float) (clone $query)->where('type', 'expense')->sum('amount');
 
         return response()->json([
-            'income'  => $income,
+            'income' => $income,
             'expense' => $expense,
-            'net'     => $income - $expense,
-            'filter'  => $filter,
+            'net' => $income - $expense,
+            'filter' => $filter,
         ]);
     }
 
@@ -112,23 +110,23 @@ class FinanceController extends Controller
         if ($period === 'daily') {
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
-                $labels[]   = $date->format('d/m');
-                $incomes[]  = (float) FinanceEntry::where('type', 'income')->whereDate('date', $date)->sum('amount');
+                $labels[] = $date->format('d/m');
+                $incomes[] = (float) FinanceEntry::where('type', 'income')->whereDate('date', $date)->sum('amount');
                 $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $date)->sum('amount');
             }
         } elseif ($period === 'weekly') {
             for ($i = 11; $i >= 0; $i--) {
                 $start = Carbon::now()->startOfWeek()->subWeeks($i);
-                $end   = (clone $start)->endOfWeek();
-                $labels[]   = $start->format('d/m');
-                $incomes[]  = (float) FinanceEntry::where('type', 'income')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
+                $end = (clone $start)->endOfWeek();
+                $labels[] = $start->format('d/m');
+                $incomes[] = (float) FinanceEntry::where('type', 'income')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
                 $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
             }
         } else {
             for ($i = 11; $i >= 0; $i--) {
                 $date = Carbon::now()->startOfMonth()->subMonths($i);
-                $labels[]   = $date->format('M y');
-                $incomes[]  = (float) FinanceEntry::where('type', 'income')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
+                $labels[] = $date->format('M y');
+                $incomes[] = (float) FinanceEntry::where('type', 'income')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
                 $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
             }
         }

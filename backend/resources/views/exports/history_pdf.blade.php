@@ -1,176 +1,152 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Transaction History Export</title>
+    <title>Laporan Transaksi - Sudut Kopi</title>
     <style>
-        @page { margin: 40px; }
-        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11px; color: #3E2723; line-height: 1.5; padding-top: 10px; }
-        
-        /* Table Layout for Header and Info */
-        .layout-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; table-layout: fixed; }
-        .layout-table td { vertical-align: top; border: none; padding: 0; }
-        
-        /* Decorative Header */
-        .header-cell { border-bottom: 4px double #8D6E63 !important; padding-bottom: 10px !important; }
-        .header-title { font-size: 32px; font-weight: 900; color: #5D4037; letter-spacing: 1px; font-family: 'Times New Roman', serif; }
-        .header-subtitle { font-size: 11px; color: #8D6E63; text-transform: uppercase; letter-spacing: 3px; }
-        
-        /* Info Boxes */
-        .info-box { padding: 12px; background: #FFFBF0; border-radius: 6px; border: 1px solid #E0D4B8; min-height: 70px; }
-        .info-box.right { background: #6F4E37; color: #FFFFFF; border: none; text-align: right; }
-        
-        .label { color: #8D6E63; font-size: 9px; text-transform: uppercase; font-weight: bold; display: block; margin-bottom: 4px; }
-        .info-box.right .label { color: #D7CCC8; }
-        .value { font-weight: bold; font-size: 12px; color: #3E2723; }
-        .info-box.right .value { color: #FFFFFF; }
-        .total-label { font-size: 10px; text-transform: uppercase; font-weight: bold; }
-        .total-value-large { font-size: 22px; font-weight: 900; margin-top: 5px; }
-        
-        /* Main Transaction Table */
-        table.data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        table.data-table th { 
-            background-color: #5D4037; 
-            color: #FFF; 
-            padding: 10px 8px; 
-            text-align: left; 
-            font-size: 9px; 
-            text-transform: uppercase; 
-            letter-spacing: 1px;
+        @page { margin: 36px 40px; }
+        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 11px; color: #3E2723; line-height: 1.5; }
+
+        /* Header */
+        .header-bar { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        .header-bar td { vertical-align: middle; border: none; padding: 0; }
+        .brand { font-size: 26px; font-weight: 900; color: #5D4037; letter-spacing: 1px; font-family: 'Times New Roman', serif; }
+        .brand-sub { font-size: 9px; color: #8D6E63; text-transform: uppercase; letter-spacing: 3px; margin-top: 2px; }
+        .divider { border: none; border-top: 3px double #8D6E63; margin: 10px 0 14px; }
+
+        /* Info row */
+        .info-row { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+        .info-row td { vertical-align: top; border: none; padding: 0; }
+        .info-box { padding: 10px 14px; background: #FFFBF0; border: 1px solid #E0D4B8; border-radius: 6px; }
+        .info-box-dark { padding: 10px 14px; background: #5D4037; border-radius: 6px; text-align: right; }
+        .lbl { display: block; font-size: 8px; text-transform: uppercase; font-weight: bold; color: #8D6E63; margin-bottom: 3px; }
+        .lbl-w { display: block; font-size: 8px; text-transform: uppercase; font-weight: bold; color: #D7CCC8; margin-bottom: 3px; }
+        .val { font-weight: bold; font-size: 12px; color: #3E2723; }
+        .val-w { font-weight: bold; font-size: 12px; color: #fff; }
+        .total-big { font-size: 20px; font-weight: 900; color: #fff; margin-top: 4px; }
+
+        /* Summary table */
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        .data-table th {
+            background: #5D4037; color: #fff;
+            padding: 9px 8px; text-align: left;
+            font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px;
             border: 1px solid #4E342E;
         }
-        table.data-table td { padding: 10px 8px; border: 1px solid #EFEBE9; vertical-align: middle; }
-        table.data-table tr:nth-child(even) { background-color: #FAF9F6; }
-        
-        .status-pill { padding: 3px 8px; border-radius: 12px; font-size: 8px; font-weight: 900; text-transform: uppercase; background: #E8F5E9; color: #2E7D32; }
-        .amount-col { text-align: right; font-weight: bold; }
-        .staff-note { font-size: 9px; color: #8D6E63; font-style: italic; margin-top: 2px; }
-        
-        /* Bottom Summary */
-        .summary-table { width: 300px; margin-left: auto; border-collapse: collapse; margin-top: 30px; }
-        .summary-table td { padding: 8px 0; border-bottom: 1px solid #D7CCC8; }
-        .summary-label { font-weight: bold; color: #795548; font-size: 11px; }
-        .summary-val { text-align: right; font-weight: bold; color: #3E2723; }
-        
-        .grand-total-box { background: #5D4037; color: white; padding: 15px; border-radius: 6px; text-align: right; margin-top: 10px; }
-        .grand-total-text { font-size: 11px; text-transform: uppercase; opacity: 0.8; }
-        .grand-total-num { font-size: 18px; font-weight: 900; margin-top: 5px; }
-        
+        .data-table th.right, .data-table td.right { text-align: right; }
+        .data-table th.center, .data-table td.center { text-align: center; }
+        .data-table td { padding: 8px 8px; border: 1px solid #EFEBE9; vertical-align: middle; }
+        .data-table tr:nth-child(even) td { background: #FAF9F6; }
+        .data-table tfoot td { background: #3E2723; color: #fff; font-weight: bold; border: 1px solid #4E342E; padding: 9px 8px; }
+
         /* Footer */
-        .footer { 
-            position: fixed; 
-            bottom: -30px; 
-            left: 0;
-            right: 0;
-            border-top: 1px solid #E0E0E0; 
-            padding-top: 8px; 
-            text-align: center; 
-            font-size: 9px; 
-            color: #9E9E9E;
-            background: #FFFFFF;
+        .footer {
+            position: fixed; bottom: -30px; left: 0; right: 0;
+            border-top: 1px solid #E0E0E0;
+            padding-top: 6px; text-align: center;
+            font-size: 8px; color: #9E9E9E; background: #fff;
         }
+
+        .note { font-size: 9px; color: #8D6E63; margin-top: 12px; font-style: italic; }
     </style>
 </head>
 <body>
-    <div style="position: absolute; top: -50px; left: -40px; right: -40px; height: 10px; background: #6F4E37;"></div>
+    <div style="position:absolute;top:-36px;left:-40px;right:-40px;height:8px;background:#6F4E37;"></div>
 
-    <!-- Header Table -->
-    <table class="layout-table">
+    <!-- Brand Header -->
+    <table class="header-bar">
         <tr>
-            <td class="header-cell">
-                <div class="header-title">s u d u t k o p i.</div>
-                <div class="header-subtitle">Laporan Transaksi</div>
+            <td>
+                <div class="brand">s u d u t &nbsp;k o p i.</div>
+                <div class="brand-sub">Laporan Transaksi Harian</div>
             </td>
-            <td class="header-cell" style="text-align: right; width: 80px;">
+            <td style="text-align:right;width:80px;">
                 @if($logoBase64)
-                    <img src="{{ $logoBase64 }}" style="height: 60px; width: auto;">
+                    <img src="{{ $logoBase64 }}" style="height:54px;width:auto;">
                 @else
-                    <div style="padding: 10px; background: #6F4E37; color: #FFF; font-weight: 900; border-radius: 5px; display: inline-block;">SK</div>
+                    <div style="padding:10px;background:#6F4E37;color:#fff;font-weight:900;border-radius:5px;display:inline-block;">SK</div>
                 @endif
             </td>
         </tr>
     </table>
+    <hr class="divider">
 
-    <!-- Info Section Table -->
-    <table class="layout-table" style="margin-top: 15px;">
+    <!-- Info Row -->
+    <table class="info-row">
         <tr>
-            <td style="width: 50%; padding-right: 15px;">
+            <td style="width:58%;padding-right:12px;">
                 <div class="info-box">
-                    <span class="label">Periode Transaksi</span>
-                    <span class="value">
+                    <span class="lbl">Periode Laporan</span>
+                    <span class="val">
                         @if($startDate && $endDate)
-                            {{ $startDate->translatedFormat('d F Y') }}
+                            {{ $startDate->format('d M Y') }}
+                            @if($startDate->format('Y-m-d') !== $endDate->format('Y-m-d'))
+                                &nbsp;–&nbsp;{{ $endDate->format('d M Y') }}
+                            @endif
                         @else
                             Semua Transaksi
                         @endif
                     </span>
-                    <div style="margin-top: 8px;">
-                        <span class="label">Generated On</span>
-                        <span class="value" style="font-size: 10px;">{{ $generatedOn->translatedFormat('l, d M Y | h:i A') }}</span>
+                    <div style="margin-top:8px;">
+                        <span class="lbl">Dicetak pada</span>
+                        <span class="val" style="font-size:10px;">{{ $generatedOn->format('l, d M Y — H:i') }}</span>
                     </div>
                 </div>
             </td>
-            <td style="width: 50%;">
-                <div class="info-box right">
-                    <span class="total-label">Total Revenue Collected</span>
-                    <div class="total-value-large">Rp {{ number_format($totalProcessed, 0, ',', '.') }}</div>
+            <td style="width:42%;">
+                <div class="info-box-dark">
+                    <span class="lbl-w">Total Transaksi</span>
+                    <span class="val-w">{{ number_format($totalCount) }} transaksi</span>
+                    <div style="margin-top:8px;">
+                        <span class="lbl-w">Total Pendapatan</span>
+                        <div class="total-big">Rp {{ number_format($totalProcessed, 0, ',', '.') }}</div>
+                    </div>
                 </div>
             </td>
         </tr>
     </table>
 
-    <!-- Data Table -->
+    <!-- Daily Summary Table -->
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 15%">Date</th>
-                <th style="width: 15%">Order Type</th>
-                <th style="width: 15%">Staff</th>
-                <th style="width: 25%">Customer</th>
-                <th style="width: 10%">Method</th>
-                <th style="width: 20%">Amount</th>
+                <th style="width:18%">Tanggal</th>
+                <th class="center" style="width:14%">Jml Trx</th>
+                <th class="center" style="width:12%">Cash</th>
+                <th class="center" style="width:12%">QRIS</th>
+                <th class="center" style="width:12%">Lainnya</th>
+                <th class="right" style="width:32%">Total Hari Ini</th>
             </tr>
         </thead>
         <tbody>
-            @foreach($transactions as $trx)
+            @foreach($dailySummary as $row)
             <tr>
-                <td>
-                    <span style="font-weight: bold;">{{ $trx->created_at->format('d/m/Y') }}</span><br>
-                    <span style="font-size: 8px; color: #999;">{{ $trx->created_at->format('H:i') }}</span>
-                </td>
-                <td><span class="status-pill">{{ str_replace('_', ' ', $trx->order_type) }}</span></td>
-                <td>{{ $trx->user->name ?? 'N/A' }}</td>
-                <td>
-                    <span style="font-weight: bold;">{{ $trx->customer_name ?? 'Guest' }}</span>
-                    <div class="staff-note">Ref #{{ $trx->id }}</div>
-                </td>
-                <td style="text-align: center; font-weight: bold; color: #6F4E37;">{{ strtoupper($trx->payment_method) }}</td>
-                <td class="amount-col">Rp {{ number_format($trx->total, 0, ',', '.') }}</td>
+                <td style="font-weight:bold;">{{ \Carbon\Carbon::parse($row->day)->format('d M Y') }}</td>
+                <td class="center">{{ number_format($row->trx_count) }}</td>
+                <td class="center">{{ number_format($row->cash_count) }}</td>
+                <td class="center">{{ number_format($row->qris_count) }}</td>
+                <td class="center">{{ number_format($row->trx_count - $row->cash_count - $row->qris_count) }}</td>
+                <td class="right" style="font-weight:bold;color:#5D4037;">Rp {{ number_format($row->day_total, 0, ',', '.') }}</td>
             </tr>
             @endforeach
         </tbody>
+        <tfoot>
+            <tr>
+                <td>TOTAL</td>
+                <td class="center">{{ number_format($totalCount) }}</td>
+                <td class="center">{{ number_format($dailySummary->sum('cash_count')) }}</td>
+                <td class="center">{{ number_format($dailySummary->sum('qris_count')) }}</td>
+                <td class="center">{{ number_format($totalCount - $dailySummary->sum('cash_count') - $dailySummary->sum('qris_count')) }}</td>
+                <td class="right">Rp {{ number_format($totalProcessed, 0, ',', '.') }}</td>
+            </tr>
+        </tfoot>
     </table>
 
-    <!-- Bottom Summary -->
-    <div style="page-break-inside: avoid;">
-        <table class="summary-table">
-            <tr> 
-                <td class="summary-label" style="border:none;">Total Transactions</td>
-                <td class="summary-val" style="border:none;">{{ $totalCount }} items</td>
-            </tr>
-            <tr>
-                <td colspan="2" style="border:none;">
-                    <div class="grand-total-box">
-                        <div class="grand-total-text">Grand Total Revenue</div>
-                        <div class="grand-total-num">Rp {{ number_format($totalProcessed, 0, ',', '.') }}</div>
-                    </div>
-                </td>
-            </tr>
-        </table>
+    <div class="note">
+        * Laporan ini merupakan ringkasan per hari. Untuk detail lengkap tiap transaksi, gunakan fitur Export Excel.
     </div>
 
-    <!-- Fixed Footer -->
     <div class="footer">
-        Sudut Kopi - Powered by TemanSudut
+        Sudut Kopi &nbsp;|&nbsp; Powered by TemanSudut &nbsp;|&nbsp; {{ $generatedOn->format('d/m/Y H:i') }}
     </div>
 </body>
 </html>
