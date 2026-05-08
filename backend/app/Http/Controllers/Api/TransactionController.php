@@ -226,43 +226,44 @@ class TransactionController extends Controller
             ->where('kitchen_status', 'completed');
 
         if ($filter === 'daily') {
-            $start = \Carbon\Carbon::now($tz)->startOfDay();
-            $end = \Carbon\Carbon::now($tz)->endOfDay();
+            $start = \Carbon\Carbon::now($tz)->startOfDay()->utc();
+            $end   = \Carbon\Carbon::now($tz)->endOfDay()->utc();
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter === 'weekly') {
-            $start = \Carbon\Carbon::now($tz)->startOfWeek();
-            $end = \Carbon\Carbon::now($tz)->endOfWeek();
+            $start = \Carbon\Carbon::now($tz)->startOfWeek()->utc();
+            $end   = \Carbon\Carbon::now($tz)->endOfWeek()->utc();
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter === 'monthly') {
-            $start = \Carbon\Carbon::now($tz)->startOfMonth();
-            $end = \Carbon\Carbon::now($tz)->endOfMonth();
+            $start = \Carbon\Carbon::now($tz)->startOfMonth()->utc();
+            $end   = \Carbon\Carbon::now($tz)->endOfMonth()->utc();
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter && str_starts_with($filter, 'date:')) {
             // Single date: date:YYYY-MM-DD
-            $date = substr($filter, 5);
-            $start = \Carbon\Carbon::parse($date, $tz)->startOfDay();
-            $end = \Carbon\Carbon::parse($date, $tz)->endOfDay();
+            $date  = substr($filter, 5);
+            $start = \Carbon\Carbon::parse($date, $tz)->startOfDay()->utc();
+            $end   = \Carbon\Carbon::parse($date, $tz)->endOfDay()->utc();
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter && str_starts_with($filter, 'date_range:')) {
             // Date range: date_range:YYYY-MM-DD,YYYY-MM-DD
             $parts = explode(',', substr($filter, 11));
             if (count($parts) === 2) {
-                $start = \Carbon\Carbon::parse(trim($parts[0]), $tz)->startOfDay();
-                $end = \Carbon\Carbon::parse(trim($parts[1]), $tz)->endOfDay();
+                $start = \Carbon\Carbon::parse(trim($parts[0]), $tz)->startOfDay()->utc();
+                $end   = \Carbon\Carbon::parse(trim($parts[1]), $tz)->endOfDay()->utc();
                 $query->whereBetween('created_at', [$start, $end]);
             }
 
         } elseif ($filter && str_starts_with($filter, 'week:')) {
+            // Specific week: week:YEAR,WEEK_NUM (ISO week)
             $parts = explode(',', substr($filter, 5));
             if (count($parts) === 2) {
-                $year = (int) $parts[0];
-                $week = (int) $parts[1];
-                $start = \Carbon\Carbon::now($tz)->setISODate($year, $week)->startOfWeek()->startOfDay();
-                $end = \Carbon\Carbon::now($tz)->setISODate($year, $week)->endOfWeek()->endOfDay();
+                $year  = (int) $parts[0];
+                $week  = (int) $parts[1];
+                $start = \Carbon\Carbon::now($tz)->setISODate($year, $week)->startOfWeek()->startOfDay()->utc();
+                $end   = \Carbon\Carbon::now($tz)->setISODate($year, $week)->endOfWeek()->endOfDay()->utc();
                 $query->whereBetween('created_at', [$start, $end]);
             }
 
@@ -270,10 +271,10 @@ class TransactionController extends Controller
             // Specific month: month:YEAR,MONTH
             $parts = explode(',', substr($filter, 6));
             if (count($parts) === 2) {
-                $year = (int) $parts[0];
+                $year  = (int) $parts[0];
                 $month = (int) $parts[1];
-                $start = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->startOfMonth();
-                $end = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->endOfMonth();
+                $start = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->startOfMonth()->utc();
+                $end   = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->endOfMonth()->utc();
                 $query->whereBetween('created_at', [$start, $end]);
             }
         }
