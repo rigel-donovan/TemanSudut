@@ -253,13 +253,15 @@ class _MainNavScreenState extends State<MainNavScreen> {
           SizedBox(height: 24),
           // Logo
           Container(
-            padding: EdgeInsets.all(8),
+            width: 64,
+            height: 64,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.grey[300]!, width: 1),
+              border: Border.all(color: Colors.white54, width: 2),
+              color: Colors.white,
             ),
             child: ClipOval(
-              child: Image.asset('res/logo.png', width: 36, height: 36, fit: BoxFit.cover),
+              child: Image.asset('res/logo.png', width: 64, height: 64, fit: BoxFit.cover),
             ),
           ),
           SizedBox(height: 8),

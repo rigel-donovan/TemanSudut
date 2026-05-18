@@ -50,6 +50,8 @@ Route::get('/transactions/{id}/receipt', [TransactionController::class, 'exportR
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'me']);
+    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::put('/profile/password', [AuthController::class, 'changePassword']);
     
     // Shifts
     Route::get('/shifts/current', [ShiftController::class, 'current']);

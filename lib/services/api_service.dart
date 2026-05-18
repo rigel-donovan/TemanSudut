@@ -96,6 +96,34 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> updateProfile(String name, String email) async {
+    try {
+      final response = await _dio.put('/profile', data: {'name': name, 'email': email});
+      return {'success': true, 'user': response.data['user']};
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Gagal memperbarui profil.';
+      return {'success': false, 'message': msg};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan.'};
+    }
+  }
+
+  Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
+    try {
+      await _dio.put('/profile/password', data: {
+        'current_password': currentPassword,
+        'new_password': newPassword,
+        'new_password_confirmation': newPassword,
+      });
+      return {'success': true};
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ?? 'Gagal mengubah password.';
+      return {'success': false, 'message': msg};
+    } catch (e) {
+      return {'success': false, 'message': 'Terjadi kesalahan.'};
+    }
+  }
+
   Future<Map<String, dynamic>?> getPermissions() async {
     try {
       final response = await _dio.get('/permissions');
