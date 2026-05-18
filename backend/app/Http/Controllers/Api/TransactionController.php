@@ -77,7 +77,10 @@ class TransactionController extends Controller
             // ── Validate ingredient stock sufficiency ────────────────────────
             $shortages = [];
             foreach ($validated['items'] as $item) {
+
+
                 $product = $productMap[$item['product_id']];
+
                 foreach ($product->ingredients as $ingredient) {
                     if (!$ingredient->rawMaterial)
                         continue;
@@ -217,7 +220,6 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Transaction failed', 'error' => $e->getMessage()], 500);
         }
     }
-
     private function getFilteredHistoryQuery($filter)
     {
         $tz = config('app.timezone', 'Asia/Makassar');
@@ -225,56 +227,56 @@ class TransactionController extends Controller
         $query = Transaction::with(['items.product', 'table', 'user'])
             ->where('kitchen_status', 'completed');
 
+        if (!$filter) {
+            return $query->orderBy('created_at', 'desc');
+        }
+
         if ($filter === 'daily') {
-            $start = \Carbon\Carbon::now($tz)->startOfDay()->utc();
-            $end   = \Carbon\Carbon::now($tz)->endOfDay()->utc();
+            $start = \Carbon\Carbon::now($tz)->startOfDay();
+            $end = \Carbon\Carbon::now($tz)->endOfDay();
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter === 'weekly') {
-            $start = \Carbon\Carbon::now($tz)->startOfWeek()->utc();
-            $end   = \Carbon\Carbon::now($tz)->endOfWeek()->utc();
+            $start = \Carbon\Carbon::now($tz)->startOfWeek(\Carbon\Carbon::MONDAY);
+            $end = \Carbon\Carbon::now($tz)->endOfWeek(\Carbon\Carbon::SUNDAY);
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter === 'monthly') {
-            $start = \Carbon\Carbon::now($tz)->startOfMonth()->utc();
-            $end   = \Carbon\Carbon::now($tz)->endOfMonth()->utc();
+            $start = \Carbon\Carbon::now($tz)->startOfMonth();
+            $end = \Carbon\Carbon::now($tz)->endOfMonth();
             $query->whereBetween('created_at', [$start, $end]);
 
-        } elseif ($filter && str_starts_with($filter, 'date:')) {
-            // Single date: date:YYYY-MM-DD
-            $date  = substr($filter, 5);
-            $start = \Carbon\Carbon::parse($date, $tz)->startOfDay()->utc();
-            $end   = \Carbon\Carbon::parse($date, $tz)->endOfDay()->utc();
+        } elseif (str_starts_with($filter, 'date:')) {
+            $date = substr($filter, 5);
+            $start = \Carbon\Carbon::parse($date, $tz)->startOfDay();
+            $end = \Carbon\Carbon::parse($date, $tz)->endOfDay();
             $query->whereBetween('created_at', [$start, $end]);
 
-        } elseif ($filter && str_starts_with($filter, 'date_range:')) {
-            // Date range: date_range:YYYY-MM-DD,YYYY-MM-DD
+        } elseif (str_starts_with($filter, 'date_range:')) {
             $parts = explode(',', substr($filter, 11));
             if (count($parts) === 2) {
-                $start = \Carbon\Carbon::parse(trim($parts[0]), $tz)->startOfDay()->utc();
-                $end   = \Carbon\Carbon::parse(trim($parts[1]), $tz)->endOfDay()->utc();
+                $start = \Carbon\Carbon::parse(trim($parts[0]), $tz)->startOfDay();
+                $end = \Carbon\Carbon::parse(trim($parts[1]), $tz)->endOfDay();
                 $query->whereBetween('created_at', [$start, $end]);
             }
 
-        } elseif ($filter && str_starts_with($filter, 'week:')) {
-            // Specific week: week:YEAR,WEEK_NUM (ISO week)
+        } elseif (str_starts_with($filter, 'week:')) {
             $parts = explode(',', substr($filter, 5));
             if (count($parts) === 2) {
-                $year  = (int) $parts[0];
-                $week  = (int) $parts[1];
-                $start = \Carbon\Carbon::now($tz)->setISODate($year, $week)->startOfWeek()->startOfDay()->utc();
-                $end   = \Carbon\Carbon::now($tz)->setISODate($year, $week)->endOfWeek()->endOfDay()->utc();
+                $year = (int) $parts[0];
+                $week = (int) $parts[1];
+                $start = \Carbon\Carbon::now($tz)->setISODate($year, $week)->startOfWeek()->startOfDay();
+                $end = \Carbon\Carbon::now($tz)->setISODate($year, $week)->endOfWeek()->endOfDay();
                 $query->whereBetween('created_at', [$start, $end]);
             }
 
-        } elseif ($filter && str_starts_with($filter, 'month:')) {
-            // Specific month: month:YEAR,MONTH
+        } elseif (str_starts_with($filter, 'month:')) {
             $parts = explode(',', substr($filter, 6));
             if (count($parts) === 2) {
-                $year  = (int) $parts[0];
+                $year = (int) $parts[0];
                 $month = (int) $parts[1];
-                $start = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->startOfMonth()->utc();
-                $end   = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->endOfMonth()->utc();
+                $start = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->startOfMonth();
+                $end = \Carbon\Carbon::createFromDate($year, $month, 1, $tz)->endOfMonth();
                 $query->whereBetween('created_at', [$start, $end]);
             }
         }
@@ -347,9 +349,9 @@ class TransactionController extends Controller
             $query = $this->getFilteredHistoryQuery($filter);
 
             $totalProcessed = (clone $query)->sum('total');
-            $totalCount     = (clone $query)->count();
-            $startDate      = (clone $query)->min('created_at');
-            $endDate        = (clone $query)->max('created_at');
+            $totalCount = (clone $query)->count();
+            $startDate = (clone $query)->min('created_at');
+            $endDate = (clone $query)->max('created_at');
 
             // Group by date (SQLite-compatible: strftime)
             $dailySummary = (clone $query)
@@ -359,17 +361,17 @@ class TransactionController extends Controller
                 ->get();
 
             $generatedOn = now();
-            $logoBase64  = $this->getCompressedLogoBase64();
+            $logoBase64 = $this->getCompressedLogoBase64();
 
             $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('exports.history_pdf', [
-                'dailySummary'   => $dailySummary,
+                'dailySummary' => $dailySummary,
                 'totalProcessed' => $totalProcessed,
-                'totalCount'     => $totalCount,
-                'startDate'      => $startDate ? \Carbon\Carbon::parse($startDate) : null,
-                'endDate'        => $endDate   ? \Carbon\Carbon::parse($endDate)   : null,
-                'generatedOn'    => $generatedOn,
-                'logoBase64'     => $logoBase64,
-                'filter'         => $filter,
+                'totalCount' => $totalCount,
+                'startDate' => $startDate ? \Carbon\Carbon::parse($startDate) : null,
+                'endDate' => $endDate ? \Carbon\Carbon::parse($endDate) : null,
+                'generatedOn' => $generatedOn,
+                'logoBase64' => $logoBase64,
+                'filter' => $filter,
             ]);
 
             $pdf->setPaper('A4', 'portrait');

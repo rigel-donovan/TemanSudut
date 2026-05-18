@@ -367,10 +367,17 @@ class ApiService {
 
   // ---- Finance Entries ----
 
-  Future<List<dynamic>> getFinanceEntries({String? type}) async {
+  Future<List<dynamic>> getFinanceEntries({String? type, String? category, String? date, Map<String, String>? dateRange}) async {
     try {
+      String? filterParam;
+      if (dateRange != null) {
+        filterParam = 'date_range:${dateRange['start']},${dateRange['end']}';
+      }
       final response = await _dio.get('/finance-entries', queryParameters: {
         if (type != null && type.isNotEmpty) 'type': type,
+        if (category != null && category.isNotEmpty) 'category': category,
+        if (date != null && date.isNotEmpty) 'date': date,
+        if (filterParam != null) 'filter': filterParam,
       });
       return response.data as List;
     } catch (e) {
@@ -409,9 +416,17 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> getFinanceSummary(String filter) async {
+  Future<Map<String, dynamic>?> getFinanceSummary(String filter, {String? specificDate, Map<String, String>? dateRange}) async {
     try {
-      final response = await _dio.get('/finance-entries/summary', queryParameters: {'filter': filter});
+      String effectiveFilter;
+      if (dateRange != null) {
+        effectiveFilter = 'date_range:${dateRange['start']},${dateRange['end']}';
+      } else if (specificDate != null) {
+        effectiveFilter = 'date:$specificDate';
+      } else {
+        effectiveFilter = filter;
+      }
+      final response = await _dio.get('/finance-entries/summary', queryParameters: {'filter': effectiveFilter});
       return response.data as Map<String, dynamic>;
     } catch (e) {
       print('Failed to get finance summary: $e');

@@ -58,36 +58,64 @@ class UserManagementTabState extends State<UserManagementTab> {
     String selectedRole = existingUser?['role'] ?? 'cashier';
     final isEdit = existingUser != null;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (dialogCtx) {
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
         return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text(isEdit ? 'Edit User' : 'Tambah User', style: TextStyle(fontWeight: FontWeight.bold)),
-              content: SingleChildScrollView(
+          builder: (ctx, setSheetState) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                left: 24, 
+                right: 24, 
+                top: 24,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Handle bar
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      isEdit ? 'Edit Karyawan' : 'Tambah Karyawan Baru', 
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)
+                    ),
+                    SizedBox(height: 24),
                     TextField(
                       controller: nameCtrl,
                       decoration: InputDecoration(
-                        labelText: 'Nama',
+                        labelText: 'Nama Lengkap',
                         prefixIcon: Icon(Icons.person_outline),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    SizedBox(height: 12),
+                    SizedBox(height: 16),
                     TextField(
                       controller: emailCtrl,
+                      keyboardType: TextInputType.emailAddress,
                       decoration: InputDecoration(
                         labelText: 'Email',
                         prefixIcon: Icon(Icons.email_outlined),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    SizedBox(height: 12),
+                    SizedBox(height: 16),
                     TextField(
                       controller: passCtrl,
                       obscureText: true,
@@ -97,9 +125,11 @@ class UserManagementTabState extends State<UserManagementTab> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
-                    SizedBox(height: 12),
+                    SizedBox(height: 20),
+                    Text('Peran (Role)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+                    SizedBox(height: 8),
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey[400]!),
                         borderRadius: BorderRadius.circular(12),
@@ -110,75 +140,75 @@ class UserManagementTabState extends State<UserManagementTab> {
                           isExpanded: true,
                           items: [
                             DropdownMenuItem(value: 'cashier', child: Row(children: [
-                              Icon(Icons.point_of_sale, color: Colors.blue, size: 20), SizedBox(width: 8),
+                              Icon(Icons.point_of_sale, color: Colors.blue, size: 20), SizedBox(width: 12),
                               Text('Kasir')
                             ])),
                             DropdownMenuItem(value: 'owner', child: Row(children: [
-                              Icon(Icons.admin_panel_settings, color: Colors.orange, size: 20), SizedBox(width: 8),
+                              Icon(Icons.admin_panel_settings, color: Colors.orange, size: 20), SizedBox(width: 12),
                               Text('Owner / Admin')
                             ])),
                           ],
                           onChanged: (val) {
-                            setDialogState(() => selectedRole = val!);
+                            setSheetState(() => selectedRole = val!);
                           },
                         ),
+                      ),
+                    ),
+                    SizedBox(height: 32),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 54,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5D4037),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          elevation: 0,
+                        ),
+                        onPressed: () async {
+                          if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) {
+                            PopupNotification.show(ctx, title: 'Error', message: 'Nama dan email wajib diisi.', type: PopupType.warning);
+                            return;
+                          }
+                          if (!isEdit && passCtrl.text.isEmpty) {
+                            PopupNotification.show(ctx, title: 'Error', message: 'Password wajib diisi untuk user baru.', type: PopupType.warning);
+                            return;
+                          }
+
+                          Navigator.pop(sheetCtx);
+
+                          Map<String, dynamic> data = {
+                            'name': nameCtrl.text,
+                            'email': emailCtrl.text,
+                            'role': selectedRole,
+                          };
+                          if (passCtrl.text.isNotEmpty) {
+                            data['password'] = passCtrl.text;
+                          }
+
+                          LoadingOverlay.show(context, message: isEdit ? 'Menyimpan perubahan...' : 'Menambah karyawan...');
+                          bool success;
+                          if (isEdit) {
+                            success = await _apiService.updateUser(existingUser['id'], data);
+                          } else {
+                            success = await _apiService.createUser(data);
+                          }
+                          LoadingOverlay.hide(context);
+
+                          if (success) {
+                            PopupNotification.show(context, title: 'Berhasil!', message: isEdit ? 'Data karyawan berhasil diperbarui.' : 'Karyawan baru berhasil ditambahkan.', type: PopupType.success);
+                            await CacheService.invalidateMgmtUsers();
+                            _fetchUsers(forceRefresh: true);
+                          } else {
+                            PopupNotification.show(context, title: 'Gagal', message: 'Terjadi kesalahan. Periksa data yang diisi.', type: PopupType.error);
+                          }
+                        },
+                        child: Text(isEdit ? 'Simpan Perubahan' : 'Tambah Karyawan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
                     ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
-                  child: Text('Batal', style: TextStyle(color: Colors.grey)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5D4037),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () async {
-                    if (nameCtrl.text.isEmpty || emailCtrl.text.isEmpty) {
-                      PopupNotification.show(ctx, title: 'Error', message: 'Nama dan email wajib diisi.', type: PopupType.warning);
-                      return;
-                    }
-                    if (!isEdit && passCtrl.text.isEmpty) {
-                      PopupNotification.show(ctx, title: 'Error', message: 'Password wajib diisi untuk user baru.', type: PopupType.warning);
-                      return;
-                    }
-
-                    Navigator.pop(dialogCtx);
-
-                    Map<String, dynamic> data = {
-                      'name': nameCtrl.text,
-                      'email': emailCtrl.text,
-                      'role': selectedRole,
-                    };
-                    if (passCtrl.text.isNotEmpty) {
-                      data['password'] = passCtrl.text;
-                    }
-
-                    LoadingOverlay.show(context, message: isEdit ? 'Menyimpan perubahan...' : 'Menambah user...');
-                    bool success;
-                    if (isEdit) {
-                      success = await _apiService.updateUser(existingUser['id'], data);
-                    } else {
-                      success = await _apiService.createUser(data);
-                    }
-                    LoadingOverlay.hide(context);
-
-                    if (success) {
-                      PopupNotification.show(context, title: 'Berhasil!', message: isEdit ? 'User berhasil diperbarui.' : 'User baru berhasil ditambahkan.', type: PopupType.success);
-                      await CacheService.invalidateMgmtUsers();
-                      _fetchUsers(forceRefresh: true);
-                    } else {
-                      PopupNotification.show(context, title: 'Gagal', message: 'Terjadi kesalahan. Periksa data yang diisi.', type: PopupType.error);
-                    }
-                  },
-                  child: Text(isEdit ? 'Simpan' : 'Tambah'),
-                ),
-              ],
             );
           },
         );

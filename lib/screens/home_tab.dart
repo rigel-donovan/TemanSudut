@@ -109,12 +109,12 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                           ),
                         ),
                       )
-                       : SliverGrid(
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+                    : SliverGrid(
+                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 155, // Diperkecil agar card tidak membesar berlebihan
                           childAspectRatio: 0.9,
                           crossAxisSpacing: 16,
-                          mainAxisSpacing: 30, 
+                          mainAxisSpacing: 30,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {

@@ -23,7 +23,17 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
   bool _isLoading = true;
   String _filterSummary = 'monthly';   
   String _filterList = '';             
+  String _filterCategory = '';         
   String _chartPeriod = 'monthly';     
+
+  // Date range untuk ringkasan
+  DateTimeRange? _summaryDateRange;
+  // Date range untuk riwayat catatan
+  DateTimeRange? _entriesDateRange;
+
+  String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  String _displayDate(DateTime d) => '${d.day}/${d.month}/${d.year}';
+  String _displayRange(DateTimeRange r) => '${_displayDate(r.start)} - ${_displayDate(r.end)}';
 
   @override
   bool get wantKeepAlive => true;
@@ -31,6 +41,9 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
   @override
   void initState() {
     super.initState();
+    // Default: riwayat catatan tampilkan hari ini
+    final today = DateTime.now();
+    _entriesDateRange = DateTimeRange(start: today, end: today);
     _loadAll();
   }
 
@@ -41,12 +54,22 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
   }
 
   Future<void> _loadSummary() async {
-    final res = await _api.getFinanceSummary(_filterSummary);
+    final Map<String, String>? rangeMap = _summaryDateRange != null
+        ? {'start': _formatDate(_summaryDateRange!.start), 'end': _formatDate(_summaryDateRange!.end)}
+        : null;
+    final res = await _api.getFinanceSummary(_filterSummary, dateRange: rangeMap);
     if (mounted && res != null) setState(() => _summary = res);
   }
 
   Future<void> _loadEntries() async {
-    final res = await _api.getFinanceEntries(type: _filterList.isEmpty ? null : _filterList);
+    final Map<String, String>? rangeMap = _entriesDateRange != null
+        ? {'start': _formatDate(_entriesDateRange!.start), 'end': _formatDate(_entriesDateRange!.end)}
+        : null;
+    final res = await _api.getFinanceEntries(
+      type: _filterList.isEmpty ? null : _filterList,
+      category: _filterCategory.isEmpty ? null : _filterCategory,
+      dateRange: rangeMap,
+    );
     if (mounted) setState(() => _entries = res);
   }
 
@@ -322,29 +345,101 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
         // Period filter row
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: Row(children: filters.map((f) {
-            final sel = _filterSummary == f['val'];
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () async {
-                  setState(() => _filterSummary = f['val']!);
-                  await _loadSummary();
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 160),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: sel ? const Color(0xFF5D4037) : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: sel ? [BoxShadow(color: Colors.brown.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 2))] : [],
+          child: Row(children: [
+            // Tombol preset filter
+            ...filters.map((f) {
+              final sel = _summaryDateRange == null && _filterSummary == f['val'];
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () async {
+                    setState(() {
+                      _filterSummary = f['val']!;
+                      _summaryDateRange = null;
+                    });
+                    await _loadSummary();
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: sel ? const Color(0xFF5D4037) : Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: sel ? [BoxShadow(color: Colors.brown.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 2))] : [],
+                    ),
+                    child: Text(f['label']!, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: sel ? Colors.white : Colors.grey[700])),
                   ),
-                  child: Text(f['label']!, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: sel ? Colors.white : Colors.grey[700])),
                 ),
+              );
+            }),
+            // Tombol filter rentang tanggal
+            GestureDetector(
+              onTap: () async {
+                final picked = await showDateRangePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2099),
+                  initialDateRange: _summaryDateRange,
+                  helpText: 'Pilih Rentang Tanggal',
+                  cancelText: 'Batal',
+                  confirmText: 'Terapkan',
+                  saveText: 'Terapkan',
+                  builder: (ctx, child) => Theme(
+                    data: Theme.of(ctx).copyWith(
+                      colorScheme: const ColorScheme.light(
+                        primary: Color(0xFF5D4037),
+                        onPrimary: Colors.white,
+                        surface: Colors.white,
+                      ),
+                    ),
+                    child: child!,
+                  ),
+                );
+                if (picked != null && mounted) {
+                  setState(() => _summaryDateRange = picked);
+                  await _loadSummary();
+                }
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: _summaryDateRange != null ? const Color(0xFF5D4037) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: _summaryDateRange != null ? [BoxShadow(color: Colors.brown.withOpacity(0.2), blurRadius: 6, offset: const Offset(0, 2))] : [],
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.date_range, size: 13, color: _summaryDateRange != null ? Colors.white : Colors.grey[700]),
+                  const SizedBox(width: 5),
+                  Text(
+                    _summaryDateRange != null ? _displayRange(_summaryDateRange!) : 'Rentang Tanggal',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: _summaryDateRange != null ? Colors.white : Colors.grey[700]),
+                  ),
+                  if (_summaryDateRange != null) ...[
+                    const SizedBox(width: 5),
+                    GestureDetector(
+                      onTap: () async {
+                        setState(() => _summaryDateRange = null);
+                        await _loadSummary();
+                      },
+                      child: const Icon(Icons.close, size: 13, color: Colors.white70),
+                    ),
+                  ],
+                ]),
               ),
-            );
-          }).toList()),
+            ),
+          ]),
         ),
+        // Label rentang tanggal yang dipilih
+        if (_summaryDateRange != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            child: Row(children: [
+              Icon(Icons.info_outline, size: 12, color: Colors.brown[400]),
+              const SizedBox(width: 4),
+              Text('Ringkasan: ${_displayRange(_summaryDateRange!)}', style: TextStyle(fontSize: 11, color: Colors.brown[400])),
+            ]),
+          ),
         const SizedBox(height: 12),
         Row(children: [
           Expanded(child: _summaryCard('Pemasukan', income, Colors.green[600]!, Icons.trending_up)),
@@ -511,38 +606,195 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
   }
 
   Widget _buildEntriesList() {
-    // filter buttons
     final filterOptions = [
       {'val': '', 'label': 'Semua'},
       {'val': 'income', 'label': 'Pemasukan'},
       {'val': 'expense', 'label': 'Pengeluaran'},
     ];
 
-    final filtered = _filterList.isEmpty ? _entries : _entries.where((e) => e['type'] == _filterList).toList();
+    final incomeCategories = ['Penjualan', 'Bonus', 'Investasi', 'Lain-lain'];
+    final expenseCategories = ['Belanja Bahan', 'Gaji Karyawan', 'Listrik & Air', 'Sewa Tempat', 'Peralatan', 'Operasional', 'Marketing', 'Lain-lain'];
+    
+    List<String> currentCategories = [];
+    if (_filterList == 'income') {
+      currentCategories = incomeCategories;
+    } else if (_filterList == 'expense') {
+      currentCategories = expenseCategories;
+    } else {
+      currentCategories = [...incomeCategories, ...expenseCategories].toSet().toList();
+    }
+
+    // Double check filter secara lokal walau sudah dari API
+    var filtered = _entries;
+    if (_filterList.isNotEmpty) {
+      filtered = filtered.where((e) => e['type'] == _filterList).toList();
+    }
+    if (_filterCategory.isNotEmpty) {
+      filtered = filtered.where((e) => e['category'] == _filterCategory).toList();
+    }
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Header row: judul + tombol filter rentang tanggal
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        const Text('Riwayat Catatan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-        Row(children: filterOptions.map((f) {
-          final sel = _filterList == f['val'];
-          return GestureDetector(
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Riwayat Catatan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          if (_entriesDateRange != null)
+            Text(
+              _displayRange(_entriesDateRange!),
+              style: TextStyle(fontSize: 11, color: Colors.brown[400], fontWeight: FontWeight.w500),
+            )
+          else
+            Text('Semua Tanggal', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+        ]),
+        // Tombol pilih rentang tanggal
+        GestureDetector(
+          onTap: () async {
+            final picked = await showDateRangePicker(
+              context: context,
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2099),
+              initialDateRange: _entriesDateRange,
+              helpText: 'Pilih Rentang Tanggal',
+              cancelText: 'Batal',
+              confirmText: 'Terapkan',
+              saveText: 'Terapkan',
+              builder: (ctx, child) => Theme(
+                data: Theme.of(ctx).copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: Color(0xFF5D4037),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                  ),
+                ),
+                child: child!,
+              ),
+            );
+            if (picked != null && mounted) {
+              setState(() => _entriesDateRange = picked);
+              _loadEntries();
+            }
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _entriesDateRange != null ? const Color(0xFF5D4037) : Colors.grey[100],
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.date_range, size: 13, color: _entriesDateRange != null ? Colors.white : Colors.grey[600]),
+              const SizedBox(width: 5),
+              Text(
+                _entriesDateRange != null ? _displayRange(_entriesDateRange!) : 'Pilih Tanggal',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: _entriesDateRange != null ? Colors.white : Colors.grey[600]),
+              ),
+            ]),
+          ),
+        ),
+      ]),
+      const SizedBox(height: 8),
+      // Row 2: filter tipe + tombol tampilkan semua
+      Row(children: [
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(children: filterOptions.map((f) {
+              final sel = _filterList == f['val'];
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _filterList = f['val']!;
+                    _filterCategory = ''; // Reset kategori saat tipe berubah
+                  });
+                  _loadEntries();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: sel ? const Color(0xFF5D4037) : Colors.grey[100],
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(f['label']!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: sel ? Colors.white : Colors.grey[600])),
+                ),
+              );
+            }).toList()),
+          ),
+        ),
+        // Tombol tampilkan semua / reset tanggal
+        if (_entriesDateRange != null)
+          GestureDetector(
             onTap: () {
-              setState(() => _filterList = f['val']!);
+              setState(() {
+                _entriesDateRange = null;
+                _filterCategory = '';
+                _filterList = '';
+              });
               _loadEntries();
             },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
+            child: Container(
               margin: const EdgeInsets.only(left: 4),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: sel ? const Color(0xFF5D4037) : Colors.grey[100],
+                color: Colors.orange[50],
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.orange[200]!),
               ),
-              child: Text(f['label']!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: sel ? Colors.white : Colors.grey[600])),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.list_alt, size: 12, color: Colors.orange[700]),
+                const SizedBox(width: 4),
+                Text('Reset Semua', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.orange[700])),
+              ]),
             ),
-          );
-        }).toList()),
+          ),
       ]),
+      const SizedBox(height: 8),
+      // Row 3: Filter Kategori
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            // Opsi "Semua Kategori"
+            GestureDetector(
+              onTap: () {
+                setState(() => _filterCategory = '');
+                _loadEntries();
+              },
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                margin: const EdgeInsets.only(right: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: _filterCategory.isEmpty ? Colors.blue[600] : Colors.blue[50],
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text('Semua Kategori', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _filterCategory.isEmpty ? Colors.white : Colors.blue[800])),
+              ),
+            ),
+            // Kategori lainnya
+            ...currentCategories.map((cat) {
+              final sel = _filterCategory == cat;
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _filterCategory = cat);
+                  _loadEntries();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: sel ? Colors.blue[600] : Colors.blue[50],
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(cat, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: sel ? Colors.white : Colors.blue[800])),
+                ),
+              );
+            }).toList(),
+          ],
+        ),
+      ),
       const SizedBox(height: 10),
       if (filtered.isEmpty)
         Container(
@@ -551,7 +803,13 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
           child: Column(children: [
             Icon(Icons.receipt_long_outlined, color: Colors.grey[300], size: 48),
             const SizedBox(height: 8),
-            Text('Belum ada catatan', style: TextStyle(color: Colors.grey[400])),
+            Text(
+              _entriesDateRange != null
+                  ? 'Tidak ada catatan pada ${_displayRange(_entriesDateRange!)}'
+                  : 'Belum ada catatan',
+              style: TextStyle(color: Colors.grey[400]),
+              textAlign: TextAlign.center,
+            ),
           ]),
         )
       else
