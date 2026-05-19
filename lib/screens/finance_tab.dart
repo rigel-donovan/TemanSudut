@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../utils/app_format.dart';
 import '../utils/app_animations.dart';
 import '../providers/auth_provider.dart';
@@ -213,6 +214,12 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
                         }
                         if (ok) {
                           PopupNotification.show(context, title: 'Berhasil', message: isEdit ? 'Catatan diperbarui.' : 'Catatan ditambahkan.', type: PopupType.success);
+                          if (!isEdit) {
+                            NotificationService().showFinanceNotification(
+                              title: 'Catatan Keuangan Baru',
+                              body: '${descCtrl.text.trim()} - ${selectedType == 'income' ? 'Pemasukan' : 'Pengeluaran'}',
+                            );
+                          }
                           _loadAll();
                         } else {
                           PopupNotification.show(context, title: 'Gagal', message: 'Silakan coba lagi.', type: PopupType.error);

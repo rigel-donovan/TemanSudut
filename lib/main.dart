@@ -9,8 +9,11 @@ import 'providers/locale_provider.dart';
 import 'providers/notification_prefs_provider.dart';
 import 'screens/main_nav_screen.dart';
 import 'screens/login_screen.dart';
+import 'services/notification_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService().initialize();
   runApp(
     MultiProvider(
       providers: [

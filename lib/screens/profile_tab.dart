@@ -134,31 +134,37 @@ class ProfileTab extends StatelessWidget {
     final notifProvider = context.read<NotificationPrefsProvider>();
     showModalBottomSheet(
       context: context, backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) {
         bool order = notifProvider.orderNotif;
         bool finance = notifProvider.financeNotif;
         bool system = notifProvider.systemNotif;
-        return StatefulBuilder(builder: (ctx2, setModal) => _sheetWrap(child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Notifikasi', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text('Atur preferensi notifikasi Anda', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
-          const SizedBox(height: 20),
-          _notifTile('Notifikasi Pesanan', 'Pesanan masuk & selesai', Icons.receipt_long_outlined, order, (v) => setModal(() => order = v)),
-          _notifTile('Notifikasi Keuangan', 'Catatan keuangan baru', Icons.account_balance_wallet_outlined, finance, (v) => setModal(() => finance = v)),
-          _notifTile('Notifikasi Sistem', 'Pembaruan & info aplikasi', Icons.info_outline, system, (v) => setModal(() => system = v)),
-          const SizedBox(height: 16),
-          SizedBox(width: double.infinity, height: 52,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5D4037), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
-              onPressed: () async {
-                await notifProvider.save(order: order, finance: finance, system: system);
-                Navigator.pop(ctx2);
-                PopupNotification.show(context, title: 'Disimpan', message: 'Pengaturan notifikasi berhasil disimpan.', type: PopupType.success);
-              },
-              child: const Text('Simpan Pengaturan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-            ),
-          ),
-        ])));
+        return StatefulBuilder(builder: (ctx2, setModal) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx2).viewInsets.bottom),
+          child: _sheetWrap(child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Notifikasi', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('Atur preferensi notifikasi Anda', style: TextStyle(fontSize: 13, color: Colors.grey[500])),
+              const SizedBox(height: 20),
+              _notifTile('Notifikasi Pesanan', 'Pesanan masuk & selesai', Icons.receipt_long_outlined, order, (v) => setModal(() => order = v)),
+              _notifTile('Notifikasi Keuangan', 'Catatan keuangan baru', Icons.account_balance_wallet_outlined, finance, (v) => setModal(() => finance = v)),
+              _notifTile('Notifikasi Sistem', 'Pembaruan & info aplikasi', Icons.info_outline, system, (v) => setModal(() => system = v)),
+              const SizedBox(height: 16),
+              SizedBox(width: double.infinity, height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF5D4037), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0),
+                  onPressed: () async {
+                    await notifProvider.save(order: order, finance: finance, system: system);
+                    Navigator.pop(ctx2);
+                    PopupNotification.show(context, title: 'Disimpan', message: 'Pengaturan notifikasi berhasil disimpan.', type: PopupType.success);
+                  },
+                  child: const Text('Simpan Pengaturan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+              ),
+            ]),
+          )),
+        ));
       },
     );
   }

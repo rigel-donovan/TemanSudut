@@ -5,6 +5,7 @@ import '../widgets/popup_notification.dart';
 import '../utils/app_format.dart';
 import '../widgets/slide_to_finish.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/camera_dialog.dart';
 import '../utils/app_animations.dart';
 import 'package:camera/camera.dart';
@@ -675,9 +676,13 @@ class OrdersTab extends StatelessWidget {
                                               if (success) {
                                                 PopupNotification.show(
                                                   outerContext,
-                                                  title: 'Order Berhasil! ðŸŽ‰',
+                                                  title: 'Order Berhasil! 🎉',
                                                   message: 'Pesanan sedang diproses. Pantau di tab Orders.',
                                                   type: PopupType.success,
+                                                );
+                                                NotificationService().showOrderNotification(
+                                                  title: 'Pesanan Baru',
+                                                  body: 'Pesanan berhasil dibuat dan sedang diproses.',
                                                 );
                                                 if (onOrderFinished != null) {
                                                   onOrderFinished!();

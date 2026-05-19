@@ -256,9 +256,8 @@ class _MainNavScreenState extends State<MainNavScreen> {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white54, width: 2),
-              color: Colors.white,
+              // shape: BoxShape.circle,
+              // border: Border.all(color: Colors.white54, width: 2),
             ),
             child: ClipOval(
               child: Image.asset('res/logo.png', width: 64, height: 64, fit: BoxFit.cover),
