@@ -140,8 +140,8 @@ class FinanceController extends Controller
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
                 $labels[] = $date->format('d/m');
-                $incomes[] = (float) FinanceEntry::where('type', 'income')->whereDate('date', $date)->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $date)->sum('amount');
+                $incomes[] = (float) FinanceEntry::where('type', 'income')->whereDate('date', $date->toDateString())->sum('amount');
+                $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $date->toDateString())->sum('amount');
             }
         } elseif ($period === 'weekly') {
             for ($i = 11; $i >= 0; $i--) {

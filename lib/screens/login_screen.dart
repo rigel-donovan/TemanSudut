@@ -23,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _videoController.setLooping(true);
         _videoController.setVolume(0);
         _videoController.play();
-        setState(() {}); // trigger rebuild saat video siap
+        setState(() {}); 
       });
   }
 
@@ -184,20 +184,37 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Video Section (Kiri)
                 Expanded(
                   flex: 5,
-                  child: Container(
-                    color: Colors.black,
-                    child: _videoController.value.isInitialized
-                        ? SizedBox.expand(
-                            child: FittedBox(
-                              fit: BoxFit.cover,
-                              child: SizedBox(
-                                width: _videoController.value.size.width,
-                                height: _videoController.value.size.height,
-                                child: VideoPlayer(_videoController),
-                              ),
-                            ),
-                          )
-                        : const Center(child: CircularProgressIndicator(color: Colors.white)),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 12, 24),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: Colors.grey[200]!, width: 1.5),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(22.5), // sedikit lebih kecil dari outer border
+                        child: _videoController.value.isInitialized
+                            ? SizedBox.expand(
+                                child: FittedBox(
+                                  fit: BoxFit.cover,
+                                  child: SizedBox(
+                                    width: _videoController.value.size.width,
+                                    height: _videoController.value.size.height,
+                                    child: VideoPlayer(_videoController),
+                                  ),
+                                ),
+                              )
+                            : const Center(child: CircularProgressIndicator(color: Colors.white)),
+                      ),
+                    ),
                   ),
                 ),
                 // Login Section (Kanan)

@@ -246,18 +246,6 @@ class ProfileTab extends StatelessWidget {
         _helpTile(ctx, Icons.bug_report_outlined, 'Laporkan Masalah', 'Temukan bug? Laporkan ke kami'),
         _helpTile(ctx, Icons.chat_bubble_outline, 'Hubungi Kami', 'Kontak support via WhatsApp atau email'),
         const SizedBox(height: 16),
-        Container(
-          width: double.infinity, padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.brown[50], borderRadius: BorderRadius.circular(12)),
-          child: Row(children: [
-            Icon(Icons.info_outline, color: Colors.brown[600], size: 18),
-            const SizedBox(width: 10),
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Versi Aplikasi', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.brown[700], fontSize: 13)),
-              Text('Sudut Kopi Kasir v1.0.0', style: TextStyle(fontSize: 12, color: Colors.brown[500])),
-            ]),
-          ]),
-        ),
       ])),
     );
   }

@@ -737,14 +737,13 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
               margin: const EdgeInsets.only(left: 4),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: Colors.orange[50],
+                color: Colors.grey[100],
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.orange[200]!),
               ),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.list_alt, size: 12, color: Colors.orange[700]),
+                Icon(Icons.list_alt, size: 12, color: Colors.grey[700]),
                 const SizedBox(width: 4),
-                Text('Reset Semua', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.orange[700])),
+                Text('Reset Semua', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey[700])),
               ]),
             ),
           ),
@@ -766,10 +765,10 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
                 margin: const EdgeInsets.only(right: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: _filterCategory.isEmpty ? Colors.blue[600] : Colors.blue[50],
+                  color: _filterCategory.isEmpty ? const Color(0xFF5D4037) : Colors.grey[100],
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Text('Semua Kategori', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _filterCategory.isEmpty ? Colors.white : Colors.blue[800])),
+                child: Text('Semua Kategori', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: _filterCategory.isEmpty ? Colors.white : Colors.grey[600])),
               ),
             ),
             // Kategori lainnya
@@ -785,10 +784,10 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
                   margin: const EdgeInsets.only(right: 6),
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: sel ? Colors.blue[600] : Colors.blue[50],
+                    color: sel ? const Color(0xFF5D4037) : Colors.grey[100],
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Text(cat, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: sel ? Colors.white : Colors.blue[800])),
+                  child: Text(cat, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: sel ? Colors.white : Colors.grey[600])),
                 ),
               );
             }).toList(),
