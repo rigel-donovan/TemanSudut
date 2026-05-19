@@ -6,6 +6,7 @@ import '../utils/app_format.dart';
 import '../utils/app_animations.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/popup_notification.dart';
+import '../widgets/custom_date_range_picker.dart';
 
 class FinanceTab extends StatefulWidget {
   const FinanceTab({Key? key}) : super(key: key);
@@ -382,25 +383,10 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
             // Tombol filter rentang tanggal
             GestureDetector(
               onTap: () async {
-                final picked = await showDateRangePicker(
-                  context: context,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2099),
-                  initialDateRange: _summaryDateRange,
-                  helpText: 'Pilih Rentang Tanggal',
-                  cancelText: 'Batal',
-                  confirmText: 'Terapkan',
-                  saveText: 'Terapkan',
-                  builder: (ctx, child) => Theme(
-                    data: Theme.of(ctx).copyWith(
-                      colorScheme: const ColorScheme.light(
-                        primary: Color(0xFF5D4037),
-                        onPrimary: Colors.white,
-                        surface: Colors.white,
-                      ),
-                    ),
-                    child: child!,
-                  ),
+                final picked = await CustomDateRangePicker.show(
+                  context,
+                  initialStartDate: _summaryDateRange?.start,
+                  initialEndDate: _summaryDateRange?.end,
                 );
                 if (picked != null && mounted) {
                   setState(() => _summaryDateRange = picked);
@@ -656,25 +642,10 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
         // Tombol pilih rentang tanggal
         GestureDetector(
           onTap: () async {
-            final picked = await showDateRangePicker(
-              context: context,
-              firstDate: DateTime(2020),
-              lastDate: DateTime(2099),
-              initialDateRange: _entriesDateRange,
-              helpText: 'Pilih Rentang Tanggal',
-              cancelText: 'Batal',
-              confirmText: 'Terapkan',
-              saveText: 'Terapkan',
-              builder: (ctx, child) => Theme(
-                data: Theme.of(ctx).copyWith(
-                  colorScheme: const ColorScheme.light(
-                    primary: Color(0xFF5D4037),
-                    onPrimary: Colors.white,
-                    surface: Colors.white,
-                  ),
-                ),
-                child: child!,
-              ),
+            final picked = await CustomDateRangePicker.show(
+              context,
+              initialStartDate: _entriesDateRange?.start,
+              initialEndDate: _entriesDateRange?.end,
             );
             if (picked != null && mounted) {
               setState(() => _entriesDateRange = picked);
