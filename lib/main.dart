@@ -50,7 +50,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF5D4037)),
-        textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
+        textTheme: GoogleFonts.plusJakartaSansTextTheme(Theme.of(context).textTheme),
       ),
       home: Consumer<AuthProvider>(
         builder: (context, auth, _) {

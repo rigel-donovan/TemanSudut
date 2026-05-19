@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             Text(
               'TemanSudut',
-              style: GoogleFonts.outfit(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 32, 
                 fontWeight: FontWeight.bold,
                 letterSpacing: -1,
@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 8),
             Text(
               'Selamat datang kembali!\nSilakan masuk ke akun Anda.',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 color: Colors.grey[600],
                 height: 1.4,
@@ -146,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       )
                     : Text(
                         'Masuk Sekarang', 
-                        style: GoogleFonts.outfit(
+                        style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.bold, 
                           fontSize: 16,
                         ),
@@ -247,7 +247,7 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.plusJakartaSans(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: Colors.black87,
@@ -258,7 +258,7 @@ class _LoginScreenState extends State<LoginScreen> {
           controller: controller,
           obscureText: obscureText,
           keyboardType: keyboardType,
-          style: GoogleFonts.inter(fontSize: 15),
+          style: GoogleFonts.plusJakartaSans(fontSize: 15),
           decoration: InputDecoration(
             hintText: 'Masukkan $label Anda',
             hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),

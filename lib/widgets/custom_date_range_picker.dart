@@ -98,7 +98,7 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
           const SizedBox(height: 24),
           Text(
             'Pilih Rentang Tanggal',
-            style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.bold),
+            style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 24),
           _buildHeader(),
@@ -125,7 +125,7 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
           ),
           Text(
             DateFormat('MMMM yyyy', 'id').format(_currentMonth),
-            style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600),
+            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           IconButton(
             icon: const Icon(Icons.chevron_right, size: 28),
@@ -147,7 +147,7 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
                   child: Center(
                     child: Text(
                       day,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
                         color: Colors.grey[500],
@@ -216,7 +216,7 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
     Widget content = Center(
       child: Text(
         '${date.day}',
-        style: GoogleFonts.inter(
+        style: GoogleFonts.plusJakartaSans(
           fontSize: 15,
           fontWeight: isSelected || isToday ? FontWeight.w600 : FontWeight.normal,
           color: isSelected 
@@ -301,7 +301,7 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
               children: [
                 Text(
                   'Tanggal Terpilih',
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: Colors.grey[500],
                   ),
@@ -309,7 +309,7 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
                 const SizedBox(height: 4),
                 Text(
                   selectedText,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF5D4037),
@@ -341,7 +341,7 @@ class _CustomDateRangePickerState extends State<CustomDateRangePicker> {
                 : null,
             child: Text(
               'Terapkan',
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
             ),
           ),
         ],
