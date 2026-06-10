@@ -165,20 +165,23 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
                 ? _buildEmptyState()
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      final cardWidth = (constraints.maxWidth - 34) / 2; 
-                      return SingleChildScrollView(
+                      final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                      return GridView.builder(
                         padding: const EdgeInsets.all(12),
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          crossAxisAlignment: WrapCrossAlignment.start,
-                          children: _transactions.map((transaction) {
-                            return SizedBox(
-                              width: cardWidth,
-                              child: _buildHistoryCard(transaction),
-                            );
-                          }).toList(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossAxisCount,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          childAspectRatio: 0.85,
                         ),
+                        itemCount: _transactions.length,
+                        addAutomaticKeepAlives: false,
+                        addRepaintBoundaries: false,
+                        itemBuilder: (context, index) {
+                          return RepaintBoundary(
+                            child: _buildHistoryCard(_transactions[index]),
+                          );
+                        },
                       );
                     },
                   ),
