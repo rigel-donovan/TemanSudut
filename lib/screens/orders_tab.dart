@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import '../widgets/camera_dialog.dart';
 import '../utils/app_animations.dart';
+import '../widgets/line_popup.dart';
 import 'package:camera/camera.dart';
 
 class OrdersTab extends StatelessWidget {
@@ -264,31 +265,21 @@ class OrdersTab extends StatelessWidget {
                                           textAlign: TextAlign.center,
                                         ),
                                       ),
-                                      // Delete Button
-                                      InkWell(
-                                        onTap: () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (ctx) => AlertDialog(
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                              title: Text('Hapus Item?', style: TextStyle(fontWeight: FontWeight.bold)),
-                                              content: Text('Hapus "${item.product.name}" dari pesanan?'),
-                                              actions: [
-                                                TextButton(
-                                                  onPressed: () => Navigator.pop(ctx),
-                                                  child: Text('Batal', style: TextStyle(color: Colors.grey)),
-                                                ),
-                                                TextButton(
-                                                  onPressed: () {
-                                                    cart.removeFromCart(item);
-                                                    Navigator.pop(ctx);
-                                                  },
-                                                  child: Text('Hapus', style: TextStyle(color: Colors.red)),
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
+                                        // Delete Button
+                                        InkWell(
+                                          onTap: () async {
+                                            final confirm = await LinePopup.showConfirmChoice(
+                                              context,
+                                              title: 'Hapus Item?',
+                                              description: 'Hapus "${item.product.name}" dari pesanan?',
+                                              dismissText: 'Batal',
+                                              affirmText: 'Hapus',
+                                              affirmColor: Colors.red,
+                                            );
+                                            if (confirm) {
+                                              cart.removeFromCart(item);
+                                            }
+                                          },
                                         borderRadius: BorderRadius.circular(8),
                                         child: Container(
                                           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),

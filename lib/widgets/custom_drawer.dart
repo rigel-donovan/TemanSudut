@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../utils/app_format.dart';
+import 'line_popup.dart';
 
 class CustomDrawer extends StatelessWidget {
   @override
@@ -87,39 +88,14 @@ class CustomDrawer extends StatelessWidget {
                   leading: Icon(Icons.logout, color: Colors.redAccent),
                   title: Text('Logout', style: TextStyle(color: Colors.redAccent)),
                   onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (BuildContext dialogContext) {
-                        return AlertDialog(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                          title: Row(
-                            children: [
-                              Icon(Icons.logout, color: Colors.redAccent),
-                              SizedBox(width: 8),
-                              Text('Konfirmasi Logout', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                          content: Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.of(dialogContext).pop(),
-                              child: Text('Batal', style: TextStyle(color: Colors.grey[700])),
-                            ),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red[700],
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              ),
-                              onPressed: () {
-                                Navigator.of(dialogContext).pop();
-                                auth.logout();
-                              },
-                              child: Text('Keluar', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ),
-                          ],
-                        );
-                      },
+                    LinePopup.showDual(
+                      context,
+                      title: 'Keluar dari Akun?',
+                      description: 'Anda akan logout dari aplikasi dan perlu login kembali.',
+                      dismissText: 'Batal',
+                      affirmText: 'Logout',
+                      affirmColor: Colors.red,
+                      onAffirm: () => auth.logout(),
                     );
                   },
                 ),
@@ -153,106 +129,97 @@ void _showCloseShiftDialog(BuildContext context, CartProvider cart) {
 
       return StatefulBuilder(
         builder: (ctx, setStateDialog) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: Row(
+          return LinePopup(
+            title: 'Tutup Sesi Kasir',
+            icon: Icon(Icons.point_of_sale_rounded, size: 48, color: Colors.red[700]),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.point_of_sale_rounded, color: Colors.red[700]),
-                SizedBox(width: 8),
-                Text('Tutup Kasir', style: TextStyle(fontWeight: FontWeight.bold)),
-              ],
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey[200]!),
+                  ),
+                  child: Column(
+                    children: [
+                      _drawerSummaryRow('Modal Awal', AppFormat.currency(startingCash)),
+                      const SizedBox(height: 8),
+                      _drawerSummaryRow('Uang di Laci (Estimasi)', AppFormat.currency(expectedCash), highlight: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text('Uang Fisik di Laci', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: endCashController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    prefixText: 'Rp ',
+                    prefixStyle: const TextStyle(color: Color(0xFF5D4037), fontWeight: FontWeight.bold),
+                    hintText: '0',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF5D4037), width: 2)),
+                    filled: true,
+                    fillColor: Colors.grey[50],
+                  ),
+                  onChanged: (val) {
+                    setStateDialog(() {
+                      enteredCash = double.tryParse(val.replaceAll(',', '')) ?? 0;
+                      difference = enteredCash - expectedCash;
+                    });
+                  },
+                ),
+                if (endCashController.text.isNotEmpty) ...[
+                  const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
-                    padding: EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: difference >= 0 ? Colors.green[50] : Colors.red[50],
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey[200]!),
+                      border: Border.all(color: difference >= 0 ? Colors.green[200]! : Colors.red[200]!),
                     ),
-                    child: Column(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _drawerSummaryRow('Modal Awal', AppFormat.currency(startingCash)),
-                        SizedBox(height: 8),
-                        _drawerSummaryRow('Uang di Laci (Estimasi)', AppFormat.currency(expectedCash), highlight: true),
+                        Text(
+                          difference >= 0 ? 'Selisih Lebih' : 'Selisih Kurang',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: difference >= 0 ? Colors.green[700] : Colors.red[700],
+                          ),
+                        ),
+                        Text(
+                          AppFormat.currency(difference.abs()),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: difference >= 0 ? Colors.green[700] : Colors.red[700],
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  SizedBox(height: 20),
-                  Text('Uang Fisik di Laci', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                  SizedBox(height: 8),
-                  TextField(
-                    controller: endCashController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      prefixText: 'Rp ',
-                      prefixStyle: TextStyle(color: const Color(0xFF5D4037), fontWeight: FontWeight.bold),
-                      hintText: '0',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: const Color(0xFF5D4037), width: 2)),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                    ),
-                    onChanged: (val) {
-                      setStateDialog(() {
-                        enteredCash = double.tryParse(val.replaceAll(',', '')) ?? 0;
-                        difference = enteredCash - expectedCash;
-                      });
-                    },
-                  ),
-                  if (endCashController.text.isNotEmpty) ...[
-                    SizedBox(height: 16),
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: difference >= 0 ? Colors.green[50] : Colors.red[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: difference >= 0 ? Colors.green[200]! : Colors.red[200]!),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            difference >= 0 ? 'Selisih Lebih' : 'Selisih Kurang',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: difference >= 0 ? Colors.green[700] : Colors.red[700],
-                            ),
-                          ),
-                          Text(
-                            AppFormat.currency(difference.abs()),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: difference >= 0 ? Colors.green[700] : Colors.red[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
             actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
-                child: Text('Batal', style: TextStyle(color: Colors.grey[700])),
+              LinePopupAction(
+                label: 'Batal',
+                style: LinePopupActionStyle.textNormal,
+                onTap: () => Navigator.of(dialogContext).pop(),
               ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red[700],
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                onPressed: () async {
+              LinePopupAction(
+                label: 'Tutup Kasir',
+                style: LinePopupActionStyle.filled,
+                color: Colors.red[700],
+                onTap: () async {
                   double endingCash = double.tryParse(endCashController.text.replaceAll(',', '')) ?? 0;
                   Navigator.of(dialogContext).pop();
                   bool success = await cart.closeShift(endingCash);
@@ -263,7 +230,6 @@ void _showCloseShiftDialog(BuildContext context, CartProvider cart) {
                     ));
                   }
                 },
-                child: Text('Tutup Kasir', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ],
           );

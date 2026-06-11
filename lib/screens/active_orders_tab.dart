@@ -9,6 +9,7 @@ import '../services/printer_service.dart';
 import '../widgets/camera_dialog.dart';
 import '../widgets/loading_overlay.dart';
 import '../utils/app_animations.dart';
+import '../widgets/line_popup.dart';
 import 'package:provider/provider.dart';
 
 class ActiveOrdersTab extends StatefulWidget {
@@ -261,32 +262,15 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab> with AutomaticKeepAliv
   }
 
   Future<void> _deleteOrder(dynamic order) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.red),
-            SizedBox(width: 8),
-            Text('Hapus Pesanan', style: TextStyle(fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Text('Apakah Anda yakin ingin menghapus pesanan #${order['id']}?\n\nAksi ini akan membatalkan pesanan dan mengembalikan stok produk.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Batal', style: TextStyle(color: Colors.grey[700])),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
-            child: Text('Ya, Hapus', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
+    final confirm = await LinePopup.showConfirmChoice(
+      context,
+      title: 'Hapus Pesanan?',
+      description: 'Apakah Anda yakin ingin menghapus pesanan #${order['id']}?\n\nAksi ini akan membatalkan pesanan dan mengembalikan stok produk.',
+      dismissText: 'Batal',
+      affirmText: 'Ya, Hapus',
+      affirmColor: Colors.red,
     );
-
-    if (confirm != true) return;
+    if (!confirm) return;
 
     if (!mounted) return;
     setState(() => _isLoading = true);

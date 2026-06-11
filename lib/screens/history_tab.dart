@@ -165,7 +165,11 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
                 ? _buildEmptyState()
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      final crossAxisCount = constraints.maxWidth > 600 ? 3 : 2;
+                      // Dynamically calculate crossAxisCount based on screen width
+                      // This ensures cards fill the empty space when cart sidebar is minimized
+                      int crossAxisCount = constraints.maxWidth ~/ 220; 
+                      if (crossAxisCount < 2) crossAxisCount = 2; // minimum 2 columns
+                      
                       return GridView.builder(
                         padding: const EdgeInsets.all(12),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(

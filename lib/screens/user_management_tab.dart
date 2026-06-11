@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../services/cache_service.dart';
 import '../widgets/popup_notification.dart';
 import '../widgets/loading_overlay.dart';
+import '../widgets/line_popup.dart';
 
 class UserManagementTab extends StatefulWidget {
   const UserManagementTab({Key? key}) : super(key: key);
@@ -217,37 +218,24 @@ class UserManagementTabState extends State<UserManagementTab> {
   }
 
   void _confirmDelete(dynamic user) {
-    showDialog(
-      context: context,
-      builder: (dialogCtx) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('Hapus User?', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: Text('Yakin ingin menghapus "${user['name']}"? Aksi ini tidak bisa dibatalkan.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: Text('Batal', style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              onPressed: () async {
-                Navigator.pop(dialogCtx);
-                LoadingOverlay.show(context, message: 'Menghapus user...');
-                final success = await _apiService.deleteUser(user['id']);
-                LoadingOverlay.hide(context);
-                if (success) {
-                  PopupNotification.show(context, title: 'Dihapus ðŸ—‘ï¸', message: '"${user['name']}" telah dihapus.', type: PopupType.success);
-                  await CacheService.invalidateMgmtUsers();
-                  _fetchUsers(forceRefresh: true);
-                } else {
-                  PopupNotification.show(context, title: 'Gagal', message: 'Tidak bisa menghapus user.', type: PopupType.error);
-                }
-              },
-              child: Text('Hapus'),
-            ),
-          ],
-        );
+    LinePopup.showDual(
+      context,
+      title: 'Hapus User?',
+      description: 'Yakin ingin menghapus "${user['name']}"? Aksi ini tidak bisa dibatalkan.',
+      dismissText: 'Batal',
+      affirmText: 'Hapus',
+      affirmColor: Colors.red,
+      onAffirm: () async {
+        LoadingOverlay.show(context, message: 'Menghapus user...');
+        final success = await _apiService.deleteUser(user['id']);
+        LoadingOverlay.hide(context);
+        if (success) {
+          PopupNotification.show(context, title: 'Dihapus', message: '"${user['name']}" telah dihapus.', type: PopupType.success);
+          await CacheService.invalidateMgmtUsers();
+          _fetchUsers(forceRefresh: true);
+        } else {
+          PopupNotification.show(context, title: 'Gagal', message: 'Tidak bisa menghapus user.', type: PopupType.error);
+        }
       },
     );
   }

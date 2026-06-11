@@ -11,6 +11,8 @@ import 'profile_tab.dart';
 import 'management_tab.dart';
 import 'active_orders_tab.dart';
 import '../widgets/custom_drawer.dart';
+import '../widgets/floating_bottom_nav.dart';
+import '../widgets/line_popup.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../widgets/stock_alert_dialog.dart';
@@ -28,6 +30,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
   List<Widget> _pages = [];
   List<BottomNavigationBarItem> _navItems = [];
+  List<FloatingNavItem> _floatingNavItems = [];
 
   bool _isSidebarMinimized = false;
   final TextEditingController _cashController = TextEditingController();
@@ -78,6 +81,18 @@ class _MainNavScreenState extends State<MainNavScreen> {
       BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
     ];
 
+    _floatingNavItems = [
+      const FloatingNavItem(icon: Icons.storefront_outlined, activeIcon: Icons.storefront, label: 'Home'),
+      if (canHistory)
+        const FloatingNavItem(icon: Icons.receipt_long_outlined, activeIcon: Icons.receipt_long, label: 'History'),
+      const FloatingNavItem(icon: Icons.list_alt, activeIcon: Icons.list, label: 'Orders'),
+      if (canFinance)
+        const FloatingNavItem(icon: Icons.account_balance_wallet_outlined, activeIcon: Icons.account_balance_wallet, label: 'Keuangan'),
+      if (canManagement)
+        const FloatingNavItem(icon: Icons.grid_view_outlined, activeIcon: Icons.grid_view, label: 'Management'),
+      const FloatingNavItem(icon: Icons.person_outline, activeIcon: Icons.person, label: 'Profile'),
+    ];
+
     if (_selectedIndex >= _pages.length) {
       _selectedIndex = 0;
     }
@@ -96,29 +111,14 @@ class _MainNavScreenState extends State<MainNavScreen> {
   }
 
   Future<bool> _onWillPop() async {
-    return (await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Konfirmasi', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Batal', style: TextStyle(color: Colors.grey[700])),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Keluar'),
-          ),
-        ],
-      ),
-    )) ?? false;
+    return await LinePopup.showConfirmChoice(
+      context,
+      title: 'Keluar Aplikasi?',
+      description: 'Apakah Anda yakin ingin keluar dari aplikasi?',
+      dismissText: 'Batal',
+      affirmText: 'Keluar',
+      affirmColor: Colors.red,
+    );
   }
 
   @override
@@ -444,7 +444,8 @@ class _MainNavScreenState extends State<MainNavScreen> {
   Widget _buildMobileLayout(BuildContext context) {
     final cart = Provider.of<CartProvider>(context, listen: false);
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
+      extendBody: true,
       drawer: CustomDrawer(),
       body: SafeArea(
         child: Stack(
@@ -470,47 +471,10 @@ class _MainNavScreenState extends State<MainNavScreen> {
   }
 
   Widget _buildBottomNav() {
-    return Container(
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, -5),
-          )
-        ]
-      ),
-      child: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF5D4037),
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        iconSize: 28,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        currentIndex: _selectedIndex >= _navItems.length ? 0 : _selectedIndex,
-        onTap: _onItemTapped,
-        items: _navItems.map((item) {
-          final isSelected = _navItems.indexOf(item) == (_selectedIndex >= _navItems.length ? 0 : _selectedIndex);
-          return BottomNavigationBarItem(
-            icon: AnimatedScale(
-              scale: isSelected ? 1.15 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutBack,
-              child: item.icon,
-            ),
-            activeIcon: AnimatedScale(
-              scale: isSelected ? 1.15 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutBack,
-              child: item.activeIcon ?? item.icon,
-            ),
-            label: item.label,
-          );
-        }).toList(),
-      ),
+    return FloatingBottomNav(
+      currentIndex: _selectedIndex >= _floatingNavItems.length ? 0 : _selectedIndex,
+      items: _floatingNavItems,
+      onTap: _onItemTapped,
     );
   }
 }

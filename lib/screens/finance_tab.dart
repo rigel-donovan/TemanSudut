@@ -7,6 +7,7 @@ import '../utils/app_animations.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/popup_notification.dart';
 import '../widgets/custom_date_range_picker.dart';
+import '../widgets/line_popup.dart';
 
 class FinanceTab extends StatefulWidget {
   const FinanceTab({Key? key}) : super(key: key);
@@ -272,23 +273,15 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
   );
 
   Future<void> _deleteEntry(dynamic entry) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Hapus Catatan?', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text('Hapus catatan "${entry['description']}"?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    final confirm = await LinePopup.showConfirmChoice(
+      context,
+      title: 'Hapus Catatan?',
+      description: 'Hapus catatan "${entry['description']}"?',
+      dismissText: 'Batal',
+      affirmText: 'Hapus',
+      affirmColor: Colors.red,
     );
-    if (confirm != true) return;
+    if (!confirm) return;
     final ok = await _api.deleteFinanceEntry(entry['id']);
     if (ok) {
       PopupNotification.show(context, title: 'Dihapus', message: 'Catatan berhasil dihapus.', type: PopupType.success);

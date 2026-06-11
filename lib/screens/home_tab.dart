@@ -7,6 +7,7 @@ import '../utils/app_format.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/stock_alert_dialog.dart';
+import '../widgets/line_popup.dart';
 import '../widgets/popup_notification.dart';
 import '../utils/app_animations.dart';
 
@@ -328,46 +329,30 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
         
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Row(
-                children: [
-                  Icon(Icons.lock_outline, color: Colors.black),
-                  SizedBox(width: 8),
-                  Text('Tutup Sesi Kasir', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Masukkan nominal uang akhir di laci kasir (setelah shift selesai).', style: TextStyle(color: Colors.grey[700], height: 1.5)),
-                  SizedBox(height: 16),
-                  TextField(
-                    controller: _cashController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'Uang Akhir (Opsional)',
-                      prefixText: 'Rp ',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.black)),
-                    ),
-                  ),
-                ],
+            return LinePopup(
+              title: 'Tutup Sesi Kasir',
+              description: 'Masukkan nominal uang akhir di laci kasir (setelah shift selesai).',
+              icon: const Icon(Icons.lock_outline, size: 48, color: Colors.black87),
+              content: TextField(
+                controller: _cashController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'Uang Akhir (Opsional)',
+                  prefixText: 'Rp ',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF5D4037), width: 2)),
+                ),
               ),
               actions: [
-                TextButton(
-                  onPressed: _isClosing ? null : () => Navigator.pop(context),
-                  child: Text('Batal', style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.bold)),
+                LinePopupAction(
+                  label: 'Batal',
+                  style: LinePopupActionStyle.textNormal,
+                  onTap: _isClosing ? null : () => Navigator.pop(context),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF5D4037),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                  onPressed: _isClosing ? null : () async {
+                LinePopupAction(
+                  label: _isClosing ? 'Menutup...' : 'Tutup Kasir',
+                  style: LinePopupActionStyle.filled,
+                  onTap: _isClosing ? null : () async {
                     setState(() => _isClosing = true);
                     double amount = double.tryParse(_cashController.text.replaceAll(',', '')) ?? 0;
                     bool success = await cart.closeShift(amount);
@@ -384,13 +369,10 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                           ),
                         );
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal menutup sesi kasir'), backgroundColor: Colors.red));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Gagal menutup sesi kasir'), backgroundColor: Colors.red));
                       }
                     }
                   },
-                  child: _isClosing 
-                    ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                    : Text('Tutup Kasir', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ],
             );
