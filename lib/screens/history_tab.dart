@@ -170,13 +170,19 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
                       int crossAxisCount = constraints.maxWidth ~/ 220; 
                       if (crossAxisCount < 2) crossAxisCount = 2; // minimum 2 columns
                       
+                      // Hitung lebar item untuk menentukan aspect ratio agar tinggi card fix di 170
+                      double padding = 24; // 12 * 2 (EdgeInsets.all(12))
+                      double crossSpacing = 10 * (crossAxisCount - 1).toDouble();
+                      double itemWidth = (constraints.maxWidth - padding - crossSpacing) / crossAxisCount;
+                      double aspectRatio = itemWidth / 170; // Tinggi card dibuat fix 170
+                      
                       return GridView.builder(
                         padding: const EdgeInsets.all(12),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: crossAxisCount,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          childAspectRatio: 0.85,
+                          childAspectRatio: aspectRatio,
                         ),
                         itemCount: _transactions.length,
                         addAutomaticKeepAlives: false,
