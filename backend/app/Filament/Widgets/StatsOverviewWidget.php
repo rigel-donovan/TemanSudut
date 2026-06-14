@@ -86,20 +86,20 @@ class StatsOverviewWidget extends BaseWidget
                 ->color('info'),
 
             Stat::make('Net Profit Hari Ini', (function () use ($today) {
-                $income  = (float) FinanceEntry::where('type', 'income')->whereDate('date', $today)->sum('amount');
-                $expense = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $today)->sum('amount');
+                $income  = (float) FinanceEntry::where('type', 'income')->where('date', $today->toDateString())->sum('amount');
+                $expense = (float) FinanceEntry::where('type', 'expense')->where('date', $today->toDateString())->sum('amount');
                 $net = $income - $expense;
                 return ($net >= 0 ? '+' : '-') . 'Rp. ' . number_format(abs($net), 0, '.', ',');
             })())
                 ->description((function () use ($today) {
-                    $income  = (float) FinanceEntry::where('type', 'income')->whereDate('date', $today)->sum('amount');
-                    $expense = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $today)->sum('amount');
+                    $income  = (float) FinanceEntry::where('type', 'income')->where('date', $today->toDateString())->sum('amount');
+                    $expense = (float) FinanceEntry::where('type', 'expense')->where('date', $today->toDateString())->sum('amount');
                     return 'Masuk: Rp ' . number_format($income, 0, '.', ',') . '  |  Keluar: Rp ' . number_format($expense, 0, '.', ',');
                 })())
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color((function () use ($today) {
-                    $income  = (float) FinanceEntry::where('type', 'income')->whereDate('date', $today)->sum('amount');
-                    $expense = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $today)->sum('amount');
+                    $income  = (float) FinanceEntry::where('type', 'income')->where('date', $today->toDateString())->sum('amount');
+                    $expense = (float) FinanceEntry::where('type', 'expense')->where('date', $today->toDateString())->sum('amount');
                     return ($income - $expense) >= 0 ? 'success' : 'danger';
                 })()),
         ];

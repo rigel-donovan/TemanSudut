@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FinanceEntry;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class FinanceController extends Controller
 {
@@ -63,7 +64,7 @@ class FinanceController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $entry = FinanceEntry::create(array_merge($validated, ['user_id' => auth()->id()]));
+        $entry = FinanceEntry::create(array_merge($validated, ['user_id' => Auth::id()]));
 
         return response()->json($entry->load('user:id,name'), 201);
     }
@@ -140,8 +141,8 @@ class FinanceController extends Controller
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
                 $labels[] = $date->format('d/m');
-                $incomes[] = (float) FinanceEntry::where('type', 'income')->whereDate('date', $date->toDateString())->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $date->toDateString())->sum('amount');
+                $incomes[] = (float) FinanceEntry::where('type', 'income')->where('date', $date->toDateString())->sum('amount');
+                $expenses[] = (float) FinanceEntry::where('type', 'expense')->where('date', $date->toDateString())->sum('amount');
             }
         } elseif ($period === 'weekly') {
             for ($i = 11; $i >= 0; $i--) {

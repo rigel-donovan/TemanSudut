@@ -10,21 +10,26 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\RawMaterialController;
+use Illuminate\Support\Facades\Storage;
 
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/permissions', [PermissionController::class, 'index']);
 
 Route::get('/images/{path}', function ($path) {
-    if (\Storage::disk('local')->exists($path)) {
-        $file = \Storage::disk('local')->get($path);
-        $mime = \Storage::disk('local')->mimeType($path);
+    if (Storage::disk('local')->exists($path)) {
+        $file = Storage::disk('local')->get($path);
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('local');
+        $mime = $disk->mimeType($path);
         return response($file, 200)->header('Content-Type', $mime);
     }
     
-    if (\Storage::disk('public')->exists($path)) {
-        $file = \Storage::disk('public')->get($path);
-        $mime = \Storage::disk('public')->mimeType($path);
+    if (Storage::disk('public')->exists($path)) {
+        $file = Storage::disk('public')->get($path);
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $diskPublic */
+        $diskPublic = Storage::disk('public');
+        $mime = $diskPublic->mimeType($path);
         return response($file, 200)->header('Content-Type', $mime);
     }
     

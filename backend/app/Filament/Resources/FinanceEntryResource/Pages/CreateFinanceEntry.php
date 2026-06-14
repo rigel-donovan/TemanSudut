@@ -11,7 +11,7 @@ class CreateFinanceEntry extends CreateRecord
 
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $data['user_id'] = auth()->id();
+        $data['user_id'] = \Illuminate\Support\Facades\Auth::id();
         return $data;
     }
 

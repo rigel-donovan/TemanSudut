@@ -33,8 +33,8 @@ class FinanceChartWidget extends ChartWidget
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
                 $labels[]   = $date->format('d M');
-                $incomes[]  = (float) FinanceEntry::where('type', 'income')->whereDate('date', $date)->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereDate('date', $date)->sum('amount');
+                $incomes[]  = (float) FinanceEntry::where('type', 'income')->where('date', $date->toDateString())->sum('amount');
+                $expenses[] = (float) FinanceEntry::where('type', 'expense')->where('date', $date->toDateString())->sum('amount');
             }
         } elseif ($filter === 'weekly') {
             for ($i = 11; $i >= 0; $i--) {

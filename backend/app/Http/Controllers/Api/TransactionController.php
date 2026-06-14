@@ -10,6 +10,8 @@ use App\Models\Product;
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
 {
@@ -116,6 +118,7 @@ class TransactionController extends Controller
             $items = [];
 
             foreach ($validated['items'] as $item) {
+                /** @var \App\Models\Product $product */
                 $product = $productMap[$item['product_id']];
                 $extraCharge = floatval($item['extra_charge'] ?? 0);
                 $itemSubtotal = ($product->price + $extraCharge) * $item['quantity'];
@@ -139,7 +142,7 @@ class TransactionController extends Controller
             $total = $subtotal + $tax;
 
             $transaction = Transaction::create([
-                'user_id' => auth()->id(),
+                'user_id' => Auth::id(),
                 'order_type' => $validated['order_type'],
                 'customer_name' => $validated['customer_name'] ?? null,
                 'subtotal' => $subtotal,
@@ -157,7 +160,7 @@ class TransactionController extends Controller
             if ($request->hasFile('completion_photo')) {
                 File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
                 $path = $request->file('completion_photo')->store('completion_photos', 'public');
-                $url = url(\Storage::disk('public')->url($path));
+                $url = url(Storage::disk('public')->url($path));
                 $transaction->update(['completion_photo' => $url]);
             } elseif ($request->filled('completion_photo_base64')) {
                 $imageData = $request->completion_photo_base64;
@@ -171,8 +174,8 @@ class TransactionController extends Controller
                 $fileName = 'completion_' . $transaction->id . '_' . time() . '.' . $type;
                 File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
                 $path = 'completion_photos/' . $fileName;
-                \Storage::disk('public')->put($path, $imageData);
-                $url = url(\Storage::disk('public')->url($path));
+                Storage::disk('public')->put($path, $imageData);
+                $url = url(Storage::disk('public')->url($path));
                 $transaction->update(['completion_photo' => $url]);
             }
 
@@ -184,6 +187,7 @@ class TransactionController extends Controller
             ]), $items));
 
             foreach ($validated['items'] as $item) {
+                /** @var \App\Models\Product $product */
                 $product = $productMap[$item['product_id']];
                 $product->load('ingredients.rawMaterial');
 
@@ -195,12 +199,12 @@ class TransactionController extends Controller
                         'order_deduction',
                         'Pesanan #' . $transaction->id . ' - ' . $product->name . ' x' . $item['quantity'],
                         null,
-                        auth()->id()
+                        Auth::id()
                     );
                 }
             }
 
-            ActivityLog::log('order_created', 'Pesanan #' . $transaction->id . ' dibuat oleh ' . (auth()->user()->name ?? 'System'), [
+            ActivityLog::log('order_created', 'Pesanan #' . $transaction->id . ' dibuat oleh ' . (Auth::user()->name ?? 'System'), [
                 'transaction_id' => $transaction->id,
                 'total' => $total,
                 'customer_name' => $validated['customer_name'] ?? 'Tamu',
@@ -390,6 +394,7 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Akses ditolak. Silakan login kembali.'], 401);
         }
 
+        /** @var \App\Models\Transaction $transaction */
         $transaction = Transaction::with(['items.product', 'user', 'table'])->findOrFail($id);
 
         $logoBase64 = $this->getCompressedLogoBase64();
@@ -461,17 +466,17 @@ class TransactionController extends Controller
         if ($request->hasFile('completion_photo')) {
             if ($transaction->completion_photo) {
                 $oldPath = str_replace(url('/storage'), 'public', $transaction->completion_photo);
-                \Storage::delete($oldPath);
+                Storage::delete($oldPath);
             }
             File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
             $path = $request->file('completion_photo')->store('completion_photos', 'public');
-            $updateData['completion_photo'] = url(\Storage::disk('public')->url($path));
+            $updateData['completion_photo'] = url(Storage::disk('public')->url($path));
         }
         // Handle Base64 upload
         elseif ($request->filled('completion_photo_base64')) {
             if ($transaction->completion_photo) {
                 $oldPath = str_replace(url('/storage'), 'public', $transaction->completion_photo);
-                \Storage::delete($oldPath);
+                Storage::delete($oldPath);
             }
 
             $imageData = $request->completion_photo_base64;
@@ -487,8 +492,8 @@ class TransactionController extends Controller
             File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
             $path = 'completion_photos/' . $fileName;
 
-            \Storage::disk('public')->put($path, $imageData);
-            $updateData['completion_photo'] = url(\Storage::disk('public')->url($path));
+            Storage::disk('public')->put($path, $imageData);
+            $updateData['completion_photo'] = url(Storage::disk('public')->url($path));
         }
 
         $transaction->update($updateData);
@@ -534,13 +539,13 @@ class TransactionController extends Controller
                             'order_cancelled',
                             'Pembatalan Pesanan #' . $transaction->id . ' - ' . $product->name . ' x' . $item->quantity,
                             null,
-                            auth()->id()
+                            Auth::id()
                         );
                     }
                 }
             }
 
-            ActivityLog::log('order_deleted', 'Pesanan #' . $transaction->id . ' dihapus oleh ' . (auth()->user()->name ?? 'System'));
+            ActivityLog::log('order_deleted', 'Pesanan #' . $transaction->id . ' dihapus oleh ' . (Auth::user()->name ?? 'System'));
 
             $transaction->delete();
             DB::commit();
