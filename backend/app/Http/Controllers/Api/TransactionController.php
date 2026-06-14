@@ -160,7 +160,7 @@ class TransactionController extends Controller
             if ($request->hasFile('completion_photo')) {
                 File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
                 $path = $request->file('completion_photo')->store('completion_photos', 'public');
-                $url = url(Storage::disk('public')->url($path));
+                $url = url('storage/' . $path);
                 $transaction->update(['completion_photo' => $url]);
             } elseif ($request->filled('completion_photo_base64')) {
                 $imageData = $request->completion_photo_base64;
@@ -175,7 +175,7 @@ class TransactionController extends Controller
                 File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
                 $path = 'completion_photos/' . $fileName;
                 Storage::disk('public')->put($path, $imageData);
-                $url = url(Storage::disk('public')->url($path));
+                $url = url('storage/' . $path);
                 $transaction->update(['completion_photo' => $url]);
             }
 
@@ -470,7 +470,7 @@ class TransactionController extends Controller
             }
             File::ensureDirectoryExists(storage_path('app/public/completion_photos'));
             $path = $request->file('completion_photo')->store('completion_photos', 'public');
-            $updateData['completion_photo'] = url(Storage::disk('public')->url($path));
+            $updateData['completion_photo'] = url('storage/' . $path);
         }
         // Handle Base64 upload
         elseif ($request->filled('completion_photo_base64')) {
@@ -493,7 +493,7 @@ class TransactionController extends Controller
             $path = 'completion_photos/' . $fileName;
 
             Storage::disk('public')->put($path, $imageData);
-            $updateData['completion_photo'] = url(Storage::disk('public')->url($path));
+            $updateData['completion_photo'] = url('storage/' . $path);
         }
 
         $transaction->update($updateData);
