@@ -130,9 +130,9 @@ class _MainNavScreenState extends State<MainNavScreen> {
           Widget mainContent = LayoutBuilder(
             builder: (context, constraints) {
               if (constraints.maxWidth > 800) {
-                return _buildTabletLayout(context);
+                return _buildTabletLayout(context, cart);
               } else {
-                return _buildMobileLayout(context);
+                return _buildMobileLayout(context, cart);
               }
             },
           );
@@ -337,8 +337,7 @@ class _MainNavScreenState extends State<MainNavScreen> {
     );
   }
 
-  Widget _buildTabletLayout(BuildContext context) {
-    final cart = Provider.of<CartProvider>(context);
+  Widget _buildTabletLayout(BuildContext context, CartProvider cart) {
     
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -441,30 +440,86 @@ class _MainNavScreenState extends State<MainNavScreen> {
     );
   }
 
-  Widget _buildMobileLayout(BuildContext context) {
-    final cart = Provider.of<CartProvider>(context, listen: false);
+  void _showCartBottomSheet(BuildContext context, CartProvider cart) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return Container(
+          height: MediaQuery.of(sheetContext).size.height * 0.85,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: OrdersTab(
+              isBottomSheet: true,
+              onOrderFinished: () {
+                Navigator.pop(sheetContext); // Close bottom sheet
+                int idx = _pages.indexWhere((p) => p is ActiveOrdersTab);
+                if (idx != -1) _onItemTapped(idx);
+              },
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMobileLayout(BuildContext context, CartProvider cart) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       extendBody: true,
       drawer: CustomDrawer(),
-      body: SafeArea(
-        child: Stack(
-          children: [
-            AnimatedIndexedStack(
+      body: Stack(
+        children: [
+          SafeArea(
+            child: AnimatedIndexedStack(
               index: _selectedIndex,
               children: _pages,
             ),
-            if (!cart.isShiftOpen && _pages[_selectedIndex] is HomeTab)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black.withOpacity(0.4),
-                  child: Center(
-                    child: _buildOpenShiftCard(context, cart),
-                  ),
+          ),
+          if (!cart.isShiftOpen && _pages[_selectedIndex] is HomeTab)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.4),
+                child: Center(
+                  child: _buildOpenShiftCard(context, cart),
                 ),
               ),
-          ],
-        ),
+            ),
+          if (cart.isShiftOpen && cart.items.isNotEmpty)
+            Positioned(
+              right: 16,
+              bottom: 96,
+              child: FloatingActionButton.extended(
+                backgroundColor: const Color(0xFF5D4037),
+                foregroundColor: Colors.white,
+                onPressed: () => _showCartBottomSheet(context, cart),
+                icon: Stack(
+                   alignment: Alignment.center,
+                   children: [
+                     const Icon(Icons.shopping_cart),
+                     if (cart.items.isNotEmpty)
+                       Positioned(
+                         right: 0,
+                         top: 0,
+                         child: Container(
+                           padding: const EdgeInsets.all(4),
+                           decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                         )
+                       )
+                   ]
+                ),
+                label: Text(
+                  'Cart (${cart.items.length})', 
+                  style: const TextStyle(fontWeight: FontWeight.bold)
+                ),
+              ),
+            ),
+        ],
       ),
       bottomNavigationBar: _buildBottomNav(),
     );

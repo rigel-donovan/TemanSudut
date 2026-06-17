@@ -13,8 +13,9 @@ import 'package:camera/camera.dart';
 
 class OrdersTab extends StatelessWidget {
   final VoidCallback? onOrderFinished;
+  final bool isBottomSheet;
 
-  const OrdersTab({Key? key, this.onOrderFinished}) : super(key: key);
+  const OrdersTab({Key? key, this.onOrderFinished, this.isBottomSheet = false}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +28,15 @@ class OrdersTab extends StatelessWidget {
           appBar: isWideScreen ? null : AppBar(
             backgroundColor: Colors.white,
             elevation: 0,
-            title: Text('Orders', style: TextStyle(color: const Color(0xFF5D4037), fontWeight: FontWeight.bold)),
+            title: Text(isBottomSheet ? 'Keranjang' : 'Orders', style: const TextStyle(color: Color(0xFF5D4037), fontWeight: FontWeight.bold)),
             centerTitle: true,
             automaticallyImplyLeading: false,
+            leading: isBottomSheet ? Builder(
+              builder: (leadingContext) => IconButton(
+                icon: const Icon(Icons.close, color: Color(0xFF5D4037)),
+                onPressed: () => Navigator.pop(leadingContext),
+              ),
+            ) : null,
           ),
           body: cart.items.isEmpty 
           ? Center(child: Text('Tidak ada pesanan.', style: TextStyle(color: Colors.grey)))
@@ -325,8 +332,25 @@ class OrdersTab extends StatelessWidget {
                           Text(AppFormat.currency(cart.total), style: TextStyle(color: Colors.green[600], fontWeight: FontWeight.bold)),
                         ],
                       ),
-                      
-                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+              SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -4),
+                      ),
+                    ],
+                  ),
+                  child: 
                       SlideToFinish(
                         text: 'Slide to Proceed',
                         isEnabled: cart.items.isNotEmpty,
@@ -338,6 +362,7 @@ class OrdersTab extends StatelessWidget {
                           String selectedPayment = 'cash'; // default
                           double amountReceived = 0;
                           double changeAmount = 0;
+                          bool isLoading = false;
 
                           showModalBottomSheet(
                             context: outerContext,
@@ -390,6 +415,7 @@ class OrdersTab extends StatelessWidget {
                                                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
                                                   const SizedBox(height: 8),
                                                   TextField(
+                                                    enabled: !isLoading,
                                                     controller: nameController,
                                                     decoration: InputDecoration(
                                                       hintText: 'Default: Tamu',
@@ -417,6 +443,7 @@ class OrdersTab extends StatelessWidget {
                                                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
                                                   const SizedBox(height: 8),
                                                   TextField(
+                                                    enabled: !isLoading,
                                                     controller: tableController,
                                                     keyboardType: TextInputType.number,
                                                     decoration: InputDecoration(
@@ -447,7 +474,7 @@ class OrdersTab extends StatelessWidget {
                                             // Tunai
                                             Expanded(
                                               child: GestureDetector(
-                                                onTap: () => setSheetState(() => selectedPayment = 'cash'),
+                                                onTap: isLoading ? null : () => setSheetState(() => selectedPayment = 'cash'),
                                                 child: AnimatedContainer(
                                                   duration: const Duration(milliseconds: 180),
                                                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -480,7 +507,7 @@ class OrdersTab extends StatelessWidget {
                                             // QRIS
                                             Expanded(
                                               child: GestureDetector(
-                                                onTap: () => setSheetState(() => selectedPayment = 'qris'),
+                                                onTap: isLoading ? null : () => setSheetState(() => selectedPayment = 'qris'),
                                                 child: AnimatedContainer(
                                                   duration: const Duration(milliseconds: 180),
                                                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -559,6 +586,7 @@ class OrdersTab extends StatelessWidget {
                                             child: Column(
                                               children: [
                                                 TextField(
+                                                  enabled: !isLoading,
                                                   keyboardType: TextInputType.number,
                                                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                                                   decoration: InputDecoration(
@@ -648,16 +676,18 @@ class OrdersTab extends StatelessWidget {
                                               shape: RoundedRectangleBorder(
                                                   borderRadius: BorderRadius.circular(12)),
                                             ),
-                                            onPressed: (selectedPayment == 'cash' && amountReceived < cart.total)
+                                            onPressed: (isLoading || (selectedPayment == 'cash' && amountReceived < cart.total))
                                                 ? null
                                                 : () async {
+                                                    setSheetState(() {
+                                                      isLoading = true;
+                                                    });
                                                     String customerName = nameController.text.isNotEmpty ? nameController.text : 'Tamu';
                                                     String tableNum = tableController.text.trim();
                                                     if (tableNum.isNotEmpty) {
                                                       customerName = '$customerName - Meja $tableNum';
                                                     }
                                                     cart.setCustomerName(customerName);
-                                                    Navigator.pop(sheetCtx);
 
                                                     bool success = await cart.checkout(
                                                       selectedPayment,
@@ -665,6 +695,7 @@ class OrdersTab extends StatelessWidget {
                                                       changeAmount: selectedPayment == 'cash' ? changeAmount : null,
                                                     );
                                               if (success) {
+                                                Navigator.pop(sheetCtx);
                                                 PopupNotification.show(
                                                   outerContext,
                                                   title: 'Order Berhasil! 🎉',
@@ -679,16 +710,28 @@ class OrdersTab extends StatelessWidget {
                                                   onOrderFinished!();
                                                 }
                                               } else {
+                                                setSheetState(() {
+                                                  isLoading = false;
+                                                });
                                                 PopupNotification.show(
-                                                  outerContext,
+                                                  ctx,
                                                   title: 'Gagal Membuat Pesanan',
                                                   message: 'Terjadi kesalahan. Coba lagi.',
                                                   type: PopupType.error,
                                                 );
                                               }
                                             },
-                                            child: const Text('Konfirmasi Pesanan',
-                                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                            child: isLoading
+                                                ? const SizedBox(
+                                                    width: 24,
+                                                    height: 24,
+                                                    child: CircularProgressIndicator(
+                                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                                      strokeWidth: 2.5,
+                                                    ),
+                                                  )
+                                                : const Text('Konfirmasi Pesanan',
+                                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                                           ),
                                         ),
                                       ],
@@ -701,8 +744,6 @@ class OrdersTab extends StatelessWidget {
                           );
                         },
                       ),
-                    ],
-                  ),
                 ),
               ),
             ],
