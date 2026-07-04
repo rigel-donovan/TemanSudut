@@ -130,6 +130,7 @@ class TransactionController extends Controller
 
                 $items[] = [
                     'product_id' => $product->id,
+                    
                     'quantity' => $item['quantity'],
                     'unit_price' => $product->price,
                     'subtotal' => $itemSubtotal,
