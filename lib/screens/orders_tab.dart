@@ -13,9 +13,10 @@ import 'package:camera/camera.dart';
 
 class OrdersTab extends StatelessWidget {
   final VoidCallback? onOrderFinished;
+  final VoidCallback? onOrderSaved;
   final bool isBottomSheet;
 
-  const OrdersTab({Key? key, this.onOrderFinished, this.isBottomSheet = false}) : super(key: key);
+  const OrdersTab({Key? key, this.onOrderFinished, this.onOrderSaved, this.isBottomSheet = false}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -363,6 +364,7 @@ class OrdersTab extends StatelessWidget {
                           double amountReceived = 0;
                           double changeAmount = 0;
                           bool isLoading = false;
+                          bool globalUseCup = true;
 
                           showModalBottomSheet(
                             context: outerContext,
@@ -377,7 +379,7 @@ class OrdersTab extends StatelessWidget {
                                       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                                     ),
                                     padding: EdgeInsets.only(
-                                      left: 24, right: 24, top: 24,
+                                      left: 24, right: 24, top: 20,
                                       bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
                                     ),
                                     child: SingleChildScrollView(
@@ -385,11 +387,13 @@ class OrdersTab extends StatelessWidget {
                                         mainAxisSize: MainAxisSize.min,
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
+
+
                                         // Handle bar
                                         Center(
                                           child: Container(
                                             width: 40, height: 4,
-                                            margin: const EdgeInsets.only(bottom: 20),
+                                            margin: const EdgeInsets.only(bottom: 16),
                                             decoration: BoxDecoration(
                                               color: Colors.grey[300],
                                               borderRadius: BorderRadius.circular(2),
@@ -540,6 +544,78 @@ class OrdersTab extends StatelessWidget {
                                         ),
                                         const SizedBox(height: 24),
 
+                                        // Global Cup/Gelas Toggle (if cart has drinks)
+                                        if (cart.items.any((item) => item.isDrink)) ...[
+                                          const Text('Penyajian Minuman', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                          const SizedBox(height: 10),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: InkWell(
+                                                  onTap: () => setSheetState(() => globalUseCup = true),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                                    decoration: BoxDecoration(
+                                                      color: globalUseCup ? Colors.brown[50] : Colors.white,
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      border: Border.all(
+                                                        color: globalUseCup ? Colors.brown[300]! : Colors.grey[200]!,
+                                                        width: globalUseCup ? 1.5 : 1,
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Icon(Icons.coffee, size: 20, color: globalUseCup ? Colors.brown[700] : Colors.grey[600]),
+                                                        const SizedBox(width: 8),
+                                                        Text('Gunakan Cup',
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 13,
+                                                              color: globalUseCup ? Colors.brown[700] : Colors.grey[700]!,
+                                                            )),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: InkWell(
+                                                  onTap: () => setSheetState(() => globalUseCup = false),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                                    decoration: BoxDecoration(
+                                                      color: !globalUseCup ? Colors.blue[50] : Colors.white,
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      border: Border.all(
+                                                        color: !globalUseCup ? Colors.blue[300]! : Colors.grey[200]!,
+                                                        width: !globalUseCup ? 1.5 : 1,
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment: MainAxisAlignment.center,
+                                                      children: [
+                                                        Icon(Icons.local_drink, size: 20, color: !globalUseCup ? Colors.blue[700] : Colors.grey[600]),
+                                                        const SizedBox(width: 8),
+                                                        Text('Gunakan Gelas',
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.bold,
+                                                              fontSize: 13,
+                                                              color: !globalUseCup ? Colors.blue[700] : Colors.grey[700]!,
+                                                            )),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 24),
+                                        ],
+
                                         // Summary Row
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -689,6 +765,12 @@ class OrdersTab extends StatelessWidget {
                                                     }
                                                     cart.setCustomerName(customerName);
 
+                                                    for (var item in cart.items) {
+                                                      if (item.isDrink) {
+                                                        item.useCup = globalUseCup;
+                                                      }
+                                                    }
+
                                                     bool success = await cart.checkout(
                                                       selectedPayment,
                                                       amountReceived: selectedPayment == 'cash' ? amountReceived : null,
@@ -732,6 +814,48 @@ class OrdersTab extends StatelessWidget {
                                                   )
                                                 : const Text('Konfirmasi Pesanan',
                                                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        
+                                        // Simpan Transaksi Button
+                                        SizedBox(
+                                          width: double.infinity,
+                                          height: 50,
+                                          child: OutlinedButton.icon(
+                                            icon: const Icon(Icons.bookmark_add_outlined, size: 18),
+                                            label: const Text('Simpan Pesanan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: const Color(0xFF5D4037),
+                                              side: const BorderSide(color: Color(0xFF5D4037), width: 1.5),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                            onPressed: isLoading ? null : () async {
+                                              setSheetState(() => isLoading = true);
+                                              final name = nameController.text.isNotEmpty ? nameController.text : 'Tamu';
+                                              final tableNum = tableController.text.trim();
+                                              final finalName = tableNum.isNotEmpty ? '$name - Meja $tableNum' : name;
+                                              cart.setCustomerName(finalName);
+                                              for (var item in cart.items) {
+                                                if (item.isDrink) {
+                                                  item.useCup = globalUseCup;
+                                                }
+                                              }
+                                              
+                                              final ok = await cart.saveTransaction(finalName);
+                                              if (!ctx.mounted) return;
+                                              Navigator.pop(sheetCtx);
+                                              if (isBottomSheet && outerContext.mounted) Navigator.pop(outerContext);
+                                              PopupNotification.show(
+                                                outerContext,
+                                                title: ok ? 'Transaksi Disimpan 🔖' : 'Gagal Menyimpan',
+                                                message: ok ? 'Pesanan disimpan ke History > Tersimpan.' : 'Terjadi kesalahan. Coba lagi.',
+                                                type: ok ? PopupType.success : PopupType.error,
+                                              );
+                                              if (ok && onOrderSaved != null) {
+                                                onOrderSaved!();
+                                              }
+                                            },
                                           ),
                                         ),
                                       ],

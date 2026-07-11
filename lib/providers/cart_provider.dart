@@ -12,6 +12,7 @@ class CartItem {
   double extraCharge;
   String? extraChargeLabel;
   bool isFree;
+  bool useCup; // true = disposable cup (deduct stock), false = reusable glass
 
   CartItem({
     required this.product, 
@@ -20,9 +21,16 @@ class CartItem {
     this.extraCharge = 0, 
     this.extraChargeLabel,
     this.isFree = false,
+    this.useCup = true,
   });
 
   double get subtotal => isFree ? 0 : (product.price + extraCharge) * quantity;
+
+  /// Whether this product is a drink (category: Kopi or Non-Kopi)
+  bool get isDrink {
+    final catName = product.category?.name.toLowerCase() ?? '';
+    return catName.contains('kopi') || catName.contains('coffee') || catName.contains('non-kopi');
+  }
 }
 
 class CartProvider with ChangeNotifier {
@@ -213,6 +221,11 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void toggleUseCup(CartItem cartItem) {
+    cartItem.useCup = !cartItem.useCup;
+    notifyListeners();
+  }
+
   void clearCart() {
     _items.clear();
     _selectedTable = null;
@@ -220,6 +233,39 @@ class CartProvider with ChangeNotifier {
     _orderType = 'dine_in';
     notifyListeners();
   }
+
+  /// Save cart as a held/draft transaction (no stock deduction).
+  Future<bool> saveTransaction(String customerName, {String? orderType}) async {
+    if (_items.isEmpty) return false;
+    final payload = {
+      'customer_name': customerName.isNotEmpty ? customerName : 'Tamu',
+      'order_type': orderType ?? _orderType,
+      'items': _items.map((item) {
+        double extraCharge = item.extraCharge;
+        String? notes = item.notes;
+        if (item.isFree) {
+          extraCharge = -(item.product.price);
+          final freeInfo = '[FREE CUP / GRATIS]';
+          notes = notes != null && notes.isNotEmpty ? '$notes | $freeInfo' : freeInfo;
+        }
+        return {
+          'product_id': item.product.id,
+          'quantity': item.quantity,
+          'notes': notes,
+          'extra_charge': extraCharge,
+          'use_cup': item.isDrink ? item.useCup : null,
+        };
+      }).toList(),
+    };
+
+    final result = await _apiService.saveTransaction(payload);
+    if (result['success'] == true) {
+      clearCart();
+      return true;
+    }
+    return false;
+  }
+
 
   String? _lastCheckoutError;
   String? get lastCheckoutError => _lastCheckoutError;
@@ -260,6 +306,7 @@ class CartProvider with ChangeNotifier {
           'quantity': item.quantity,
           'notes': finalNotes,
           'extra_charge': finalExtraCharge,
+          'use_cup': item.isDrink ? item.useCup : null,
         };
       }).toList(),
     };

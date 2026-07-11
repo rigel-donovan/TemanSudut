@@ -64,6 +64,7 @@ class TransactionController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.notes' => 'nullable|string',
             'items.*.extra_charge' => 'nullable|numeric',
+            'items.*.use_cup' => 'nullable|boolean',
             'amount_received' => 'nullable|numeric',
             'change_amount' => 'nullable|numeric',
             'completion_photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:5120',
@@ -80,12 +81,18 @@ class TransactionController extends Controller
             $shortages = [];
             foreach ($validated['items'] as $item) {
 
-
                 $product = $productMap[$item['product_id']];
+                $itemUsesCup = isset($item['use_cup']) ? (bool)$item['use_cup'] : true;
 
                 foreach ($product->ingredients as $ingredient) {
                     if (!$ingredient->rawMaterial)
                         continue;
+                        
+                    // Skip 'Cup' ingredient shortage check if use_cup is false
+                    if (strtolower($ingredient->rawMaterial->name) === 'cup' && !$itemUsesCup) {
+                        continue;
+                    }
+
                     $needed = $ingredient->quantity_used * $item['quantity'];
                     $available = (float) $ingredient->rawMaterial->stock;
                     if ($needed > $available) {
@@ -192,7 +199,16 @@ class TransactionController extends Controller
                 $product = $productMap[$item['product_id']];
                 $product->load('ingredients.rawMaterial');
 
+                $itemUsesCup = isset($item['use_cup']) ? (bool)$item['use_cup'] : true;
+                $cupDeducted = false;
+
                 foreach ($product->ingredients as $ingredient) {
+                    // Skip 'Cup' ingredient deduction if useCup is false
+                    if (strtolower($ingredient->rawMaterial->name ?? '') === 'cup') {
+                        if (!$itemUsesCup) continue;
+                        $cupDeducted = true;
+                    }
+
                     $totalUsed = $ingredient->quantity_used * $item['quantity'];
                     \App\Models\RawMaterial::adjustStock(
                         $ingredient->raw_material_id,
@@ -202,6 +218,21 @@ class TransactionController extends Controller
                         null,
                         Auth::id()
                     );
+                }
+
+                // Deduct cup stock if drink uses disposable cup and wasn't already deducted
+                if ($itemUsesCup && !$cupDeducted) {
+                    $cupMaterial = \App\Models\RawMaterial::where('name', 'Cup')->first();
+                    if ($cupMaterial) {
+                        \App\Models\RawMaterial::adjustStock(
+                            $cupMaterial->id,
+                            -$item['quantity'],
+                            'order_deduction',
+                            'Cup untuk Pesanan #' . $transaction->id . ' - ' . $product->name . ' x' . $item['quantity'],
+                            null,
+                            Auth::id()
+                        );
+                    }
                 }
             }
 
@@ -294,6 +325,227 @@ class TransactionController extends Controller
     {
         $transactions = $this->getFilteredHistoryQuery($request->query('filter'))->limit(500)->get();
         return response()->json($transactions);
+    }
+
+    // ── Saved Transactions (draft / hold) ─────────────────────────────────────
+
+    /**
+     * Save current cart items as a "held" transaction (kitchen_status = 'saved').
+     * No stock deduction happens — items are only stored for later checkout.
+     */
+    public function saveTransaction(Request $request)
+    {
+        \Log::info('saveTransaction called', ['input' => $request->all()]);
+
+        try {
+            $validated = $request->validate([
+                'customer_name' => 'nullable|string|max:255',
+                'order_type'    => 'nullable|in:dine_in,take_away,online',
+                'notes'         => 'nullable|string',
+                'items'         => 'required|array|min:1',
+                'items.*.product_id' => 'required|integer',
+                'items.*.quantity'   => 'required|integer|min:1',
+                'items.*.notes'      => 'nullable|string',
+                'items.*.extra_charge' => 'nullable|numeric',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            \Log::error('saveTransaction validation failed', ['errors' => $e->errors()]);
+            return response()->json(['success' => false, 'error' => 'Validation failed', 'details' => $e->errors()], 422);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $productIds = array_column($validated['items'], 'product_id');
+            $productMap = Product::whereIn('id', $productIds)->get()->keyBy('id');
+
+            $total = 0;
+            foreach ($validated['items'] as $item) {
+                $product = $productMap[$item['product_id']] ?? null;
+                if (!$product) continue;
+                $extra = $item['extra_charge'] ?? 0;
+                $total += ($product->price + $extra) * $item['quantity'];
+            }
+
+            $transaction = Transaction::create([
+                'user_id'        => Auth::id(),
+                'customer_name'  => $validated['customer_name'] ?? 'Tamu',
+                'order_type'     => $validated['order_type'] ?? 'dine_in',
+                'payment_method' => 'pending',
+                'notes'          => $validated['notes'] ?? null,
+                'subtotal'       => $total,
+                'tax'            => 0,
+                'total'          => $total,
+                'kitchen_status' => 'saved',
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                $product = $productMap[$item['product_id']] ?? null;
+                if (!$product) continue;
+                $extra = $item['extra_charge'] ?? 0;
+                TransactionItem::create([
+                    'transaction_id' => $transaction->id,
+                    'product_id'     => $item['product_id'],
+                    'quantity'       => $item['quantity'],
+                    'unit_price'     => $product->price + $extra,
+                    'subtotal'       => ($product->price + $extra) * $item['quantity'],
+                    'notes'          => $item['notes'] ?? null,
+                ]);
+            }
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'transaction' => $transaction->load('items.product'),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * List all saved (held) transactions for the authenticated user.
+     */
+    public function savedList(Request $request)
+    {
+        $transactions = Transaction::with(['items.product.category', 'user'])
+            ->where('kitchen_status', 'saved')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json($transactions);
+    }
+
+    /**
+     * Delete a saved transaction (discard held order).
+     */
+    public function deleteSaved($id)
+    {
+        $transaction = Transaction::where('id', $id)
+            ->where('kitchen_status', 'saved')
+            ->firstOrFail();
+
+        $transaction->items()->delete();
+        $transaction->delete();
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Activate a saved transaction: validate stock, deduct ingredients, set status to 'pending'.
+     */
+    public function activateSaved(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'payment_method' => 'required|string',
+            'customer_name'  => 'nullable|string',
+            'order_type'     => 'nullable|in:dine_in,take_away,online',
+            'amount_received' => 'nullable|numeric',
+            'change_amount'   => 'nullable|numeric',
+            'use_cup'         => 'nullable|boolean',
+        ]);
+
+        $transaction = Transaction::with('items.product.ingredients.rawMaterial')
+            ->where('id', $id)
+            ->where('kitchen_status', 'saved')
+            ->firstOrFail();
+
+        try {
+            DB::beginTransaction();
+
+            // ── Validate ingredient stock ─────────────────────────────────
+            $shortages = [];
+            $itemUsesCup = (bool) $request->input('use_cup', true);
+            foreach ($transaction->items as $txItem) {
+                $product = $txItem->product;
+                if (!$product) continue;
+
+                foreach ($product->ingredients as $ingredient) {
+                    if (!$ingredient->rawMaterial) continue;
+                    
+                    if (strtolower($ingredient->rawMaterial->name) === 'cup' && !$itemUsesCup) {
+                        continue;
+                    }
+
+                    $needed    = $ingredient->quantity_used * $txItem->quantity;
+                    $available = (float) $ingredient->rawMaterial->stock;
+                    if ($needed > $available) {
+                        $shortages[] = "{$ingredient->rawMaterial->name}: butuh {$needed}, tersedia {$available} (untuk {$product->name})";
+                    }
+                }
+            }
+            if (!empty($shortages)) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'error'   => 'Stok bahan baku tidak mencukupi',
+                    'details' => $shortages,
+                ], 422);
+            }
+
+            // ── Deduct product stock & raw materials ──────────────────────
+            $useCup = (bool) $request->input('use_cup', true);
+            foreach ($transaction->items as $txItem) {
+                $product = $txItem->product;
+                if (!$product) continue;
+
+                if ($product->stock >= $txItem->quantity) {
+                    $product->decrement('stock', $txItem->quantity);
+                }
+                
+                $cupDeducted = false;
+
+                foreach ($product->ingredients as $ingredient) {
+                    if (strtolower($ingredient->rawMaterial->name ?? '') === 'cup') {
+                        if (!$useCup) continue;
+                        $cupDeducted = true;
+                    }
+
+                    $totalUsed = $ingredient->quantity_used * $txItem->quantity;
+                    \App\Models\RawMaterial::adjustStock(
+                        $ingredient->raw_material_id,
+                        -$totalUsed,
+                        'order_deduction',
+                        "Pesanan #{$transaction->id} – {$product->name} x{$txItem->quantity}"
+                    );
+                }
+
+                // Deduct cup for drink categories if use_cup is true and not already deducted via ingredients
+                if ($useCup && !$cupDeducted) {
+                    $drinkCategories = ['kopi', 'non-kopi', 'coffee', 'non-coffee'];
+                    $catName = strtolower($product->category->name ?? '');
+                    if (in_array($catName, $drinkCategories)) {
+                        $cupMaterial = \App\Models\RawMaterial::where('name', 'Cup')->first();
+                        if ($cupMaterial) {
+                            \App\Models\RawMaterial::adjustStock(
+                                $cupMaterial->id,
+                                -$txItem->quantity,
+                                'order_deduction',
+                                "Cup untuk Pesanan #{$transaction->id} – {$product->name} x{$txItem->quantity}"
+                            );
+                        }
+                    }
+                }
+            }
+
+            // ── Update transaction status ─────────────────────────────────
+            $transaction->update([
+                'kitchen_status' => 'pending',
+                'payment_method' => $validated['payment_method'],
+                'payment_status' => 'unpaid',
+                'customer_name'  => $validated['customer_name'] ?? $transaction->customer_name,
+                'order_type'     => $validated['order_type'] ?? $transaction->order_type,
+                'amount_received' => $validated['amount_received'] ?? null,
+                'change_amount'   => $validated['change_amount'] ?? null,
+            ]);
+
+            DB::commit();
+            return response()->json(['success' => true, 'transaction' => $transaction->fresh()]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     private function resolveUser(Request $request)

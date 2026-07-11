@@ -11,7 +11,8 @@ import '../services/printer_service.dart';
 import '../widgets/custom_date_range_picker.dart';
 
 class HistoryTab extends StatefulWidget {
-  const HistoryTab({Key? key}) : super(key: key);
+  final VoidCallback? onOrderActivated;
+  const HistoryTab({Key? key, this.onOrderActivated}) : super(key: key);
 
   @override
   HistoryTabState createState() => HistoryTabState();
@@ -27,6 +28,11 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
   int? _weekYear;
   int? _weekNum;
   final Set<int> _selectedMonths = {}; // months as YYYYMM int
+
+  // ── Saved transactions ───────────────────────────────────────────────────
+  bool _showSaved = false;
+  List<dynamic> _savedTransactions = [];
+  bool _isLoadingSaved = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -63,7 +69,18 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
   }
 
   void refreshHistory() {
-    _fetchHistory();
+    if (_showSaved) {
+      _fetchSaved();
+    } else {
+      _fetchHistory();
+    }
+  }
+
+  void showSavedTab() {
+    setState(() {
+      _showSaved = true;
+    });
+    _fetchSaved();
   }
 
   Future<void> _fetchHistory() async {
@@ -78,6 +95,28 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
       _transactions = data;
       _isLoading = false;
     });
+  }
+
+  Future<void> _fetchSaved() async {
+    if (!mounted) return;
+    setState(() => _isLoadingSaved = true);
+    final data = await _apiService.getSavedTransactions();
+    if (!mounted) return;
+    setState(() {
+      _savedTransactions = data;
+      _isLoadingSaved = false;
+    });
+  }
+
+  Future<void> _deleteSaved(int id) async {
+    final ok = await _apiService.deleteSavedTransaction(id);
+    if (ok) {
+      setState(() => _savedTransactions.removeWhere((t) => t['id'] == id));
+      PopupNotification.show(context,
+        title: 'Pesanan Dihapus',
+        message: 'Transaksi tersimpan berhasil dihapus.',
+        type: PopupType.success);
+    }
   }
 
   Future<void> _downloadFile(String format) async {
@@ -159,45 +198,578 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
           _buildFilterBar(),
           
           Expanded(
-            child: _isLoading 
-              ? Center(child: CircularProgressIndicator(color: Colors.black))
-              : _transactions.isEmpty
-                ? _buildEmptyState()
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      // Dynamically calculate crossAxisCount based on screen width
-                      // This ensures cards fill the empty space when cart sidebar is minimized
-                      int crossAxisCount = constraints.maxWidth ~/ 220; 
-                      if (crossAxisCount < 2) crossAxisCount = 2; // minimum 2 columns
-                      
-                      // Hitung lebar item untuk menentukan aspect ratio agar tinggi card fix di 170
-                      double padding = 24; // 12 * 2 (EdgeInsets.all(12))
-                      double crossSpacing = 10 * (crossAxisCount - 1).toDouble();
-                      double itemWidth = (constraints.maxWidth - padding - crossSpacing) / crossAxisCount;
-                      double aspectRatio = itemWidth / 170; // Tinggi card dibuat fix 170
-                      
-                      return GridView.builder(
-                        padding: const EdgeInsets.all(12),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          childAspectRatio: aspectRatio,
-                        ),
-                        itemCount: _transactions.length,
-                        addAutomaticKeepAlives: false,
-                        addRepaintBoundaries: false,
-                        itemBuilder: (context, index) {
-                          return RepaintBoundary(
-                            child: _buildHistoryCard(_transactions[index]),
-                          );
-                        },
-                      );
-                    },
-                  ),
+            child: _showSaved
+              ? _buildSavedList()
+              : _isLoading 
+                ? Center(child: CircularProgressIndicator(color: Colors.black))
+                : _transactions.isEmpty
+                  ? _buildEmptyState()
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        int crossAxisCount = constraints.maxWidth ~/ 220; 
+                        if (crossAxisCount < 2) crossAxisCount = 2;
+                        double padding = 24;
+                        double crossSpacing = 10 * (crossAxisCount - 1).toDouble();
+                        double itemWidth = (constraints.maxWidth - padding - crossSpacing) / crossAxisCount;
+                        double aspectRatio = itemWidth / 170;
+                        return GridView.builder(
+                          padding: const EdgeInsets.all(12),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            childAspectRatio: aspectRatio,
+                          ),
+                          itemCount: _transactions.length,
+                          addAutomaticKeepAlives: false,
+                          addRepaintBoundaries: false,
+                          itemBuilder: (context, index) {
+                            return RepaintBoundary(
+                              child: _buildHistoryCard(_transactions[index]),
+                            );
+                          },
+                        );
+                      },
+                    ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSavedList() {
+    if (_isLoadingSaved) {
+      return const Center(child: CircularProgressIndicator(color: Colors.black));
+    }
+    if (_savedTransactions.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.bookmark_border_rounded, size: 64, color: Colors.grey[300]),
+            const SizedBox(height: 12),
+            Text('Belum ada transaksi tersimpan',
+              style: TextStyle(color: Colors.grey[500], fontSize: 14)),
+            const SizedBox(height: 6),
+            Text('Gunakan tombol "Simpan" saat checkout untuk menyimpan pesanan ke sini.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+          ],
+        ),
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.all(12),
+      itemCount: _savedTransactions.length,
+      itemBuilder: (ctx, i) {
+        final trx = _savedTransactions[i];
+        final items = (trx['items'] as List?) ?? [];
+        final total = trx['total'] ?? 0;
+        final customer = trx['customer_name'] ?? 'Tamu';
+        final createdAt = trx['created_at']?.toString() ?? '';
+        final dateStr = createdAt.length >= 10 ? createdAt.substring(0, 10) : createdAt;
+        return GestureDetector(
+          onTap: () => _showSavedDetailSheet(trx),
+          child: Card(
+            margin: const EdgeInsets.only(bottom: 10),
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: Color(0xFFE8DDD6), width: 1.5),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.bookmark_rounded, size: 16, color: Color(0xFF5D4037)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(customer,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      ),
+                      Text(AppFormat.currency((total as num).toDouble()),
+                        style: TextStyle(fontWeight: FontWeight.bold,
+                          color: Colors.green[700], fontSize: 14)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text('${items.length} item  \u2022  $dateStr',
+                    style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    children: items.take(4).map<Widget>((it) {
+                      final name = it['product']?['name'] ?? '-';
+                      final qty = it['quantity'] ?? 1;
+                      return Chip(
+                        label: Text('${qty}x $name',
+                          style: const TextStyle(fontSize: 10)),
+                        padding: EdgeInsets.zero,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        backgroundColor: Colors.grey[100],
+                        side: BorderSide.none,
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          icon: const Icon(Icons.delete_outline, size: 16, color: Colors.red),
+                          label: const Text('Hapus',
+                            style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => _deleteSaved(trx['id']),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.send_rounded, size: 16),
+                          label: const Text('Proses',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5D4037),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          onPressed: () => _showSavedDetailSheet(trx),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // ── Bottom sheet detail for saved transaction ──────────────────────────────
+  void _showSavedDetailSheet(Map<String, dynamic> trx) {
+    final items = (trx['items'] as List?) ?? [];
+    final total = ((trx['total'] ?? 0) as num).toDouble();
+    final customer = trx['customer_name'] ?? 'Tamu';
+    final orderType = trx['order_type'] ?? 'dine_in';
+    final nameController = TextEditingController(text: customer);
+    String selectedPayment = 'cash';
+    double amountReceived = 0;
+    double changeAmount = 0;
+    bool isLoading = false;
+    bool globalUseCup = true;
+    
+    // Check if any item is a drink
+    bool hasDrinks = false;
+    for (var it in items) {
+      final cat = it['product']?['category']?['name']?.toString().toLowerCase() ?? '';
+      if (cat.contains('kopi') || cat.contains('coffee') || cat.contains('non-kopi')) {
+        hasDrinks = true;
+        break;
+      }
+    }
+
+    final outerCtx = context;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: EdgeInsets.only(
+                left: 24, right: 24, top: 20,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Handle bar
+                    Center(
+                      child: Container(
+                        width: 40, height: 4,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+
+                    // Title
+                    Row(
+                      children: [
+                        const Icon(Icons.bookmark_rounded, size: 20, color: Color(0xFF5D4037)),
+                        const SizedBox(width: 8),
+                        const Text('Konfirmasi Pesanan Tersimpan',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Customer name
+                    const Text('Nama Pelanggan',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                    const SizedBox(height: 8),
+                    TextField(
+                      enabled: !isLoading,
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        hintText: 'Default: Tamu',
+                        prefixIcon: const Icon(Icons.person_outline, size: 18),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!)),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Items list
+                    const Text('Detail Pesanan',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Column(
+                        children: items.asMap().entries.map<Widget>((entry) {
+                          final it = entry.value;
+                          final product = it['product'] ?? {};
+                          final name = product['name'] ?? '-';
+                          final qty = it['quantity'] ?? 1;
+                          final unitPrice = ((it['unit_price'] ?? product['price'] ?? 0) as num).toDouble();
+                          final itemTotal = unitPrice * qty;
+                          final notes = it['notes']?.toString() ?? '';
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              border: entry.key < items.length - 1
+                                ? Border(bottom: BorderSide(color: Colors.grey[200]!))
+                                : null,
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 28, height: 28,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF5D4037).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Center(child: Text('${qty}x',
+                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF5D4037)))),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                      if (notes.isNotEmpty)
+                                        Text(notes, style: TextStyle(fontSize: 10, color: Colors.grey[500])),
+                                    ],
+                                  ),
+                                ),
+                                Text(AppFormat.currency(itemTotal),
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Payment method
+                    const Text('Metode Pembayaran',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: isLoading ? null : () => setSheetState(() => selectedPayment = 'cash'),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: selectedPayment == 'cash' ? const Color(0xFF5D4037) : Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: selectedPayment == 'cash' ? const Color(0xFF5D4037) : Colors.grey[300]!,
+                                  width: selectedPayment == 'cash' ? 2 : 1,
+                                ),
+                              ),
+                              child: Column(children: [
+                                Icon(Icons.payments_outlined, size: 24,
+                                  color: selectedPayment == 'cash' ? Colors.white : Colors.grey[600]!),
+                                const SizedBox(height: 6),
+                                Text('Tunai', style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13,
+                                  color: selectedPayment == 'cash' ? Colors.white : Colors.grey[700]!)),
+                              ]),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: isLoading ? null : () => setSheetState(() => selectedPayment = 'qris'),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                color: selectedPayment == 'qris' ? const Color(0xFF5D4037) : Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: selectedPayment == 'qris' ? const Color(0xFF5D4037) : Colors.grey[300]!,
+                                  width: selectedPayment == 'qris' ? 2 : 1,
+                                ),
+                              ),
+                              child: Column(children: [
+                                Icon(Icons.qr_code_scanner_outlined, size: 24,
+                                  color: selectedPayment == 'qris' ? Colors.white : Colors.grey[600]!),
+                                const SizedBox(height: 6),
+                                Text('QRIS', style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13,
+                                  color: selectedPayment == 'qris' ? Colors.white : Colors.grey[700]!)),
+                              ]),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Global Cup/Gelas Toggle (if cart has drinks)
+                    if (hasDrinks) ...[
+                      const Text('Penyajian Minuman', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setSheetState(() => globalUseCup = true),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: globalUseCup ? Colors.brown[50] : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: globalUseCup ? Colors.brown[300]! : Colors.grey[200]!,
+                                    width: globalUseCup ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.coffee, size: 20, color: globalUseCup ? Colors.brown[700] : Colors.grey[600]),
+                                    const SizedBox(width: 8),
+                                    Text('Gunakan Cup',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: globalUseCup ? Colors.brown[700] : Colors.grey[700]!,
+                                        )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: InkWell(
+                              onTap: () => setSheetState(() => globalUseCup = false),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: !globalUseCup ? Colors.blue[50] : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: !globalUseCup ? Colors.blue[300]! : Colors.grey[200]!,
+                                    width: !globalUseCup ? 1.5 : 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.local_drink, size: 20, color: !globalUseCup ? Colors.blue[700] : Colors.grey[600]),
+                                    const SizedBox(width: 8),
+                                    Text('Gunakan Gelas',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: !globalUseCup ? Colors.blue[700] : Colors.grey[700]!,
+                                        )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // Total summary
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[200]!),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total Pembayaran', style: TextStyle(fontWeight: FontWeight.bold)),
+                          Text(AppFormat.currency(total),
+                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 16)),
+                        ],
+                      ),
+                    ),
+
+                    // Cash input
+                    if (selectedPayment == 'cash') ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Column(children: [
+                          TextField(
+                            enabled: !isLoading,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            decoration: InputDecoration(
+                              labelText: 'Input Uang',
+                              prefixText: 'Rp ',
+                              filled: true,
+                              fillColor: Colors.grey[50],
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
+                            ),
+                            onChanged: (val) {
+                              setSheetState(() {
+                                final raw = val.replaceAll(RegExp(r'[^0-9]'), '');
+                                amountReceived = double.tryParse(raw) ?? 0;
+                                changeAmount = amountReceived - total;
+                                if (changeAmount < 0) changeAmount = 0;
+                              });
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Kembalian', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                              Text(AppFormat.currency(changeAmount),
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,
+                                  color: changeAmount > 0 ? Colors.green[700] : Colors.grey)),
+                            ],
+                          ),
+                          if (amountReceived > 0 && amountReceived < total)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Row(children: [
+                                const Icon(Icons.warning_amber_rounded, size: 14, color: Colors.red),
+                                const SizedBox(width: 4),
+                                Text('Uang kurang ${AppFormat.currency(total - amountReceived)}',
+                                  style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                              ]),
+                            ),
+                        ]),
+                      ),
+                    ],
+
+                    const SizedBox(height: 20),
+
+                    // Konfirmasi button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5D4037),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: (isLoading || (selectedPayment == 'cash' && amountReceived < total))
+                          ? null
+                          : () async {
+                              setSheetState(() => isLoading = true);
+                              final payload = {
+                                'payment_method': selectedPayment,
+                                'customer_name': nameController.text.isNotEmpty ? nameController.text : customer,
+                                'order_type': orderType,
+                                'use_cup': globalUseCup,
+                                if (selectedPayment == 'cash') 'amount_received': amountReceived,
+                                if (selectedPayment == 'cash') 'change_amount': changeAmount,
+                              };
+                              final result = await _apiService.activateSavedTransaction(trx['id'], payload);
+                              if (!ctx.mounted) return;
+                              Navigator.pop(sheetCtx);
+                              if (result['success'] == true) {
+                                _fetchSaved();
+                                widget.onOrderActivated?.call();
+                                PopupNotification.show(outerCtx,
+                                  title: 'Pesanan Diproses! 🎉',
+                                  message: 'Pesanan masuk ke Active Orders.',
+                                  type: PopupType.success);
+                              } else {
+                                final errMsg = result['details'] is List
+                                    ? (result['details'] as List).join('\n')
+                                    : (result['error'] ?? 'Gagal mengaktifkan pesanan');
+                                PopupNotification.show(outerCtx,
+                                  title: 'Gagal Memproses',
+                                  message: errMsg.toString(),
+                                  type: PopupType.error);
+                              }
+                            },
+                        child: isLoading
+                          ? const SizedBox(width: 24, height: 24,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white), strokeWidth: 2.5))
+                          : const Text('Konfirmasi Pesanan',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -209,7 +781,7 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
       {'val': 'monthly', 'label': 'Bulan Ini'},
     ];
 
-    final hasCustomFilter = !['daily', 'weekly', 'monthly'].contains(_selectedFilter);
+    final hasCustomFilter = !['daily', 'weekly', 'monthly'].contains(_selectedFilter) && !_showSaved;
 
     return Container(
       color: Colors.white,
@@ -221,13 +793,47 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
-                  ...quickFilters.map((f) {
-                    final sel = _selectedFilter == f['val'];
+                  // ── Tersimpan chip ──
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() => _showSaved = !_showSaved);
+                        if (_showSaved) _fetchSaved();
+                      },
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _showSaved ? const Color(0xFF5D4037) : Colors.amber[50],
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: _showSaved ? const Color(0xFF5D4037) : const Color(0xFFBFA98A),
+                          ),
+                        ),
+                        child: Row(mainAxisSize: MainAxisSize.min, children: [
+                          Icon(Icons.bookmark_rounded, size: 12,
+                            color: _showSaved ? Colors.white : const Color(0xFF5D4037)),
+                          const SizedBox(width: 5),
+                          Text('Tersimpan', style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w600,
+                            color: _showSaved ? Colors.white : const Color(0xFF5D4037),
+                          )),
+                        ]),
+                      ),
+                    ),
+                  ),
+                  // divider
+                  Container(width: 1, height: 20, color: Colors.grey[300],
+                    margin: const EdgeInsets.only(right: 8)),
+                  // quick filters (hidden when _showSaved)
+                  if (!_showSaved) ...quickFilters.map((f) {
+                    final sel = _selectedFilter == f['val'] && !_showSaved;
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: GestureDetector(
                         onTap: () {
-                          setState(() { _selectedFilter = f['val']!; });
+                          setState(() { _selectedFilter = f['val']!; _showSaved = false; });
                           _fetchHistory();
                         },
                         child: AnimatedContainer(
@@ -276,8 +882,8 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
               ),
             ),
           ),
-          // Filter icon button
-          IconButton(
+          // Filter icon button (hidden when in saved mode)
+          if (!_showSaved) IconButton(
             icon: Icon(Icons.date_range_rounded, size: 20,
               color: hasCustomFilter ? const Color(0xFF5D4037) : Colors.grey[600]),
             onPressed: _showFilterSheet,

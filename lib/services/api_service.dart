@@ -11,7 +11,7 @@ class ApiService {
   factory ApiService() => _instance;
 
   // === URL SERVER ===
-  static const String baseUrl = 'http://100.67.41.122:8000/api';
+  static const String baseUrl = 'http://100.123.248.104:8000/api';
   // ========================================
   late final Dio _dio;
 
@@ -202,6 +202,64 @@ class ApiService {
         print('Unknown error updating status: $e');
       }
       return false;
+    }
+  }
+
+  // ── Saved (Held) Transactions ────────────────────────────────────────────
+
+  Future<Map<String, dynamic>> saveTransaction(Map<String, dynamic> payload) async {
+    try {
+      print('=== SAVE TRANSACTION REQUEST ===');
+      print('Payload: $payload');
+      final response = await _dio.post('/transactions/save', data: payload);
+      print('=== SAVE TRANSACTION RESPONSE ===');
+      print('Status: ${response.statusCode}');
+      print('Data: ${response.data}');
+      return response.data ?? {'success': false};
+    } catch (e) {
+      print('=== SAVE TRANSACTION ERROR ===');
+      if (e is DioException) {
+        print('Status: ${e.response?.statusCode}');
+        print('Response data: ${e.response?.data}');
+        print('Message: ${e.message}');
+      } else {
+        print('Error: $e');
+      }
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
+  Future<List<dynamic>> getSavedTransactions() async {
+    try {
+      final response = await _dio.get('/transactions/saved');
+      return response.data ?? [];
+    } catch (e) {
+      print('Failed to load saved transactions: $e');
+      return [];
+    }
+  }
+
+  Future<bool> deleteSavedTransaction(int id) async {
+    try {
+      final response = await _dio.delete('/transactions/saved/$id');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Failed to delete saved transaction: $e');
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> activateSavedTransaction(int id, Map<String, dynamic> payload) async {
+    try {
+      final response = await _dio.post('/transactions/saved/$id/activate', data: payload);
+      return response.data ?? {'success': false};
+    } catch (e) {
+      if (e is DioException) {
+        print('Activate saved error: ${e.response?.data}');
+        final data = e.response?.data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+      }
+      return {'success': false, 'error': e.toString()};
     }
   }
 

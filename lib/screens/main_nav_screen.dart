@@ -51,7 +51,11 @@ class _MainNavScreenState extends State<MainNavScreen> {
 
     _pages = [
       HomeTab(),
-      if (canHistory) HistoryTab(key: _historyKey),
+      if (canHistory) HistoryTab(key: _historyKey, onOrderActivated: () {
+        _activeOrdersKey.currentState?.refreshOrders();
+        int idx = _pages.indexWhere((p) => p is ActiveOrdersTab);
+        if (idx != -1) _onItemTapped(idx);
+      }),
       ActiveOrdersTab(
         key: _activeOrdersKey, 
         onNavigateToHistory: canHistory ? () {
@@ -430,7 +434,16 @@ class _MainNavScreenState extends State<MainNavScreen> {
                     )
                   ),
                   Expanded(
-                    child: OrdersTab(onOrderFinished: () => _onItemTapped(2)),
+                    child: OrdersTab(
+                      onOrderFinished: () => _onItemTapped(2),
+                      onOrderSaved: () {
+                        int idx = _pages.indexWhere((p) => p is HistoryTab);
+                        if (idx != -1) {
+                          _onItemTapped(idx);
+                          _historyKey.currentState?.showSavedTab();
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -460,6 +473,14 @@ class _MainNavScreenState extends State<MainNavScreen> {
                 Navigator.pop(sheetContext); // Close bottom sheet
                 int idx = _pages.indexWhere((p) => p is ActiveOrdersTab);
                 if (idx != -1) _onItemTapped(idx);
+              },
+              onOrderSaved: () {
+                Navigator.pop(sheetContext); // Close bottom sheet
+                int idx = _pages.indexWhere((p) => p is HistoryTab);
+                if (idx != -1) {
+                  _onItemTapped(idx);
+                  _historyKey.currentState?.showSavedTab();
+                }
               },
             ),
           ),
