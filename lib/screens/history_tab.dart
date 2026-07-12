@@ -109,13 +109,54 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
   }
 
   Future<void> _deleteSaved(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Hapus Pesanan', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: const Text('Apakah Anda yakin ingin menghapus pesanan tersimpan ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator(color: Colors.white)),
+    );
+
     final ok = await _apiService.deleteSavedTransaction(id);
+    
+    if (!mounted) return;
+    Navigator.pop(context); // Close loading dialog
+
     if (ok) {
       setState(() => _savedTransactions.removeWhere((t) => t['id'] == id));
       PopupNotification.show(context,
         title: 'Pesanan Dihapus',
         message: 'Transaksi tersimpan berhasil dihapus.',
         type: PopupType.success);
+    } else {
+      PopupNotification.show(context,
+        title: 'Gagal Menghapus',
+        message: 'Terjadi kesalahan saat menghapus pesanan.',
+        type: PopupType.error);
     }
   }
 

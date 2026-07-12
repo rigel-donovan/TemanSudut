@@ -182,7 +182,7 @@ class CartProvider with ChangeNotifier {
   }
 
   void addToCart(Product product, {String? notes}) {
-    int index = _items.indexWhere((item) => item.product.id == product.id && item.notes == notes);
+    int index = _items.indexWhere((item) => item.product.id == product.id && item.notes == notes && item.extraCharge == 0 && item.isFree == false);
     if (index >= 0) {
       _items[index].quantity++;
     } else {
@@ -219,6 +219,23 @@ class CartProvider with ChangeNotifier {
     cartItem.extraCharge = charge;
     cartItem.extraChargeLabel = label;
     notifyListeners();
+  }
+
+  void splitExtraCharge(CartItem originalItem, double charge, String? label) {
+    if (originalItem.quantity > 1) {
+      originalItem.quantity -= 1;
+      final newItem = CartItem(
+        product: originalItem.product,
+        quantity: 1,
+        notes: originalItem.notes,
+        extraCharge: charge,
+        extraChargeLabel: label,
+        isFree: originalItem.isFree,
+        useCup: originalItem.useCup,
+      );
+      _items.add(newItem);
+      notifyListeners();
+    }
   }
 
   void toggleUseCup(CartItem cartItem) {

@@ -936,6 +936,7 @@ class OrdersTab extends StatelessWidget {
     showDialog(
       context: context,
       builder: (dialogCtx) {
+        bool splitCharge = false;
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
             return AlertDialog(
@@ -1020,6 +1021,37 @@ class OrdersTab extends StatelessWidget {
                       ),
                       onChanged: (_) => setDialogState(() {}),
                     ),
+                    if (item.quantity > 1) ...[
+                      SizedBox(height: 20),
+                      Divider(height: 1),
+                      SizedBox(height: 16),
+                      Text('Terapkan Ekstra Biaya ke:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+                      SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: RadioListTile<bool>(
+                              title: Text('Semua (${item.quantity} item)', style: TextStyle(fontSize: 13)),
+                              value: false,
+                              groupValue: splitCharge,
+                              onChanged: (val) => setDialogState(() => splitCharge = val!),
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                            ),
+                          ),
+                          Expanded(
+                            child: RadioListTile<bool>(
+                              title: Text('1 Item Saja (Pisah)', style: TextStyle(fontSize: 13)),
+                              value: true,
+                              groupValue: splitCharge,
+                              onChanged: (val) => setDialogState(() => splitCharge = val!),
+                              contentPadding: EdgeInsets.zero,
+                              dense: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -1037,7 +1069,12 @@ class OrdersTab extends StatelessWidget {
                   ),
                   onPressed: () {
                     double charge = double.tryParse(amountCtrl.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
-                    cart.updateExtraCharge(item, charge, label: labelCtrl.text.isNotEmpty ? labelCtrl.text : null);
+                    final label = labelCtrl.text.isNotEmpty ? labelCtrl.text : null;
+                    if (splitCharge && item.quantity > 1) {
+                      cart.splitExtraCharge(item, charge, label);
+                    } else {
+                      cart.updateExtraCharge(item, charge, label: label);
+                    }
                     Navigator.pop(dialogCtx);
                   },
                   child: Text('Simpan', style: TextStyle(fontWeight: FontWeight.bold)),
