@@ -77,49 +77,7 @@ class TransactionController extends Controller
             $productIds = array_column($validated['items'], 'product_id');
             $productMap = Product::with('ingredients.rawMaterial')->whereIn('id', $productIds)->get()->keyBy('id');
 
-            // ── Validate ingredient stock sufficiency ────────────────────────
-            $shortages = [];
-            foreach ($validated['items'] as $item) {
-
-                $product = $productMap[$item['product_id']];
-                $itemUsesCup = isset($item['use_cup']) ? (bool)$item['use_cup'] : true;
-
-                foreach ($product->ingredients as $ingredient) {
-                    if (!$ingredient->rawMaterial)
-                        continue;
-                        
-                    // Skip 'Cup' ingredient shortage check if use_cup is false
-                    if (strtolower($ingredient->rawMaterial->name) === 'cup' && !$itemUsesCup) {
-                        continue;
-                    }
-
-                    $needed = $ingredient->quantity_used * $item['quantity'];
-                    $available = (float) $ingredient->rawMaterial->stock;
-                    if ($needed > $available) {
-                        $shortages[] = [
-                            'product' => $product->name,
-                            'ingredient' => $ingredient->rawMaterial->name,
-                            'needed' => $needed,
-                            'available' => $available,
-                            'unit' => $ingredient->rawMaterial->unit_small ?? $ingredient->rawMaterial->unit,
-                        ];
-                    }
-                }
-            }
-
-            if (!empty($shortages)) {
-                DB::rollBack();
-                $messages = array_map(
-                    fn($s) =>
-                    "{$s['ingredient']}: butuh {$s['needed']} {$s['unit']}, tersedia {$s['available']} {$s['unit']} (untuk {$s['product']})",
-                    $shortages
-                );
-                return response()->json([
-                    'message' => 'Stok bahan baku tidak mencukupi',
-                    'shortages' => $shortages,
-                    'details' => $messages,
-                ], 422);
-            }
+            // ── Stok bahan baku diperbolehkan minus (tidak memblokir pesanan) ──
 
             $subtotal = 0;
             $items = [];
@@ -131,9 +89,7 @@ class TransactionController extends Controller
                 $itemSubtotal = ($product->price + $extraCharge) * $item['quantity'];
                 $subtotal += $itemSubtotal;
 
-                if ($product->stock >= $item['quantity']) {
-                    $product->decrement('stock', $item['quantity']);
-                }
+                $product->decrement('stock', $item['quantity']);
 
                 $items[] = [
                     'product_id' => $product->id,
@@ -454,35 +410,7 @@ class TransactionController extends Controller
         try {
             DB::beginTransaction();
 
-            // ── Validate ingredient stock ─────────────────────────────────
-            $shortages = [];
-            $itemUsesCup = (bool) $request->input('use_cup', true);
-            foreach ($transaction->items as $txItem) {
-                $product = $txItem->product;
-                if (!$product) continue;
-
-                foreach ($product->ingredients as $ingredient) {
-                    if (!$ingredient->rawMaterial) continue;
-                    
-                    if (strtolower($ingredient->rawMaterial->name) === 'cup' && !$itemUsesCup) {
-                        continue;
-                    }
-
-                    $needed    = $ingredient->quantity_used * $txItem->quantity;
-                    $available = (float) $ingredient->rawMaterial->stock;
-                    if ($needed > $available) {
-                        $shortages[] = "{$ingredient->rawMaterial->name}: butuh {$needed}, tersedia {$available} (untuk {$product->name})";
-                    }
-                }
-            }
-            if (!empty($shortages)) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'error'   => 'Stok bahan baku tidak mencukupi',
-                    'details' => $shortages,
-                ], 422);
-            }
+            // ── Stok bahan baku diperbolehkan minus (tidak memblokir pesanan) ──
 
             // ── Deduct product stock & raw materials ──────────────────────
             $useCup = (bool) $request->input('use_cup', true);
@@ -490,9 +418,7 @@ class TransactionController extends Controller
                 $product = $txItem->product;
                 if (!$product) continue;
 
-                if ($product->stock >= $txItem->quantity) {
-                    $product->decrement('stock', $txItem->quantity);
-                }
+                $product->decrement('stock', $txItem->quantity);
                 
                 $cupDeducted = false;
 

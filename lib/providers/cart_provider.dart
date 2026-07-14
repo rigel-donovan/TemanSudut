@@ -26,10 +26,9 @@ class CartItem {
 
   double get subtotal => isFree ? 0 : (product.price + extraCharge) * quantity;
 
-  /// Whether this product is a drink (category: Kopi or Non-Kopi)
   bool get isDrink {
     final catName = product.category?.name.toLowerCase() ?? '';
-    return catName.contains('kopi') || catName.contains('coffee') || catName.contains('non-kopi');
+    return catName.contains('kopi') || catName.contains('coffee') || catName.contains('non-kopi') || catName.contains('non coffee') || catName.contains('milk');
   }
 }
 

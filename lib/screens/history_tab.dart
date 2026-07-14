@@ -414,7 +414,7 @@ class HistoryTabState extends State<HistoryTab> with AutomaticKeepAliveClientMix
     bool hasDrinks = false;
     for (var it in items) {
       final cat = it['product']?['category']?['name']?.toString().toLowerCase() ?? '';
-      if (cat.contains('kopi') || cat.contains('coffee') || cat.contains('non-kopi')) {
+      if (cat.contains('kopi') || cat.contains('coffee') || cat.contains('non-kopi') || cat.contains('non coffee') || cat.contains('milk')) {
         hasDrinks = true;
         break;
       }

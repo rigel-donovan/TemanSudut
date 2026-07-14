@@ -55,7 +55,7 @@ class RawMaterial extends Model
     ): static {
         $material = static::findOrFail($rawMaterialId);
         $stockBefore = (float) $material->stock;
-        $stockAfter = max(0, $stockBefore + $quantity);
+        $stockAfter = $stockBefore + $quantity;
 
         $material->update(['stock' => $stockAfter]);
 
