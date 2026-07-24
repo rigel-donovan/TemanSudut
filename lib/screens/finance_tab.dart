@@ -8,6 +8,7 @@ import '../providers/auth_provider.dart';
 import '../widgets/popup_notification.dart';
 import '../widgets/custom_date_range_picker.dart';
 import '../widgets/line_popup.dart';
+import '../services/cache_service.dart';
 
 class FinanceTab extends StatefulWidget {
   const FinanceTab({Key? key}) : super(key: key);
@@ -22,6 +23,15 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
   List<dynamic> _entries = [];
   Map<String, dynamic> _summary = {'income': 0.0, 'expense': 0.0, 'net': 0.0};
   Map<String, dynamic> _chartData = {'labels': <String>[], 'incomes': <double>[], 'expenses': <double>[]};
+  
+  List<Map<String, dynamic>> _allocations = [
+    {'label': 'Operasional', 'pct': 40, 'color': 0xFF1E88E5},
+    {'label': 'Gaji Karyawan', 'pct': 20, 'color': 0xFF3F51B5},
+    {'label': 'Dana Darurat', 'pct': 10, 'color': 0xFFFB8C00},
+    {'label': 'Pajak & Perizinan', 'pct': 10, 'color': 0xFFF44336},
+    {'label': 'Pengembangan Bisnis', 'pct': 10, 'color': 0xFF009688},
+    {'label': 'Keuntungan Owner', 'pct': 15, 'color': 0xFFFFA000},
+  ];
 
   bool _isLoading = true;
   String _filterSummary = 'monthly';   
@@ -52,8 +62,28 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
 
   Future<void> _loadAll() async {
     setState(() => _isLoading = true);
-    await Future.wait([_loadSummary(), _loadEntries(), _loadChart()]);
+    await Future.wait([_loadSummary(), _loadEntries(), _loadChart(), _loadAllocations()]);
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _loadAllocations() async {
+    final cached = await CacheService.getFinanceAllocations();
+    if (cached != null && mounted) {
+      if (cached is Map) {
+        final List<Map<String, dynamic>> migrated = [];
+        final defaultColors = [0xFF1E88E5, 0xFF3F51B5, 0xFFFB8C00, 0xFFF44336, 0xFF009688, 0xFFFFA000];
+        int i = 0;
+        cached.forEach((key, value) {
+          migrated.add({'label': key, 'pct': value as int, 'color': defaultColors[i % defaultColors.length]});
+          i++;
+        });
+        setState(() => _allocations = migrated);
+      } else if (cached is List) {
+        setState(() {
+          _allocations = cached.map((e) => Map<String, dynamic>.from(e)).toList();
+        });
+      }
+    }
   }
 
   Future<void> _loadSummary() async {
@@ -89,9 +119,11 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
     final notesCtrl = TextEditingController(text: entry?['notes'] ?? '');
     DateTime selectedDate = entry != null ? DateTime.parse(entry['date']) : DateTime.now();
     String? selectedCategory = entry?['category'];
+    String? selectedAllocation = entry?['allocation'];
 
     final incomeCategories = ['Penjualan', 'Bonus', 'Investasi', 'Lain-lain'];
     final expenseCategories = ['Belanja Bahan', 'Gaji Karyawan', 'Listrik & Air', 'Sewa Tempat', 'Peralatan', 'Operasional', 'Marketing', 'Lain-lain'];
+    final allocationOptions = _allocations.map((e) => e['label'] as String).toList();
 
     showModalBottomSheet(
       context: context,
@@ -108,7 +140,8 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
                 borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
               ),
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-              child: Column(
+              child: SingleChildScrollView(
+                child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -119,9 +152,9 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
 
                   // Type selector
                   Row(children: [
-                    Expanded(child: _typeButton('income', 'Pemasukan', Icons.trending_up, selectedType, (v) => setModal(() { selectedType = v; selectedCategory = null; }))),
+                    Expanded(child: _typeButton('income', 'Pemasukan', Icons.trending_up, selectedType, (v) => setModal(() { selectedType = v; selectedCategory = null; selectedAllocation = null; }))),
                     const SizedBox(width: 10),
-                    Expanded(child: _typeButton('expense', 'Pengeluaran', Icons.trending_down, selectedType, (v) => setModal(() { selectedType = v; selectedCategory = null; }))),
+                    Expanded(child: _typeButton('expense', 'Pengeluaran', Icons.trending_down, selectedType, (v) => setModal(() { selectedType = v; selectedCategory = null; selectedAllocation = null; }))),
                   ]),
                   const SizedBox(height: 16),
 
@@ -142,6 +175,38 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
                     );
                   }).toList()),
                   const SizedBox(height: 16),
+
+                  // Allocation picker (only for expense)
+                  if (selectedType == 'expense') ...[
+                    Text('Alokasi Anggaran', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+                    const SizedBox(height: 8),
+                    Wrap(spacing: 8, runSpacing: 6, children: allocationOptions.map((alloc) {
+                      final sel = selectedAllocation == alloc;
+                      return GestureDetector(
+                        onTap: () => setModal(() => selectedAllocation = sel ? null : alloc),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: sel ? const Color(0xFF5D4037) : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(20),
+                            border: sel ? null : Border.all(color: Colors.grey[300]!),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (sel) ...[
+                                const Icon(Icons.check_circle, size: 14, color: Colors.white),
+                                const SizedBox(width: 4),
+                              ],
+                              Text(alloc, style: TextStyle(fontSize: 12, color: sel ? Colors.white : Colors.black87, fontWeight: sel ? FontWeight.bold : FontWeight.normal)),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList()),
+                    const SizedBox(height: 16),
+                  ],
 
                   // Description
                   TextFormField(
@@ -206,6 +271,7 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
                           'date': '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
                           'notes': notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
                           if (selectedCategory != null) 'category': selectedCategory,
+                          'allocation': selectedType == 'expense' ? selectedAllocation : null,
                         };
                         Navigator.pop(ctx2);
                         bool ok;
@@ -231,6 +297,7 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
                     ),
                   ),
                 ],
+              ),
               ),
             ),
           );
@@ -320,12 +387,322 @@ class FinanceTabState extends State<FinanceTab> with AutomaticKeepAliveClientMix
                 children: [
                   _buildSummaryCards(),
                   const SizedBox(height: 16),
+                  _buildProfitAllocation(),
+                  const SizedBox(height: 16),
                   _buildChartSection(),
                   const SizedBox(height: 16),
                   _buildEntriesList(),
                 ],
               ),
             ),
+    );
+  }
+
+  void _showCustomAllocationSheet() {
+    final List<TextEditingController> labelCtrls = [];
+    final List<TextEditingController> pctCtrls = [];
+    final List<int> colors = [];
+    for (var alloc in _allocations) {
+      labelCtrls.add(TextEditingController(text: alloc['label']));
+      pctCtrls.add(TextEditingController(text: alloc['pct'].toString()));
+      colors.add(alloc['color'] as int);
+    }
+    final defaultColors = [0xFF1E88E5, 0xFF3F51B5, 0xFFFB8C00, 0xFFF44336, 0xFF009688, 0xFFFFA000];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx2, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx2).viewInsets.bottom),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(child: Container(margin: const EdgeInsets.only(top: 12, bottom: 20), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)))),
+                      const Text('Set Alokasi Net Profit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                      const SizedBox(height: 8),
+                      Text('Set nama dan persentase alokasi sesuai kebutuhan', style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                      const SizedBox(height: 20),
+                      ...List.generate(labelCtrls.length, (index) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: labelCtrls[index],
+                                  decoration: InputDecoration(
+                                    hintText: 'Nama Alokasi',
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
+                                    focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFF5D4037), width: 2)),
+                                    fillColor: Colors.grey[50],
+                                    filled: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              SizedBox(
+                                width: 80,
+                                child: TextFormField(
+                                  controller: pctCtrls[index],
+                                  keyboardType: TextInputType.number,
+                                  textAlign: TextAlign.center,
+                                  decoration: InputDecoration(
+                                    suffixText: '%',
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
+                                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide(color: Colors.grey[300]!)),
+                                    focusedBorder: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10)), borderSide: BorderSide(color: Color(0xFF5D4037), width: 2)),
+                                    fillColor: Colors.grey[50],
+                                    filled: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              IconButton(
+                                icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () {
+                                  setModalState(() {
+                                    labelCtrls.removeAt(index);
+                                    pctCtrls.removeAt(index);
+                                    colors.removeAt(index);
+                                  });
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 10),
+                      TextButton.icon(
+                        onPressed: () {
+                          setModalState(() {
+                            labelCtrls.add(TextEditingController());
+                            pctCtrls.add(TextEditingController(text: '0'));
+                            colors.add(defaultColors[labelCtrls.length % defaultColors.length]);
+                          });
+                        },
+                        icon: const Icon(Icons.add_circle_outline, color: Color(0xFF5D4037)),
+                        label: const Text('Tambah Alokasi', style: TextStyle(color: Color(0xFF5D4037), fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF5D4037),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () async {
+                            final List<Map<String, dynamic>> newAllocs = [];
+                            for (int i = 0; i < labelCtrls.length; i++) {
+                              newAllocs.add({
+                                'label': labelCtrls[i].text.trim().isEmpty ? 'Alokasi ${i + 1}' : labelCtrls[i].text.trim(),
+                                'pct': int.tryParse(pctCtrls[i].text) ?? 0,
+                                'color': colors[i],
+                              });
+                            }
+                            await CacheService.saveFinanceAllocations(newAllocs);
+                            setState(() => _allocations = newAllocs);
+                            Navigator.pop(ctx);
+                            PopupNotification.show(context, title: 'Berhasil', message: 'Alokasi berhasil diperbarui.', type: PopupType.success);
+                          },
+                          child: const Text('Simpan Perubahan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildProfitAllocation() {
+    final income = (_summary['income'] as num?)?.toDouble() ?? 0.0;
+    final expense = (_summary['expense'] as num?)?.toDouble() ?? 0.0;
+    final net = income - expense;
+    final allocationSpent = (_summary['allocation_spent'] as Map<String, dynamic>?) ?? {};
+
+    // Bar max = largest allocation for proportional width
+    final maxPct = _allocations.fold<int>(0, (prev, a) => (a['pct'] as int) > prev ? (a['pct'] as int) : prev);
+    final totalPct = _allocations.fold<int>(0, (prev, a) => prev + (a['pct'] as int));
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(color: const Color(0xFF5D4037).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                child: const Icon(Icons.pie_chart_outline, color: Color(0xFF5D4037), size: 18),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text('Alokasi Net Profit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              ),
+              GestureDetector(
+                onTap: _showCustomAllocationSheet,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey[300]!),
+                  ),
+                  child: Icon(Icons.edit_outlined, size: 16, color: Colors.grey[700]),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: net >= 0 ? Colors.green[50] : Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  AppFormat.currency(net),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: net >= 0 ? Colors.green[700] : Colors.red[700]),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Berdasarkan filter: ${_summaryDateRange != null ? _displayRange(_summaryDateRange!) : _filterSummary == 'daily' ? 'Hari Ini' : _filterSummary == 'weekly' ? 'Minggu Ini' : 'Bulan Ini'}',
+            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+          ),
+          const SizedBox(height: 16),
+          ..._allocations.map((a) {
+            final pct = a['pct'] as int;
+            final allocated = net * pct / 100;
+            final label = a['label'] as String;
+            final spent = (allocationSpent[label] as num?)?.toDouble() ?? 0.0;
+            final remaining = allocated - spent;
+            final color = Color(a['color'] as int);
+            // Progress: how much of the allocation has been spent
+            final spentRatio = allocated > 0 ? (spent / allocated).clamp(0.0, 1.5) : 0.0;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(label, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                      ),
+                      Text('$pct%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey[400])),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  // Allocated vs Spent row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Anggaran: ${AppFormat.currency(allocated)}', style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                            const SizedBox(height: 2),
+                            Text('Terpakai: ${AppFormat.currency(spent)}', style: TextStyle(fontSize: 11, color: spent > allocated && allocated > 0 ? Colors.red[600] : Colors.grey[600], fontWeight: FontWeight.w500)),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: remaining >= 0 ? Colors.green[50] : Colors.red[50],
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Sisa: ${AppFormat.currency(remaining)}',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: remaining >= 0 ? Colors.green[700] : Colors.red[600]),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  // Progress bar
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: Stack(
+                      children: [
+                        Container(height: 6, width: double.infinity, color: Colors.grey[100]),
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 600),
+                          curve: Curves.easeOutCubic,
+                          height: 6,
+                          width: MediaQuery.of(context).size.width * 0.65 * spentRatio.clamp(0.0, 1.0),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: spentRatio > 1.0
+                                  ? [Colors.red[400]!, Colors.red[600]!]
+                                  : [color.withOpacity(0.7), color],
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const Divider(height: 20),
+          // Total row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(children: [
+                Icon(Icons.functions, size: 16, color: Colors.grey[600]),
+                const SizedBox(width: 6),
+                Text('Total Alokasi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey[700])),
+              ]),
+              Row(children: [
+                Text('$totalPct%', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[500])),
+                const SizedBox(width: 10),
+                Text(
+                  AppFormat.currency(net * totalPct / 100),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: net >= 0 ? const Color(0xFF5D4037) : Colors.red[600]),
+                ),
+              ]),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

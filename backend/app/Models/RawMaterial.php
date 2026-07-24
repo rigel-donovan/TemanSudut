@@ -26,7 +26,7 @@ class RawMaterial extends Model
     {
         static::saving(function (RawMaterial $material) {
             if (is_null($material->price_per_small_unit) && $material->conversion_value > 0 && $material->price_per_large_unit > 0) {
-                $material->price_per_small_unit = $material->price_per_large_unit / $material->conversion_value;
+                $material->price_per_small_unit = (float) ($material->price_per_large_unit / $material->conversion_value);
             }
         });
 
@@ -61,7 +61,7 @@ class RawMaterial extends Model
 
         StockLog::create([
             'raw_material_id' => $rawMaterialId,
-            'user_id'         => $userId ?? auth()->id(),
+            'user_id'         => $userId ?? \Illuminate\Support\Facades\Auth::id(),
             'type'            => $type,
             'quantity'        => $quantity,
             'stock_before'    => $stockBefore,

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class TransactionController extends Controller
 {
@@ -77,13 +78,11 @@ class TransactionController extends Controller
             $productIds = array_column($validated['items'], 'product_id');
             $productMap = Product::with('ingredients.rawMaterial')->whereIn('id', $productIds)->get()->keyBy('id');
 
-            // ── Stok bahan baku diperbolehkan minus (tidak memblokir pesanan) ──
-
             $subtotal = 0;
             $items = [];
 
             foreach ($validated['items'] as $item) {
-                /** @var \App\Models\Product $product */
+                /** @var Product $product */
                 $product = $productMap[$item['product_id']];
                 $extraCharge = floatval($item['extra_charge'] ?? 0);
                 $itemSubtotal = ($product->price + $extraCharge) * $item['quantity'];
@@ -212,7 +211,7 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Transaction failed', 'error' => $e->getMessage()], 500);
         }
     }
-    private function getFilteredHistoryQuery($filter)
+    private function getFilteredHistoryQuery(string $filter = null)
     {
         $tz  = config('app.timezone', 'Asia/Makassar');
         $fmt = 'Y-m-d H:i:s';
@@ -230,8 +229,8 @@ class TransactionController extends Controller
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter === 'weekly') {
-            $start = \Carbon\Carbon::now($tz)->startOfWeek(\Carbon\Carbon::MONDAY)->startOfDay()->format($fmt);
-            $end   = \Carbon\Carbon::now($tz)->endOfWeek(\Carbon\Carbon::SUNDAY)->endOfDay()->format($fmt);
+            $start = \Carbon\Carbon::now($tz)->startOfWeek(\Carbon\CarbonInterface::MONDAY)->startOfDay()->format($fmt);
+            $end   = \Carbon\Carbon::now($tz)->endOfWeek(\Carbon\CarbonInterface::SUNDAY)->endOfDay()->format($fmt);
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter === 'monthly') {
@@ -291,7 +290,7 @@ class TransactionController extends Controller
      */
     public function saveTransaction(Request $request)
     {
-        \Log::info('saveTransaction called', ['input' => $request->all()]);
+        Log::info('saveTransaction called', ['input' => $request->all()]);
 
         try {
             $validated = $request->validate([
@@ -305,7 +304,7 @@ class TransactionController extends Controller
                 'items.*.extra_charge' => 'nullable|numeric',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::error('saveTransaction validation failed', ['errors' => $e->errors()]);
+            Log::error('saveTransaction validation failed', ['errors' => $e->errors()]);
             return response()->json(['success' => false, 'error' => 'Validation failed', 'details' => $e->errors()], 422);
         }
 
@@ -376,7 +375,7 @@ class TransactionController extends Controller
     /**
      * Delete a saved transaction (discard held order).
      */
-    public function deleteSaved($id)
+    public function deleteSaved(int $id)
     {
         $transaction = Transaction::where('id', $id)
             ->where('kitchen_status', 'saved')
@@ -391,7 +390,7 @@ class TransactionController extends Controller
     /**
      * Activate a saved transaction: validate stock, deduct ingredients, set status to 'pending'.
      */
-    public function activateSaved(Request $request, $id)
+    public function activateSaved(Request $request, int $id)
     {
         $validated = $request->validate([
             'payment_method' => 'required|string',

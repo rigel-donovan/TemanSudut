@@ -9,6 +9,7 @@ class FinanceEntry extends Model
     protected $fillable = [
         'type',
         'category',
+        'allocation',
         'description',
         'amount',
         'date',

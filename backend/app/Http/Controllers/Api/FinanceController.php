@@ -58,6 +58,7 @@ class FinanceController extends Controller
         $validated = $request->validate([
             'type' => 'required|in:income,expense',
             'category' => 'nullable|string|max:100',
+            'allocation' => 'nullable|string|max:100',
             'description' => 'required|string|max:255',
             'amount' => 'required|numeric|min:1',
             'date' => 'required|date',
@@ -70,13 +71,14 @@ class FinanceController extends Controller
     }
 
     /** PUT /finance-entries/{id} */
-    public function update(Request $request, $id)
+    public function update(Request $request, int $id)
     {
         $entry = FinanceEntry::findOrFail($id);
 
         $validated = $request->validate([
             'type' => 'sometimes|in:income,expense',
             'category' => 'nullable|string|max:100',
+            'allocation' => 'nullable|string|max:100',
             'description' => 'sometimes|string|max:255',
             'amount' => 'sometimes|numeric|min:1',
             'date' => 'sometimes|date',
@@ -87,7 +89,7 @@ class FinanceController extends Controller
 
         return response()->json($entry->load('user:id,name'));
     }
-    public function destroy($id)
+    public function destroy(int $id)
     {
         FinanceEntry::findOrFail($id)->delete();
         return response()->json(['message' => 'Catatan berhasil dihapus']);
@@ -121,11 +123,19 @@ class FinanceController extends Controller
         $income = (float) (clone $query)->where('type', 'income')->sum('amount');
         $expense = (float) (clone $query)->where('type', 'expense')->sum('amount');
 
+        // Allocation spent breakdown
+        $allocationLabels = ['Operasional', 'Gaji Karyawan', 'Dana Darurat', 'Pajak & Perizinan', 'Pengembangan Bisnis', 'Keuntungan Owner'];
+        $allocationSpent = [];
+        foreach ($allocationLabels as $label) {
+            $allocationSpent[$label] = (float) (clone $query)->where('type', 'expense')->where('allocation', $label)->sum('amount');
+        }
+
         return response()->json([
             'income' => $income,
             'expense' => $expense,
             'net' => $income - $expense,
             'filter' => $filter,
+            'allocation_spent' => $allocationSpent,
         ]);
     }
 

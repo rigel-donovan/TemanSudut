@@ -1,4 +1,4 @@
-﻿import 'dart:convert';
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CacheService {
@@ -96,5 +96,20 @@ class CacheService {
     await prefs.remove(_keyMgmtMaterials + _suffixTs);
     await prefs.remove(_keyMgmtUsers);
     await prefs.remove(_keyMgmtUsers + _suffixTs);
+  }
+
+  // ---- Finance Custom Allocations ----
+  static const String _keyFinanceAllocations = 'finance_allocations';
+  
+  static Future<dynamic> getFinanceAllocations() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyFinanceAllocations);
+    if (raw == null) return null;
+    return jsonDecode(raw);
+  }
+
+  static Future<void> saveFinanceAllocations(dynamic allocations) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyFinanceAllocations, jsonEncode(allocations));
   }
 }
