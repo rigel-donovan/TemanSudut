@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CashierShift extends Model
 {
     protected $fillable = [
+        'branch_id',
         'user_id',
         'starting_cash',
         'ending_cash',
@@ -16,6 +17,11 @@ class CashierShift extends Model
         'opened_at',
         'closed_at',
     ];
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     protected $casts = [
         'opened_at' => 'datetime',

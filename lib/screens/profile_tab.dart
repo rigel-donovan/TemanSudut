@@ -5,6 +5,7 @@ import '../providers/locale_provider.dart';
 import '../providers/notification_prefs_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/popup_notification.dart';
+import '../widgets/branch_selector_sheet.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -822,6 +823,21 @@ class ProfileTab extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Column(
                     children: [
+                      _menuItem(
+                        context,
+                        Icons.storefront_rounded,
+                        'Cabang Operasional',
+                        auth.activeBranchName,
+                        () {
+                          if (auth.isOwner || auth.branches.length > 1) {
+                            BranchSelectorSheet.show(context);
+                          }
+                        },
+                        trailing: (auth.isOwner || auth.branches.length > 1)
+                            ? 'Ubah'
+                            : null,
+                      ),
+                      _div(),
                       _menuItem(
                         context,
                         Icons.edit_outlined,

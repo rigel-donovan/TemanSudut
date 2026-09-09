@@ -20,41 +20,53 @@ class StatsOverviewWidget extends BaseWidget
     {
         $today = Carbon::today();
         $yesterday = Carbon::yesterday();
+        $tenantId = \Filament\Facades\Filament::getTenant()?->id;
+
+        // Base query with tenant scope
+        $txnQuery = Transaction::query();
+        $prodQuery = Product::query();
+        $rawQuery = \App\Models\RawMaterial::query();
+
+        if ($tenantId) {
+            $txnQuery->where('branch_id', $tenantId);
+            $prodQuery->where('branch_id', $tenantId);
+            $rawQuery->where('branch_id', $tenantId);
+        }
 
         // Revenue today
-        $revenueToday = Transaction::whereDate('created_at', $today)
+        $revenueToday = (clone $txnQuery)->whereDate('created_at', $today)
             ->where('payment_status', 'paid')
             ->sum('total');
-        $revenueYesterday = Transaction::whereDate('created_at', $yesterday)
+        $revenueYesterday = (clone $txnQuery)->whereDate('created_at', $yesterday)
             ->where('payment_status', 'paid')
             ->sum('total');
         $revenueChange = $revenueYesterday > 0
             ? round((($revenueToday - $revenueYesterday) / $revenueYesterday) * 100, 1)
             : ($revenueToday > 0 ? 100 : 0);
 
-        $ordersToday = Transaction::whereDate('created_at', $today)->count();
-        $ordersYesterday = Transaction::whereDate('created_at', $yesterday)->count();
+        $ordersToday = (clone $txnQuery)->whereDate('created_at', $today)->count();
+        $ordersYesterday = (clone $txnQuery)->whereDate('created_at', $yesterday)->count();
         $ordersChange = $ordersYesterday > 0
             ? round((($ordersToday - $ordersYesterday) / $ordersYesterday) * 100, 1)
             : ($ordersToday > 0 ? 100 : 0);
 
-        $activeProducts = Product::where('is_active', true)->count();
+        $activeProducts = (clone $prodQuery)->where('is_active', true)->count();
         $totalUsers = User::count();
 
-        $lowStockProducts = Product::where('is_active', true)->where('stock', '<=', 5)->count();
+        $lowStockProducts = (clone $prodQuery)->where('is_active', true)->where('stock', '<=', 5)->count();
 
-        $lowStockRawMaterials = \App\Models\RawMaterial::where('is_active', true)
+        $lowStockRawMaterials = (clone $rawQuery)->where('is_active', true)
             ->whereColumn('stock', '<=', 'min_stock')
             ->count();
 
         $revenueSparkline = collect(range(6, 0))->map(fn($d) =>
-            Transaction::whereDate('created_at', Carbon::today()->subDays($d))
+            (clone $txnQuery)->whereDate('created_at', Carbon::today()->subDays($d))
                 ->where('payment_status', 'paid')
                 ->sum('total')
         )->toArray();
 
         $ordersSparkline = collect(range(6, 0))->map(fn($d) =>
-            Transaction::whereDate('created_at', Carbon::today()->subDays($d))->count()
+            (clone $txnQuery)->whereDate('created_at', Carbon::today()->subDays($d))->count()
         )->toArray();
 
         return [

@@ -165,6 +165,16 @@ class CartProvider with ChangeNotifier {
     await _fetchProducts();
   }
 
+  Future<void> refreshAll() async {
+    await CacheService.invalidateAll();
+    _allProducts = [];
+    _categories = [];
+    _selectedCategory = null;
+    clearCart();
+    await _fetchProducts();
+    notifyListeners();
+  }
+
   List<CartItem> get items => _items;
   String get orderType => _orderType;
   TableModel? get selectedTable => _selectedTable;

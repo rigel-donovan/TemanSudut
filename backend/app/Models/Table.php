@@ -10,7 +10,12 @@ class Table extends Model
     /** @use HasFactory<\Database\Factories\TableFactory> */
     use HasFactory;
 
-    protected $fillable = ['name', 'status'];
+    protected $fillable = ['branch_id', 'name', 'status'];
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     public function transactions()
     {

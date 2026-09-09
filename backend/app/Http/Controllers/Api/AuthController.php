@@ -21,11 +21,20 @@ class AuthController extends Controller
             $user = Auth::user();
             $token = $user->createToken('auth_token')->plainTextToken;
 
+            $branches = $user->isOwner()
+                ? \App\Models\Branch::where('is_active', true)->get()
+                : $user->branches()->where('is_active', true)->get();
+
+            if ($branches->isEmpty()) {
+                $branches = \App\Models\Branch::where('id', 1)->get();
+            }
+
             return response()->json([
                 'message' => 'Login successful',
                 'access_token' => $token,
                 'token_type' => 'Bearer',
-                'user' => $user
+                'user' => $user,
+                'branches' => $branches,
             ]);
         }
 
@@ -40,7 +49,19 @@ class AuthController extends Controller
 
     public function me(Request $request) 
     {
-        return response()->json($request->user());
+        $user = $request->user();
+        $branches = $user->isOwner()
+            ? \App\Models\Branch::where('is_active', true)->get()
+            : $user->branches()->where('is_active', true)->get();
+
+        if ($branches->isEmpty()) {
+            $branches = \App\Models\Branch::where('id', 1)->get();
+        }
+
+        $userData = $user->toArray();
+        $userData['branches'] = $branches;
+
+        return response()->json($userData);
     }
 
     /** PUT /profile — update name & email */

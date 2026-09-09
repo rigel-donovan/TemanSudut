@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\Product;
+use App\Models\Branch;
 use App\Models\ActivityLog;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -105,6 +106,7 @@ class TransactionController extends Controller
             $total = $subtotal + $tax;
 
             $transaction = Transaction::create([
+                'branch_id' => Branch::currentId($request),
                 'user_id' => Auth::id(),
                 'order_type' => $validated['order_type'],
                 'customer_name' => $validated['customer_name'] ?? null,
@@ -210,12 +212,14 @@ class TransactionController extends Controller
             return response()->json(['message' => 'Transaction failed', 'error' => $e->getMessage()], 500);
         }
     }
-    private function getFilteredHistoryQuery(?string $filter = null)
+    private function getFilteredHistoryQuery(?string $filter = null, ?Request $request = null)
     {
         $tz  = config('app.timezone', 'Asia/Makassar');
         $fmt = 'Y-m-d H:i:s';
+        $branchId = Branch::currentId($request);
 
         $query = Transaction::with(['items.product', 'table', 'user'])
+            ->where('branch_id', $branchId)
             ->where('kitchen_status', 'completed');
 
         if (!$filter) {
@@ -322,6 +326,7 @@ class TransactionController extends Controller
             }
 
             $transaction = Transaction::create([
+                'branch_id'      => Branch::currentId($request),
                 'user_id'        => Auth::id(),
                 'customer_name'  => $validated['customer_name'] ?? 'Tamu',
                 'order_type'     => $validated['order_type'] ?? 'dine_in',
@@ -363,7 +368,9 @@ class TransactionController extends Controller
      */
     public function savedList(Request $request)
     {
+        $branchId = Branch::currentId($request);
         $transactions = Transaction::with(['items.product.category', 'user'])
+            ->where('branch_id', $branchId)
             ->where('kitchen_status', 'saved')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -594,9 +601,11 @@ class TransactionController extends Controller
         return $pdf->stream('receipt-' . $id . '.pdf');
     }
 
-    public function activeOrders()
+    public function activeOrders(Request $request)
     {
+        $branchId = Branch::currentId($request);
         $transactions = Transaction::with(['items.product:id,name,price', 'table:id,name', 'user:id,name'])
+            ->where('branch_id', $branchId)
             ->whereIn('kitchen_status', ['pending', 'processing'])
             ->orderBy('created_at', 'asc')
             ->limit(200)

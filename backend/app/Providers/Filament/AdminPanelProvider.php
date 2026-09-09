@@ -41,6 +41,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
+            ->tenant(\App\Models\Branch::class)
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->login()
             ->brandName('TemanSudut')

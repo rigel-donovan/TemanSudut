@@ -7,6 +7,7 @@ import '../models/category.dart';
 import '../models/product.dart';
 import '../models/table_model.dart';
 import '../models/raw_material.dart';
+import '../models/branch.dart';
 
 class ApiService {
   static final ApiService _instance = ApiService._internal();
@@ -31,14 +32,20 @@ class ApiService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) async {
-          if (options.headers['Authorization'] == null) {
-            final prefs = await SharedPreferences.getInstance();
+          final prefs = await SharedPreferences.getInstance();
 
+          if (options.headers['Authorization'] == null) {
             final token = prefs.getString('auth_token');
             if (token != null) {
               options.headers['Authorization'] = 'Bearer $token';
             }
           }
+
+          final branchId = prefs.getInt('active_branch_id');
+          if (branchId != null) {
+            options.headers['X-Branch-Id'] = branchId.toString();
+          }
+
           handler.next(options);
         },
       ),
@@ -587,6 +594,33 @@ class ApiService {
     } catch (e) {
       developer.log('Failed to get finance chart: $e');
       return null;
+    }
+  }
+
+  Future<List<Branch>> getBranches() async {
+    try {
+      final response = await _dio.get('/branches');
+      if (response.data != null && response.data['data'] != null) {
+        final list = response.data['data'] as List;
+        return list.map((item) => Branch.fromJson(item as Map<String, dynamic>)).toList();
+      }
+      return [];
+    } catch (e) {
+      developer.log('Failed to get branches: $e');
+      return [];
+    }
+  }
+
+  Future<bool> cloneCatalog(int targetBranchId, int sourceBranchId) async {
+    try {
+      final response = await _dio.post(
+        '/branches/$targetBranchId/clone-catalog',
+        data: {'source_branch_id': sourceBranchId},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      developer.log('Failed to clone catalog: $e');
+      return false;
     }
   }
 }

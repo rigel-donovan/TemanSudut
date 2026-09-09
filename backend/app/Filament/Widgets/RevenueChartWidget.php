@@ -25,30 +25,33 @@ class RevenueChartWidget extends ChartWidget
     protected function getData(): array
     {
         $filter = $this->filter ?? 'daily';
+        $tenantId = \Filament\Facades\Filament::getTenant()?->id;
         $labels = [];
         $revenues = [];
+
+        $baseQuery = Transaction::where('payment_status', 'paid');
+        if ($tenantId) {
+            $baseQuery->where('branch_id', $tenantId);
+        }
 
         if ($filter === 'daily') {
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
                 $labels[] = $date->format('d M');
-                $revenues[] = (float) Transaction::where('payment_status', 'paid')
-                    ->whereDate('created_at', $date)->sum('total');
+                $revenues[] = (float) (clone $baseQuery)->whereDate('created_at', $date)->sum('total');
             }
         } elseif ($filter === 'weekly') {
             for ($i = 11; $i >= 0; $i--) {
                 $start = Carbon::now()->startOfWeek()->subWeeks($i);
                 $end = (clone $start)->endOfWeek();
                 $labels[] = $start->format('d M');
-                $revenues[] = (float) Transaction::where('payment_status', 'paid')
-                    ->whereBetween('created_at', [$start, $end])->sum('total');
+                $revenues[] = (float) (clone $baseQuery)->whereBetween('created_at', [$start, $end])->sum('total');
             }
         } else {
             for ($i = 11; $i >= 0; $i--) {
                 $date = Carbon::now()->startOfMonth()->subMonths($i);
                 $labels[] = $date->format('M Y');
-                $revenues[] = (float) Transaction::where('payment_status', 'paid')
-                    ->whereYear('created_at', $date->year)
+                $revenues[] = (float) (clone $baseQuery)->whereYear('created_at', $date->year)
                     ->whereMonth('created_at', $date->month)->sum('total');
             }
         }

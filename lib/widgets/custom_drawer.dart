@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
 import '../utils/app_format.dart';
 import 'line_popup.dart';
+import 'branch_selector_sheet.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -31,6 +32,42 @@ class CustomDrawer extends StatelessWidget {
                           color: Colors.white,
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      InkWell(
+                        onTap: (auth.isOwner || auth.branches.length > 1)
+                            ? () {
+                                Navigator.pop(context);
+                                BranchSelectorSheet.show(context);
+                              }
+                            : null,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.storefront_rounded, size: 14, color: Colors.white70),
+                              SizedBox(width: 6),
+                              Text(
+                                auth.activeBranchName,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              if (auth.isOwner || auth.branches.length > 1) ...[
+                                SizedBox(width: 4),
+                                Icon(Icons.swap_horiz_rounded, size: 14, color: Colors.white70),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
                       if (auth.isOwner) ...[

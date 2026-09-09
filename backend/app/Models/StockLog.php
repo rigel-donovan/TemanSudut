@@ -7,9 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 class StockLog extends Model
 {
     protected $fillable = [
-        'product_id', 'raw_material_id', 'user_id', 'type', 'quantity',
+        'branch_id', 'product_id', 'raw_material_id', 'user_id', 'type', 'quantity',
         'stock_before', 'stock_after', 'reason', 'notes',
     ];
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     public function product()
     {

@@ -10,11 +10,13 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\RawMaterialController;
+use App\Http\Controllers\Api\BranchController;
 use Illuminate\Support\Facades\Storage;
 
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::get('/permissions', [PermissionController::class, 'index']);
+Route::get('/branches', [BranchController::class, 'index']);
 
 Route::get('/images/{path}', function ($path) {
     if (Storage::disk('local')->exists($path)) {
@@ -95,4 +97,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/finance-entries/{id}', [\App\Http\Controllers\Api\FinanceController::class, 'destroy']);
     Route::get('/finance-entries/summary', [\App\Http\Controllers\Api\FinanceController::class, 'summary']);
     Route::get('/finance-entries/chart', [\App\Http\Controllers\Api\FinanceController::class, 'chart']);
+
+    // Branches
+    Route::post('/branches', [BranchController::class, 'store']);
+    Route::post('/branches/{id}/clone-catalog', [BranchController::class, 'cloneCatalog']);
 });

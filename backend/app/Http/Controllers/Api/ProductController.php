@@ -5,14 +5,17 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Product;
-
+use App\Models\Branch;
 use App\Models\ActivityLog;
 
 class ProductController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with(['category', 'ingredients.rawMaterial'])->where('is_active', true);
+        $branchId = Branch::currentId($request);
+        $query = Product::with(['category', 'ingredients.rawMaterial'])
+            ->where('branch_id', $branchId)
+            ->where('is_active', true);
         
         if ($request->has('category_id')) {
             $query->where('category_id', $request->category_id);

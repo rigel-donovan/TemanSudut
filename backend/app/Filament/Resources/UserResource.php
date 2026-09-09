@@ -24,6 +24,8 @@ class UserResource extends Resource
 {
     protected static ?string $model = User::class;
 
+    protected static bool $isScopedToTenant = false;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
     protected static ?string $navigationLabel = 'Users';
@@ -60,6 +62,13 @@ class UserResource extends Resource
                             ])
                             ->required()
                             ->native(false),
+
+                        Select::make('branches')
+                            ->label('Penugasan Cabang')
+                            ->relationship('branches', 'name')
+                            ->multiple()
+                            ->preload()
+                            ->helperText('Untuk kasir: cabang tempat kasir bertugas.'),
 
                         TextInput::make('password')
                             ->label('Password')

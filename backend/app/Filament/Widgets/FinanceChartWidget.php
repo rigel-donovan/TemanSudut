@@ -25,32 +25,38 @@ class FinanceChartWidget extends ChartWidget
     protected function getData(): array
     {
         $filter = $this->filter ?? 'daily';
+        $tenantId = \Filament\Facades\Filament::getTenant()?->id;
         $labels = [];
         $incomes = [];
         $expenses = [];
+
+        $baseQuery = FinanceEntry::query();
+        if ($tenantId) {
+            $baseQuery->where('branch_id', $tenantId);
+        }
 
         if ($filter === 'daily') {
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
                 $labels[]   = $date->format('d M');
-                $incomes[]  = (float) FinanceEntry::where('type', 'income')->where('date', $date->toDateString())->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->where('date', $date->toDateString())->sum('amount');
+                $incomes[]  = (float) (clone $baseQuery)->where('type', 'income')->where('date', $date->toDateString())->sum('amount');
+                $expenses[] = (float) (clone $baseQuery)->where('type', 'expense')->where('date', $date->toDateString())->sum('amount');
             }
         } elseif ($filter === 'weekly') {
             for ($i = 11; $i >= 0; $i--) {
                 $start      = Carbon::now()->startOfWeek()->subWeeks($i);
                 $end        = (clone $start)->endOfWeek();
                 $labels[]   = $start->format('d M');
-                $incomes[]  = (float) FinanceEntry::where('type', 'income')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
+                $incomes[]  = (float) (clone $baseQuery)->where('type', 'income')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
+                $expenses[] = (float) (clone $baseQuery)->where('type', 'expense')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
             }
         } else {
             // monthly
             for ($i = 11; $i >= 0; $i--) {
                 $date       = Carbon::now()->startOfMonth()->subMonths($i);
                 $labels[]   = $date->format('M Y');
-                $incomes[]  = (float) FinanceEntry::where('type', 'income')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
+                $incomes[]  = (float) (clone $baseQuery)->where('type', 'income')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
+                $expenses[] = (float) (clone $baseQuery)->where('type', 'expense')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
             }
         }
 

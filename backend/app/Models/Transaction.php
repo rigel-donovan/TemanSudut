@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
 {
-    protected $fillable = ['user_id', 'table_id', 'order_type', 'customer_name', 'subtotal', 'tax', 'total', 'payment_method', 'payment_status', 'kitchen_status', 'notes', 'completion_photo', 'amount_received', 'change_amount'];
+    protected $fillable = ['branch_id', 'user_id', 'table_id', 'order_type', 'customer_name', 'subtotal', 'tax', 'total', 'payment_method', 'payment_status', 'kitchen_status', 'notes', 'completion_photo', 'amount_received', 'change_amount'];
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     public function items()
     {

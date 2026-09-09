@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\FinanceEntry;
+use App\Models\Branch;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,8 @@ class FinanceController extends Controller
     /** GET /finance-entries */
     public function index(Request $request)
     {
-        $query = FinanceEntry::with('user:id,name')->orderBy('date', 'desc');
+        $branchId = Branch::currentId($request);
+        $query = FinanceEntry::where('branch_id', $branchId)->with('user:id,name')->orderBy('date', 'desc');
 
         if ($request->has('type')) {
             $query->where('type', $request->type);
@@ -65,7 +67,11 @@ class FinanceController extends Controller
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $entry = FinanceEntry::create(array_merge($validated, ['user_id' => Auth::id()]));
+        $branchId = Branch::currentId($request);
+        $entry = FinanceEntry::create(array_merge($validated, [
+            'user_id' => Auth::id(),
+            'branch_id' => $branchId,
+        ]));
 
         return response()->json($entry->load('user:id,name'), 201);
     }
@@ -99,7 +105,8 @@ class FinanceController extends Controller
     public function summary(Request $request)
     {
         $filter = $request->filter ?? 'monthly';
-        $query = FinanceEntry::query();
+        $branchId = Branch::currentId($request);
+        $query = FinanceEntry::where('branch_id', $branchId);
 
         if ($filter === 'daily') {
             $query->whereDate('date', now()->toDateString());
@@ -143,6 +150,7 @@ class FinanceController extends Controller
     public function chart(Request $request)
     {
         $period = $request->period ?? 'daily';
+        $branchId = Branch::currentId($request);
         $labels = [];
         $incomes = [];
         $expenses = [];
@@ -151,23 +159,23 @@ class FinanceController extends Controller
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
                 $labels[] = $date->format('d/m');
-                $incomes[] = (float) FinanceEntry::where('type', 'income')->where('date', $date->toDateString())->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->where('date', $date->toDateString())->sum('amount');
+                $incomes[] = (float) FinanceEntry::where('branch_id', $branchId)->where('type', 'income')->where('date', $date->toDateString())->sum('amount');
+                $expenses[] = (float) FinanceEntry::where('branch_id', $branchId)->where('type', 'expense')->where('date', $date->toDateString())->sum('amount');
             }
         } elseif ($period === 'weekly') {
             for ($i = 11; $i >= 0; $i--) {
                 $start = Carbon::now()->startOfWeek()->subWeeks($i);
                 $end = (clone $start)->endOfWeek();
                 $labels[] = $start->format('d/m');
-                $incomes[] = (float) FinanceEntry::where('type', 'income')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
+                $incomes[] = (float) FinanceEntry::where('branch_id', $branchId)->where('type', 'income')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
+                $expenses[] = (float) FinanceEntry::where('branch_id', $branchId)->where('type', 'expense')->whereBetween('date', [$start->toDateString(), $end->toDateString()])->sum('amount');
             }
         } else {
             for ($i = 11; $i >= 0; $i--) {
                 $date = Carbon::now()->startOfMonth()->subMonths($i);
                 $labels[] = $date->format('M y');
-                $incomes[] = (float) FinanceEntry::where('type', 'income')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
-                $expenses[] = (float) FinanceEntry::where('type', 'expense')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
+                $incomes[] = (float) FinanceEntry::where('branch_id', $branchId)->where('type', 'income')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
+                $expenses[] = (float) FinanceEntry::where('branch_id', $branchId)->where('type', 'expense')->whereYear('date', $date->year)->whereMonth('date', $date->month)->sum('amount');
             }
         }
 

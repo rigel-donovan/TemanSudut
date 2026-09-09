@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    protected $fillable = ['category_id', 'name', 'slug', 'description', 'sku', 'price', 'hpp', 'stock', 'image', 'is_active'];
+    protected $fillable = ['branch_id', 'category_id', 'name', 'slug', 'description', 'sku', 'price', 'hpp', 'stock', 'image', 'is_active'];
 
     protected $casts = [
         'price' => 'decimal:2',
@@ -14,6 +14,11 @@ class Product extends Model
     ];
 
     protected $appends = ['profit'];
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     public function category()
     {

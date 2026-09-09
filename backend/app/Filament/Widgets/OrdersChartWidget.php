@@ -25,27 +25,33 @@ class OrdersChartWidget extends ChartWidget
     protected function getData(): array
     {
         $filter = $this->filter ?? 'daily';
+        $tenantId = \Filament\Facades\Filament::getTenant()?->id;
         $labels = [];
         $counts = [];
+
+        $baseQuery = Transaction::query();
+        if ($tenantId) {
+            $baseQuery->where('branch_id', $tenantId);
+        }
 
         if ($filter === 'daily') {
             for ($i = 29; $i >= 0; $i--) {
                 $date = Carbon::today()->subDays($i);
                 $labels[] = $date->format('d M');
-                $counts[] = Transaction::whereDate('created_at', $date)->count();
+                $counts[] = (clone $baseQuery)->whereDate('created_at', $date)->count();
             }
         } elseif ($filter === 'weekly') {
             for ($i = 11; $i >= 0; $i--) {
                 $start = Carbon::now()->startOfWeek()->subWeeks($i);
                 $end = (clone $start)->endOfWeek();
                 $labels[] = $start->format('d M');
-                $counts[] = Transaction::whereBetween('created_at', [$start, $end])->count();
+                $counts[] = (clone $baseQuery)->whereBetween('created_at', [$start, $end])->count();
             }
         } else {
             for ($i = 11; $i >= 0; $i--) {
                 $date = Carbon::now()->startOfMonth()->subMonths($i);
                 $labels[] = $date->format('M Y');
-                $counts[] = Transaction::whereYear('created_at', $date->year)
+                $counts[] = (clone $baseQuery)->whereYear('created_at', $date->year)
                     ->whereMonth('created_at', $date->month)->count();
             }
         }

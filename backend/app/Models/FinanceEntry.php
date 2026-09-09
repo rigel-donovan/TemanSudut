@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class FinanceEntry extends Model
 {
     protected $fillable = [
+        'branch_id',
         'type',
         'category',
         'allocation',
@@ -21,6 +22,11 @@ class FinanceEntry extends Model
         'date'   => 'date',
         'amount' => 'float',
     ];
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     public function user()
     {

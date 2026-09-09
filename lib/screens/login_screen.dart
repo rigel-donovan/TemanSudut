@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:video_player/video_player.dart';
+import '../models/branch.dart';
 import '../providers/auth_provider.dart';
+import '../providers/cart_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -39,11 +41,18 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final loginForm = SingleChildScrollView(
+    final auth = Provider.of<AuthProvider>(context);
+    final isSelectingBranch = auth.isAuthenticated && auth.activeBranch == null;
+
+    final cardContent = isSelectingBranch
+        ? _buildBranchSelectionContent(auth)
+        : _buildLoginFormContent();
+
+    final formCard = SingleChildScrollView(
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: const BoxConstraints(maxWidth: 440),
         margin: const EdgeInsets.all(24.0),
-        padding: const EdgeInsets.all(36.0),
+        padding: const EdgeInsets.all(32.0),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -57,126 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Logo
-            Center(
-              child: Container(
-                height: 100,
-                width: 100,
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'res/logo.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
-                      Icons.storefront,
-                      size: 50,
-                      color: Colors.black26,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            Text(
-              'TemanSudut',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: -1,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Selamat datang kembali!\nSilakan masuk ke akun Anda.',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14,
-                color: Colors.grey[600],
-                height: 1.4,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-
-            // Form Fields
-            _buildTextField(
-              controller: _emailCtrl,
-              label: 'Email',
-              icon: Icons.email_outlined,
-              keyboardType: TextInputType.emailAddress,
-            ),
-            const SizedBox(height: 20),
-            _buildTextField(
-              controller: _passCtrl,
-              label: 'Password',
-              icon: Icons.lock_outline,
-              obscureText: true,
-            ),
-
-            const SizedBox(height: 36),
-
-            // Login Button
-            SizedBox(
-              height: 52,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5D4037),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                onPressed: _isLoading ? null : _handleLogin,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2.5,
-                        ),
-                      )
-                    : Text(
-                        'Masuk Sekarang',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Footer
-            Center(
-              child: Text(
-                'v2.2.0 TemanSudut',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[400],
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-          ],
-        ),
+        child: cardContent,
       ),
     );
 
@@ -211,9 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(
-                          22.5,
-                        ), // sedikit lebih kecil dari outer border
+                        borderRadius: BorderRadius.circular(22.5),
                         child: _videoController.value.isInitialized
                             ? SizedBox.expand(
                                 child: FittedBox(
@@ -234,16 +122,295 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-                // Login Section (Kanan)
-                Expanded(flex: 4, child: Center(child: loginForm)),
+                // Login / Branch Section (Kanan)
+                Expanded(flex: 4, child: Center(child: formCard)),
               ],
             );
           }
 
-          // Fallback tampilan portrait (hp)
-          return Center(child: loginForm);
+          // Fallback portrait
+          return Center(child: formCard);
         },
       ),
+    );
+  }
+
+  Widget _buildLoginFormContent() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Logo
+        Center(
+          child: Container(
+            height: 90,
+            width: 90,
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: Image.asset(
+                'res/logo.png',
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.storefront,
+                  size: 45,
+                  color: Colors.black26,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        Text(
+          'TemanSudut',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Selamat datang kembali!\nSilakan masuk ke akun Anda.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: Colors.grey[600],
+            height: 1.4,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 32),
+
+        // Form Fields
+        _buildTextField(
+          controller: _emailCtrl,
+          label: 'Email',
+          icon: Icons.email_outlined,
+          keyboardType: TextInputType.emailAddress,
+        ),
+        const SizedBox(height: 18),
+        _buildTextField(
+          controller: _passCtrl,
+          label: 'Password',
+          icon: Icons.lock_outline,
+          obscureText: true,
+        ),
+
+        const SizedBox(height: 30),
+
+        // Login Button
+        SizedBox(
+          height: 50,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF5D4037),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            onPressed: _isLoading ? null : _handleLogin,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.5,
+                    ),
+                  )
+                : Text(
+                    'Masuk Sekarang',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+          ),
+        ),
+
+        const SizedBox(height: 20),
+
+        // Footer
+        Center(
+          child: Text(
+            'v2.3.0 TemanSudut POS',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[400],
+              letterSpacing: 0.5,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBranchSelectionContent(AuthProvider auth) {
+    final userName = auth.user?['name'] ?? 'Kasir';
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF5D4037).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.storefront_rounded,
+              color: Color(0xFF5D4037),
+              size: 40,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Pilih Cabang Bertugas',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Halo $userName, silakan tentukan cabang tempat Anda beroperasi hari ini.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: Colors.grey[600],
+            height: 1.4,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+
+        if (auth.branches.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(24.0),
+            child: Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFF5D4037),
+                strokeWidth: 2.5,
+              ),
+            ),
+          )
+        else
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollException(),
+            itemCount: auth.branches.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final branch = auth.branches[index];
+
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    setState(() => _isLoading = true);
+                    await auth.setActiveBranch(branch);
+                    if (mounted) {
+                      final cart = Provider.of<CartProvider>(context, listen: false);
+                      await cart.refreshAll();
+                      setState(() => _isLoading = false);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey[200]!, width: 1.2),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF5D4037).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.location_on_rounded,
+                            color: Color(0xFF5D4037),
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                branch.name,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              if (branch.address != null && branch.address!.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  branch.address!,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          size: 14,
+                          color: Colors.black38,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+
+        const SizedBox(height: 20),
+
+        TextButton.icon(
+          onPressed: () => auth.logout(),
+          icon: const Icon(Icons.logout_rounded, size: 16, color: Colors.red),
+          label: Text(
+            'Ganti Akun Lain',
+            style: GoogleFonts.plusJakartaSans(
+              color: Colors.red,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

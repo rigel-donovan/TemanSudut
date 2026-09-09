@@ -4,14 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\RawMaterial;
+use App\Models\Branch;
 use App\Models\RolePermission;
 use Illuminate\Http\Request;
 
 class RawMaterialController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(RawMaterial::where('is_active', true)->get());
+        $branchId = Branch::currentId($request);
+        return response()->json(RawMaterial::where('branch_id', $branchId)->where('is_active', true)->get());
     }
 
     public function update(Request $request, string $id)

@@ -7,11 +7,16 @@ use Illuminate\Database\Eloquent\Model;
 class RawMaterial extends Model
 {
     protected $fillable = [
-        'name', 'brand', 'stock', 'unit',
+        'branch_id', 'name', 'brand', 'stock', 'unit',
         'unit_large', 'unit_small', 'conversion_value',
         'price_per_large_unit', 'price_per_small_unit',
         'min_stock', 'is_active', 'image',
     ];
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 
     protected $casts = [
         'stock' => 'decimal:2',

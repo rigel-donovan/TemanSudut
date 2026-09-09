@@ -5,16 +5,19 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Table;
+use App\Models\Branch;
 
 class TableController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Table::all());
+        $branchId = Branch::currentId($request);
+        return response()->json(Table::where('branch_id', $branchId)->get());
     }
 
-    public function available()
+    public function available(Request $request)
     {
-        return response()->json(Table::where('status', 'available')->get());
+        $branchId = Branch::currentId($request);
+        return response()->json(Table::where('branch_id', $branchId)->where('status', 'available')->get());
     }
 }
