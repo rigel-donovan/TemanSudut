@@ -186,4 +186,59 @@ class BranchController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * GET /api/branches/{id}/summary
+     * Return counts of active records in the branch.
+     */
+    public function summary(Request $request, int $id)
+    {
+        $branch = Branch::findOrFail($id);
+        return response()->json([
+            'status' => 'success',
+            'data' => [
+                'branch' => $branch,
+                'summary' => $branch->getDataSummary(),
+                'has_data' => $branch->hasData(),
+            ],
+        ]);
+    }
+
+    /**
+     * DELETE /api/branches/{id}
+     * Safely delete branch and its operational data after password confirmation (Owner only).
+     */
+    public function destroy(Request $request, int $id)
+    {
+        if (!$request->user()->isOwner()) {
+            return response()->json(['message' => 'Hanya Owner yang dapat menghapus cabang.'], 403);
+        }
+
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $branch = Branch::findOrFail($id);
+
+        try {
+            $branchName = $branch->name;
+            $branch->safeDeleteWithPassword($request->password, $request->user());
+
+            return response()->json([
+                'status' => 'success',
+                'message' => "Cabang '{$branchName}' beserta seluruh datanya berhasil dihapus permanen.",
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Password salah! Konfirmasi penghapusan gagal.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
 }

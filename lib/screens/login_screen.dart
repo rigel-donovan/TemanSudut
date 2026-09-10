@@ -246,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
         // Footer
         Center(
           child: Text(
-            'v2.3.0 TemanSudut POS',
+            'v2.3.0 TemanSudut',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[400],
@@ -314,7 +314,7 @@ class _LoginScreenState extends State<LoginScreen> {
         else
           ListView.separated(
             shrinkWrap: true,
-            physics: const NeverScrollableScrollException(),
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: auth.branches.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {

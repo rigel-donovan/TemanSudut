@@ -224,13 +224,134 @@ class BranchResource extends Resource
                         }
                     }),
                 EditAction::make(),
-                DeleteAction::make(),
+                static::getDeleteBranchAction(),
             ])
             ->bulkActions([
-                BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                // Bulk delete dinonaktifkan demi keamanan data cabang
             ]);
+    }
+
+    public static function getDeleteBranchAction(): Action
+    {
+        return Action::make('deleteBranch')
+            ->label('Hapus Cabang')
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading(fn (Branch $record) => "Hapus Cabang: {$record->name}")
+            ->modalDescription(function (Branch $record) {
+                $summary = $record->getDataSummary();
+                $totalData = array_sum($summary);
+
+                if ($totalData > 0) {
+                    $items = [
+                        ['label' => 'Produk', 'count' => $summary['products']],
+                        ['label' => 'Riwayat Transaksi', 'count' => $summary['transactions']],
+                        ['label' => 'Kategori Menu', 'count' => $summary['categories']],
+                        ['label' => 'Bahan Baku', 'count' => $summary['raw_materials']],
+                        ['label' => 'Meja', 'count' => $summary['tables']],
+                        ['label' => 'Shift Kasir', 'count' => $summary['shifts']],
+                        ['label' => 'Catatan Keuangan', 'count' => $summary['finance_entries']],
+                    ];
+
+                    $gridHtml = '';
+                    foreach ($items as $item) {
+                        if ($item['count'] > 0) {
+                            $gridHtml .= "
+                                <div style='background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 6px 10px; display: flex; justify-content: space-between; align-items: center;'>
+                                    <span style='font-size: 12px; color: #d1d5db;'>{$item['label']}</span>
+                                    <span style='font-weight: 700; font-size: 12px; color: #fca5a5; background: rgba(239, 68, 68, 0.25); padding: 1px 8px; border-radius: 9999px;'>{$item['count']}</span>
+                                </div>";
+                        }
+                    }
+
+                    return new \Illuminate\Support\HtmlString("
+                        <div style='text-align: left; margin: 4px 0 14px 0;'>
+                            <div style='background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.28); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px;'>
+                                <div style='display: flex; align-items: center; gap: 8px; margin-bottom: 12px;'>
+                                    <div style='display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 6px; background: rgba(239, 68, 68, 0.2); color: #f87171; font-size: 14px; flex-shrink: 0;'>
+                                        ⚠️
+                                    </div>
+                                    <div>
+                                        <div style='font-weight: 700; font-size: 13px; color: #f87171; letter-spacing: 0.01em;'>
+                                            PERINGATAN: Cabang Memiliki Data Aktif!
+                                        </div>
+                                        <div style='font-size: 11.5px; color: #9ca3af; margin-top: 1px;'>
+                                            Data operasional berikut terdaftar pada cabang ini:
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style='display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px;'>
+                                    {$gridHtml}
+                                </div>
+
+                                <div style='display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #f87171; border-top: 1px solid rgba(239, 68, 68, 0.18); padding-top: 9px; line-height: 1.4;'>
+                                    <span>•</span>
+                                    <span>Seluruh data operasional di atas akan <strong>dihapus permanen</strong> dan tidak dapat dipulihkan!</span>
+                                </div>
+                            </div>
+
+                            <p style='color: #9ca3af; font-size: 12px; line-height: 1.45; margin: 0;'>
+                                Ketik password akun login Anda di bawah ini untuk mengonfirmasi penghapusan permanen.
+                            </p>
+                        </div>
+                    ");
+                }
+
+                return new \Illuminate\Support\HtmlString("
+                    <div style='text-align: left; margin: 4px 0 12px 0;'>
+                        <div style='background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px;'>
+                            <span style='color: #10b981; font-size: 15px;'>✓</span>
+                            <span style='color: #9ca3af; font-size: 12.5px;'>Cabang ini belum memiliki data riwayat transaksi atau produk.</span>
+                        </div>
+                        <p style='color: #9ca3af; font-size: 12px; line-height: 1.45; margin: 0;'>
+                            Ketik password akun login Anda di bawah ini untuk mengonfirmasi penghapusan cabang.
+                        </p>
+                    </div>
+                ");
+            })
+            ->modalSubmitActionLabel('Hapus Permanen')
+            ->form([
+                TextInput::make('password')
+                    ->label('Password Akun Anda')
+                    ->password()
+                    ->revealable()
+                    ->required()
+                    ->placeholder('Masukkan password Anda saat ini')
+                    ->helperText('Konfirmasi identitas dengan password akun login Anda.'),
+            ])
+            ->action(function (Branch $record, array $data, $livewire): void {
+                $user = auth()->user();
+                try {
+                    $name = $record->name;
+                    $record->safeDeleteWithPassword($data['password'], $user);
+                    Notification::make()
+                        ->success()
+                        ->title('Cabang Berhasil Dihapus')
+                        ->body("Cabang '{$name}' dan seluruh datanya telah berhasil dihapus permanen.")
+                        ->send();
+
+                    if (isset($livewire) && method_exists($livewire, 'redirect')) {
+                        if ($livewire instanceof \Filament\Resources\Pages\EditRecord) {
+                            $livewire->redirect(BranchResource::getUrl('index'));
+                        }
+                    }
+                } catch (\Illuminate\Validation\ValidationException $e) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Password Salah!')
+                        ->body('Password akun yang Anda masukkan salah. Penghapusan cabang dibatalkan demi keamanan.')
+                        ->send();
+                } catch (\Exception $e) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Gagal Menghapus Cabang')
+                        ->body($e->getMessage())
+                        ->send();
+                }
+            })
+            ->visible(fn (Branch $record) => Branch::count() > 1);
     }
 
     public static function getRelations(): array

@@ -100,5 +100,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Branches
     Route::post('/branches', [BranchController::class, 'store']);
+    Route::get('/branches/{id}/summary', [BranchController::class, 'summary']);
     Route::post('/branches/{id}/clone-catalog', [BranchController::class, 'cloneCatalog']);
+    Route::delete('/branches/{id}', [BranchController::class, 'destroy']);
 });
