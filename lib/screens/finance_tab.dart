@@ -42,8 +42,9 @@ class FinanceTabState extends State<FinanceTab>
   String _filterCategory = '';
   String _chartPeriod = 'monthly';
 
-  bool _isAllocationExpanded = true;
-  bool _isChartExpanded = true;
+
+  bool _isAllocationExpanded = false;
+  bool _isChartExpanded = false;
 
   // Date range untuk ringkasan
   DateTimeRange? _summaryDateRange;
@@ -955,10 +956,18 @@ class FinanceTabState extends State<FinanceTab>
                 ),
               ),
               const SizedBox(width: 10),
-              const Expanded(
-                child: Text(
-                  'Alokasi Net Profit',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    setState(() {
+                      _isAllocationExpanded = !_isAllocationExpanded;
+                    });
+                  },
+                  child: const Text(
+                    'Alokasi Net Profit',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  ),
                 ),
               ),
               GestureDetector(
@@ -995,16 +1004,20 @@ class FinanceTabState extends State<FinanceTab>
               ),
               const SizedBox(width: 8),
               GestureDetector(
+                behavior: HitTestBehavior.opaque,
                 onTap: () {
                   setState(() {
                     _isAllocationExpanded = !_isAllocationExpanded;
                   });
                 },
-                child: Icon(
-                  _isAllocationExpanded
-                      ? Icons.keyboard_arrow_up
-                      : Icons.keyboard_arrow_down,
-                  color: Colors.grey[700],
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: Icon(
+                    _isAllocationExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: Colors.grey[700],
+                  ),
                 ),
               ),
             ],
@@ -1555,9 +1568,17 @@ class FinanceTabState extends State<FinanceTab>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Grafik Keuangan',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  setState(() {
+                    _isChartExpanded = !_isChartExpanded;
+                  });
+                },
+                child: const Text(
+                  'Grafik Keuangan',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
               ),
               // chart period buttons and minimize toggle
               Row(
@@ -1597,16 +1618,20 @@ class FinanceTabState extends State<FinanceTab>
                   ),
                   const SizedBox(width: 8),
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () {
                       setState(() {
                         _isChartExpanded = !_isChartExpanded;
                       });
                     },
-                    child: Icon(
-                      _isChartExpanded
-                          ? Icons.keyboard_arrow_up
-                          : Icons.keyboard_arrow_down,
-                      color: Colors.grey[700],
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Icon(
+                        _isChartExpanded
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        color: Colors.grey[700],
+                      ),
                     ),
                   ),
                 ],

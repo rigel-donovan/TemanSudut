@@ -20,7 +20,7 @@ class RawMaterialController extends Controller
     {
         if (!RolePermission::isAllowed('manage_stock', auth()->user()->role)) {
             return response()->json(['message' => 'Akses ditolak. Anda tidak memiliki izin untuk mengelola stok.'], 403);
-        }
+        }   
 
         $material = RawMaterial::find($id);
         

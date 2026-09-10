@@ -78,7 +78,6 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab>
     if (!mounted) return;
     LoadingOverlay.hide(context);
     if (success) {
-      // Always refresh the active orders list first (remove completed item)
       await _fetchActiveOrders();
       if (!mounted) return;
 
@@ -89,7 +88,6 @@ class ActiveOrdersTabState extends State<ActiveOrdersTab>
         type: PopupType.success,
       );
 
-      // Trigger parent: refresh history tab then navigate to it
       if (widget.onOrderCompleted != null) {
         widget.onOrderCompleted!();
       } else if (widget.onNavigateToHistory != null) {
