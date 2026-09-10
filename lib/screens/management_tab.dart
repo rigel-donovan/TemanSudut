@@ -138,7 +138,7 @@ class _ManagementTabState extends State<ManagementTab>
                 _RawMaterialsView(),
             ],
           ),
-        ),
+        ), 
       ],
     );
   }

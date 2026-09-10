@@ -602,12 +602,15 @@ class ApiService {
       final response = await _dio.get('/branches');
       if (response.data != null && response.data['data'] != null) {
         final list = response.data['data'] as List;
-        return list.map((item) => Branch.fromJson(item as Map<String, dynamic>)).toList();
+        final branches = list.map((item) => Branch.fromJson(item as Map<String, dynamic>)).toList();
+        if (branches.isNotEmpty) {
+          return branches;
+        }
       }
-      return [];
+      return [Branch.defaultBranch];
     } catch (e) {
-      developer.log('Failed to get branches: $e');
-      return [];
+      developer.log('Failed to get branches (fallback to default): $e');
+      return [Branch.defaultBranch];
     }
   }
 

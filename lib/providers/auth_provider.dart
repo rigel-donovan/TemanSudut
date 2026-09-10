@@ -76,11 +76,16 @@ class AuthProvider with ChangeNotifier {
         _apiService.setToken(_token!);
 
         // Parse branches
-        if (response['branches'] != null && response['branches'] is List) {
+        if (response['branches'] != null && response['branches'] is List && (response['branches'] as List).isNotEmpty) {
           final list = response['branches'] as List;
           _branches = list.map((item) => Branch.fromJson(item as Map<String, dynamic>)).toList();
         } else {
           _branches = await _apiService.getBranches();
+        }
+
+        // Fallback jika server/PC belum update fitur cabang
+        if (_branches.isEmpty) {
+          _branches = [Branch.defaultBranch];
         }
 
         // If user has only 1 branch, select it automatically
@@ -137,11 +142,15 @@ class AuthProvider with ChangeNotifier {
         _role = _user?['role'] ?? 'cashier';
 
         // Update branches
-        if (_user?['branches'] != null && _user!['branches'] is List) {
+        if (_user?['branches'] != null && _user!['branches'] is List && (_user!['branches'] as List).isNotEmpty) {
           final list = _user!['branches'] as List;
           _branches = list.map((item) => Branch.fromJson(item as Map<String, dynamic>)).toList();
         } else {
           _branches = await _apiService.getBranches();
+        }
+
+        if (_branches.isEmpty) {
+          _branches = [Branch.defaultBranch];
         }
 
         final prefs = await SharedPreferences.getInstance();

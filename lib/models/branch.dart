@@ -13,6 +13,13 @@ class Branch {
     this.isActive = true,
   });
 
+  static final Branch defaultBranch = Branch(
+    id: 1,
+    name: 'Cabang Ring Road',
+    address: 'Pusat',
+    isActive: true,
+  );
+
   factory Branch.fromJson(Map<String, dynamic> json) {
     return Branch(
       id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,

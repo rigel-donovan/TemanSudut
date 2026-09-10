@@ -302,13 +302,48 @@ class _LoginScreenState extends State<LoginScreen> {
         const SizedBox(height: 24),
 
         if (auth.branches.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(24.0),
-            child: Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF5D4037),
-                strokeWidth: 2.5,
-              ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20.0),
+            child: Column(
+              children: [
+                Text(
+                  'Server belum mengaktifkan multi-cabang.\nSilakan masuk menggunakan cabang default.',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      setState(() => _isLoading = true);
+                      await auth.setActiveBranch(Branch.defaultBranch);
+                      if (mounted) {
+                        final cart = Provider.of<CartProvider>(context, listen: false);
+                        await cart.refreshAll();
+                        setState(() => _isLoading = false);
+                      }
+                    },
+                    icon: const Icon(Icons.storefront_rounded),
+                    label: const Text(
+                      'Masuk ke Cabang Utama',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF5D4037),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           )
         else

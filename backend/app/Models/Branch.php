@@ -69,14 +69,18 @@ class Branch extends Model
         if ($branchId) {
             return (int) $branchId;
         }
-        if (auth()->check()) {
-            $user = auth()->user();
-            if (!$user->isOwner()) {
-                $userBranch = $user->branches()->first();
-                if ($userBranch) {
-                    return (int) $userBranch->id;
+        try {
+            if (auth()->check()) {
+                $user = auth()->user();
+                if (!$user->isOwner() && method_exists($user, 'branches')) {
+                    $userBranch = $user->branches()->first();
+                    if ($userBranch) {
+                        return (int) $userBranch->id;
+                    }
                 }
             }
+        } catch (\Throwable $e) {
+            // Fallback to default ID 1
         }
         return 1;
     }
