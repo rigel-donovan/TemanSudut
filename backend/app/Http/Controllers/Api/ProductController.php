@@ -41,7 +41,9 @@ class ProductController extends Controller
 
     public function update(Request $request, string $id)
     {
-        if (!\App\Models\RolePermission::isAllowed('manage_stock', auth()->user()->role)) {
+        /** @var \App\Models\User|null $user */
+        $user = $request->user();
+        if (!$user || !\App\Models\RolePermission::isAllowed('manage_stock', $user->role)) {
             return response()->json(['message' => 'Akses ditolak. Anda tidak memiliki izin untuk mengelola stok.'], 403);
         }
 
@@ -62,7 +64,8 @@ class ProductController extends Controller
         $product->update($request->only(['stock', 'price', 'is_active']));
 
         // Audit Log
-        ActivityLog::log('product_updated', 'Produk "' . $product->name . '" diubah oleh ' . auth()->user()->name, [
+        $userName = $user->name ?? 'Sistem';
+        ActivityLog::log('product_updated', 'Produk "' . $product->name . '" diubah oleh ' . $userName, [
             'product_id' => $product->id,
             'old_stock' => $oldStock,
             'new_stock' => $product->stock,

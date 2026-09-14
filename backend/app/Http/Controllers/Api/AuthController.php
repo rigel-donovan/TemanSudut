@@ -18,6 +18,7 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($request->only('email', 'password'))) {
+            /** @var \App\Models\User $user */
             $user = Auth::user();
             $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -68,6 +69,7 @@ class AuthController extends Controller
 
     public function me(Request $request) 
     {
+        /** @var \App\Models\User $user */
         $user = $request->user();
         $branches = [];
         try {

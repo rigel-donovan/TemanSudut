@@ -28,7 +28,7 @@ class FinanceController extends Controller
         if ($request->has('filter')) {
             $filter = $request->filter;
             if ($filter === 'daily') {
-                $query->whereDate('date', now()->toDateString());
+                $query->where('date', now()->toDateString());
             } elseif ($filter === 'weekly') {
                 $query->whereBetween('date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()]);
             } elseif ($filter === 'monthly') {
@@ -36,7 +36,7 @@ class FinanceController extends Controller
             } elseif (str_starts_with($filter, 'date:')) {
                 // Filter tanggal spesifik: date:YYYY-MM-DD
                 $date = substr($filter, 5);
-                $query->whereDate('date', $date);
+                $query->where('date', $date);
             } elseif (str_starts_with($filter, 'date_range:')) {
                 // Filter rentang tanggal: date_range:YYYY-MM-DD,YYYY-MM-DD
                 $parts = explode(',', substr($filter, 11));
@@ -48,7 +48,7 @@ class FinanceController extends Controller
 
         if ($request->has('date')) {
             // Query param ?date=YYYY-MM-DD langsung
-            $query->whereDate('date', $request->date);
+            $query->where('date', $request->date);
         }
 
         return response()->json($query->limit(500)->get());
@@ -109,13 +109,13 @@ class FinanceController extends Controller
         $query = FinanceEntry::where('branch_id', $branchId);
 
         if ($filter === 'daily') {
-            $query->whereDate('date', now()->toDateString());
+            $query->where('date', now()->toDateString());
         } elseif ($filter === 'weekly') {
             $query->whereBetween('date', [now()->startOfWeek()->toDateString(), now()->endOfWeek()->toDateString()]);
         } elseif (str_starts_with($filter, 'date:')) {
             // Filter tanggal spesifik: date:YYYY-MM-DD
             $date = substr($filter, 5);
-            $query->whereDate('date', $date);
+            $query->where('date', $date);
         } elseif (str_starts_with($filter, 'date_range:')) {
             // Filter rentang tanggal: date_range:YYYY-MM-DD,YYYY-MM-DD
             $parts = explode(',', substr($filter, 11));

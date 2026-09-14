@@ -42,9 +42,8 @@ class FinanceTabState extends State<FinanceTab>
   String _filterCategory = '';
   String _chartPeriod = 'monthly';
 
-
   bool _isAllocationExpanded = false;
-  bool _isChartExpanded = false;
+  bool _isChartExpanded = true;
 
   // Date range untuk ringkasan
   DateTimeRange? _summaryDateRange;
@@ -1769,7 +1768,6 @@ class FinanceTabState extends State<FinanceTab>
       }.toList();
     }
 
-    // Double check filter secara lokal walau sudah dari API
     var filtered = _entries;
     if (_filterList.isNotEmpty) {
       filtered = filtered.where((e) => e['type'] == _filterList).toList();

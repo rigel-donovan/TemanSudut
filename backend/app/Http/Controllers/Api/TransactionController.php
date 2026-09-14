@@ -232,8 +232,8 @@ class TransactionController extends Controller
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter === 'weekly') {
-            $start = \Carbon\Carbon::now($tz)->startOfWeek(\Carbon\CarbonInterface::MONDAY)->startOfDay()->format($fmt);
-            $end   = \Carbon\Carbon::now($tz)->endOfWeek(\Carbon\CarbonInterface::SUNDAY)->endOfDay()->format($fmt);
+            $start = \Carbon\Carbon::now($tz)->startOfWeek()->startOfDay()->format($fmt);
+            $end   = \Carbon\Carbon::now($tz)->endOfWeek()->endOfDay()->format($fmt);
             $query->whereBetween('created_at', [$start, $end]);
 
         } elseif ($filter === 'monthly') {

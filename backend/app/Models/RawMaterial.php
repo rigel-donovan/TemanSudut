@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class RawMaterial extends Model
 {
@@ -31,12 +32,12 @@ class RawMaterial extends Model
     {
         static::saving(function (RawMaterial $material) {
             if (is_null($material->price_per_small_unit) && $material->conversion_value > 0 && $material->price_per_large_unit > 0) {
-                $material->price_per_small_unit = (string) ($material->price_per_large_unit / $material->conversion_value);
+                $material->price_per_small_unit = round((float) $material->price_per_large_unit / (float) $material->conversion_value, 4);
             }
         });
 
         static::saved(function (RawMaterial $material) {
-            $products = \App\Models\Product::whereHas('ingredients', function ($q) use ($material) {
+            $products = Product::whereHas('ingredients', function ($q) use ($material) {
                 $q->where('raw_material_id', $material->id);
             })->get();
             
@@ -66,7 +67,7 @@ class RawMaterial extends Model
 
         StockLog::create([
             'raw_material_id' => $rawMaterialId,
-            'user_id'         => $userId ?? \Illuminate\Support\Facades\Auth::id(),
+            'user_id'         => $userId ?? Auth::id(),
             'type'            => $type,
             'quantity'        => $quantity,
             'stock_before'    => $stockBefore,

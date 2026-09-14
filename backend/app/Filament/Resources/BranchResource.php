@@ -322,7 +322,16 @@ class BranchResource extends Resource
                     ->helperText('Konfirmasi identitas dengan password akun login Anda.'),
             ])
             ->action(function (Branch $record, array $data, $livewire): void {
-                $user = auth()->user();
+                /** @var \App\Models\User|null $user */
+                $user = \Filament\Facades\Filament::auth()->user() ?? \Illuminate\Support\Facades\Auth::user();
+                if (!$user) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Autentikasi Diperlukan')
+                        ->body('Sesi login telah berakhir.')
+                        ->send();
+                    return;
+                }
                 try {
                     $name = $record->name;
                     $record->safeDeleteWithPassword($data['password'], $user);
