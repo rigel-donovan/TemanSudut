@@ -15,7 +15,7 @@ class LocaleProvider with ChangeNotifier {
   }
 
   Future<void> _loadLocale() async {
-    final prefs = await SharedPreferences.getI-nstance();
+    final prefs = await SharedPreferences.getInstance();
     final code = prefs.getString(_key) ?? 'id';
     _locale = Locale(code);
     notifyListeners();

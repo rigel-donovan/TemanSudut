@@ -83,7 +83,6 @@ class AuthProvider with ChangeNotifier {
           _branches = await _apiService.getBranches();
         }
 
-        // Fallback jika server/PC belum update fitur cabang
         if (_branches.isEmpty) {
           _branches = [Branch.defaultBranch];
         }
