@@ -11,6 +11,7 @@ $_ENV['LARAVEL_STORAGE_PATH'] = '/tmp/storage';
 $_SERVER['LARAVEL_STORAGE_PATH'] = '/tmp/storage';
 putenv('LARAVEL_STORAGE_PATH=/tmp/storage');
 
+
 $_ENV['STORAGE_PATH'] = '/tmp/storage';
 $_ENV['VIEW_COMPILED_PATH'] = '/tmp/views';
 

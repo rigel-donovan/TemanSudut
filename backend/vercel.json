@@ -5,7 +5,8 @@
     "outputDirectory": "public",
     "functions": {
         "api/index.php": {
-            "runtime": "vercel-php@0.8.0"
+            "runtime": "vercel-php@0.8.0",
+            "excludeFiles": "{public/canvaskit/**,public/assets/**,public/images/**,public/icons/**,public/main.dart.js,tests/**,node_modules/**}"
         }
     },
     "routes": [
@@ -14,8 +15,44 @@
             "dest": "/build/$1"
         },
         {
+            "src": "/assets/(.*)",
+            "dest": "/assets/$1"
+        },
+        {
+            "src": "/canvaskit/(.*)",
+            "dest": "/canvaskit/$1"
+        },
+        {
+            "src": "/icons/(.*)",
+            "dest": "/icons/$1"
+        },
+        {
+            "src": "/css/(.*)",
+            "dest": "/css/$1"
+        },
+        {
+            "src": "/fonts/(.*)",
+            "dest": "/fonts/$1"
+        },
+        {
+            "src": "/images/(.*)",
+            "dest": "/images/$1"
+        },
+        {
+            "src": "/js/(.*)",
+            "dest": "/js/$1"
+        },
+        {
             "src": "/storage/(.*)",
             "dest": "/storage/$1"
+        },
+        {
+            "src": "/(favicon.png|favicon.ico|flutter.js|flutter_bootstrap.js|flutter_service_worker.js|main.dart.js|manifest.json|version.json|robots.txt)",
+            "dest": "/$1"
+        },
+        {
+            "src": "/$",
+            "dest": "/index.html"
         },
         {
             "src": "/(.*)",
