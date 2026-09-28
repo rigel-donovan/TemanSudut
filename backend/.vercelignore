@@ -1,0 +1,13 @@
+# Exclude large directories not needed in deployment
+/node_modules
+/tests
+/.git
+/storage/logs
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/views
+.env
+.env.example
+*.log
+/bootstrap/cache/*.php
+temp_err.html

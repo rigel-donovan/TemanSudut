@@ -14,8 +14,9 @@ class ApiService {
   factory ApiService() => _instance;
 
   // === URL SERVER ===
-  static const String baseUrl = 'http://100.67.41.122:8000/api';
+  static const String baseUrl = 'https://backend-teal-five-fgiqlez5wk.vercel.app/api';
   // ========================================
+
   late final Dio _dio;
 
   ApiService._internal() {

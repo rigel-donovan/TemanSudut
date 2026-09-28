@@ -51,8 +51,8 @@ Route::get('/images/{path}', function ($path) {
     Route::get('/tables/available', [TableController::class, 'available']);
 
     Route::get('/transactions/export/excel', [TransactionController::class, 'exportExcel']);
-Route::get('/transactions/export/pdf', [TransactionController::class, 'exportPdf']);
-Route::get('/transactions/{id}/receipt', [TransactionController::class, 'exportReceiptPdf']);
+    Route::get('/transactions/export/pdf', [TransactionController::class, 'exportPdf']);
+    Route::get('/transactions/{id}/receipt', [TransactionController::class, 'exportReceiptPdf']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

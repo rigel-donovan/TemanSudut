@@ -17,7 +17,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => (!empty(env('DB_URL')) && env('DB_CONNECTION') === 'libsql') ? 'libsql' : 'sqlite',
 
     /*
     |--------------------------------------------------------------------------
@@ -34,8 +34,8 @@ return [
 
         'sqlite' => [
             'driver' => 'sqlite',
-            'url' => env('DB_URL'),
-            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'url' => null,
+            'database' => env('DB_DATABASE', file_exists('/tmp/database.sqlite') ? '/tmp/database.sqlite' : database_path('database.sqlite')),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
             'busy_timeout' => null,
@@ -43,6 +43,18 @@ return [
             'synchronous' => null,
             'transaction_mode' => 'DEFERRED',
         ],
+
+        // Turso (libSQL) — used in production on Vercel
+        'libsql' => [
+            'driver'    => 'libsql',
+            'url'       => env('DB_URL', ''),
+            'authToken' => env('DB_AUTH_TOKEN', ''),
+            'password'  => env('DB_AUTH_TOKEN', ''),
+            'database'  => env('DB_DATABASE', null),
+            'prefix'    => '',
+        ],
+
+
 
         'mysql' => [
             'driver' => 'mysql',
