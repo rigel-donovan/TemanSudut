@@ -55,20 +55,32 @@ if (!file_exists($sqliteDst) && file_exists($sqliteSrc)) {
     copy($sqliteSrc, $sqliteDst);
 }
 
-// If Turso DB_URL is not configured yet, use standard SQLite in /tmp
-$tursoUrl = $_ENV['DB_URL'] ?? getenv('DB_URL') ?: '';
-if (empty($tursoUrl)) {
-    $_ENV['DB_CONNECTION'] = 'sqlite';
-    $_SERVER['DB_CONNECTION'] = 'sqlite';
-    putenv('DB_CONNECTION=sqlite');
+// Turso (libSQL) Cloud Database configuration
+$tursoUrl = 'libsql://database-rigelds.aws-ap-northeast-1.turso.io';
+$tursoToken = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3OTA2MDk0MjIsImlkIjoiMDFhMGU4YTItMmIwMS03MjM4LTgxM2ItYmJjNjMzYmFmZmRjIiwia2lkIjoicFJ4LVZJWklSNG90WjBEMmZLSWttVk13b08zOWowbGlrYkNTNlFCMUpOZyIsInJpZCI6IjZlZDBhNTgzLTQwYjQtNDIxYi1hMDZmLTEyMzIxYjljZTU4ZCJ9.ogMaNyIqVKEQHf1LjyPH5dxvRsNlPDq43-gwYcqIYlpfoCS3QVIznkSqE1-0k6YGu_vaSDJJRCGPmIRnF4aqCA';
 
-    $_ENV['DB_DATABASE'] = $sqliteDst;
-    $_SERVER['DB_DATABASE'] = $sqliteDst;
-    putenv('DB_DATABASE=' . $sqliteDst);
-}
+$_ENV['DB_CONNECTION'] = 'libsql';
+$_SERVER['DB_CONNECTION'] = 'libsql';
+putenv('DB_CONNECTION=libsql');
+
+$_ENV['DB_URL'] = $tursoUrl;
+$_SERVER['DB_URL'] = $tursoUrl;
+putenv('DB_URL=' . $tursoUrl);
+
+$_ENV['DB_AUTH_TOKEN'] = $tursoToken;
+$_SERVER['DB_AUTH_TOKEN'] = $tursoToken;
+putenv('DB_AUTH_TOKEN=' . $tursoToken);
 
 // Prevent Symfony/Laravel from stripping '/api' from request paths
 $_SERVER['SCRIPT_NAME'] = '/index.php';
 $_SERVER['PHP_SELF'] = '/index.php';
 
-require __DIR__ . '/../public/index.php';
+require_once __DIR__ . '/../vendor/autoload.php';
+$app = require_once __DIR__ . '/../bootstrap/app.php';
+
+if (class_exists(\Libsql\Laravel\LibsqlServiceProvider::class)) {
+    $app->register(\Libsql\Laravel\LibsqlServiceProvider::class);
+}
+
+$app->handleRequest(\Illuminate\Http\Request::capture());
+
