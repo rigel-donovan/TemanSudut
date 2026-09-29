@@ -59,6 +59,7 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'payment_method' => 'required|string',
             'order_type' => 'required|in:dine_in,take_away,online',
+            'table_id' => 'nullable|integer',
             'customer_name' => 'nullable|string',
             'notes' => 'nullable|string',
             'items' => 'required|array',
@@ -77,7 +78,7 @@ class TransactionController extends Controller
             DB::beginTransaction();
 
             $productIds = array_column($validated['items'], 'product_id');
-            $productMap = Product::with('ingredients.rawMaterial')->whereIn('id', $productIds)->get()->keyBy('id');
+            $productMap = Product::with(['ingredients.rawMaterial', 'category'])->whereIn('id', $productIds)->get()->keyBy('id');
 
             $subtotal = 0;
             $items = [];
@@ -93,7 +94,6 @@ class TransactionController extends Controller
 
                 $items[] = [
                     'product_id' => $product->id,
-                    
                     'quantity' => $item['quantity'],
                     'unit_price' => $product->price,
                     'subtotal' => $itemSubtotal,
@@ -108,6 +108,7 @@ class TransactionController extends Controller
             $transaction = Transaction::create([
                 'branch_id' => Branch::currentId($request),
                 'user_id' => Auth::id(),
+                'table_id' => $request->input('table_id'),
                 'order_type' => $validated['order_type'],
                 'customer_name' => $validated['customer_name'] ?? null,
                 'subtotal' => $subtotal,
@@ -120,6 +121,21 @@ class TransactionController extends Controller
                 'amount_received' => $validated['amount_received'] ?? null,
                 'change_amount' => $validated['change_amount'] ?? null,
             ]);
+
+            // Ensure transaction ID is properly populated (fixes Libsql/Turso driver returning 0 for lastInsertId)
+            if (empty($transaction->id) || (int) $transaction->id <= 0) {
+                try {
+                    $row = DB::selectOne('SELECT last_insert_rowid() AS id');
+                    $lastId = $row ? (is_object($row) ? ($row->id ?? 0) : ($row['id'] ?? 0)) : 0;
+                    if ($lastId > 0) {
+                        $transaction->id = (int) $lastId;
+                    } else {
+                        $transaction->id = (int) DB::table('transactions')->where('user_id', Auth::id())->max('id');
+                    }
+                } catch (\Throwable $e) {
+                    $transaction->id = (int) DB::table('transactions')->where('user_id', Auth::id())->max('id');
+                }
+            }
 
             // Handle Photo Saving
             if ($request->hasFile('completion_photo')) {
@@ -154,7 +170,7 @@ class TransactionController extends Controller
             foreach ($validated['items'] as $item) {
                 /** @var Product $product */
                 $product = $productMap[$item['product_id']];
-                $product->load('ingredients.rawMaterial');
+                $product->load(['ingredients.rawMaterial', 'category']);
 
                 $itemUsesCup = isset($item['use_cup']) ? (bool)$item['use_cup'] : true;
                 $cupDeducted = false;
@@ -177,8 +193,14 @@ class TransactionController extends Controller
                     );
                 }
 
-                if ($itemUsesCup && !$cupDeducted) {
-                    $cupMaterial = \App\Models\RawMaterial::where('name', 'Cup')->first();
+                // Only deduct cup for drink products if not already deducted via ingredients
+                $catName = strtolower($product->category->name ?? '');
+                $isDrink = str_contains($catName, 'kopi') || str_contains($catName, 'coffee') || str_contains($catName, 'minum') || str_contains($catName, 'tea') || str_contains($catName, 'milk');
+
+                if ($itemUsesCup && $isDrink && !$cupDeducted) {
+                    $branchId = Branch::currentId($request);
+                    $cupMaterial = \App\Models\RawMaterial::where('branch_id', $branchId)->where('name', 'Cup')->first()
+                        ?? \App\Models\RawMaterial::where('name', 'Cup')->first();
                     if ($cupMaterial) {
                         \App\Models\RawMaterial::adjustStock(
                             $cupMaterial->id,
@@ -299,12 +321,14 @@ class TransactionController extends Controller
             $validated = $request->validate([
                 'customer_name' => 'nullable|string|max:255',
                 'order_type'    => 'nullable|in:dine_in,take_away,online',
+                'table_id'      => 'nullable|integer',
                 'notes'         => 'nullable|string',
                 'items'         => 'required|array|min:1',
                 'items.*.product_id' => 'required|integer',
                 'items.*.quantity'   => 'required|integer|min:1',
                 'items.*.notes'      => 'nullable|string',
                 'items.*.extra_charge' => 'nullable|numeric',
+                'items.*.use_cup'    => 'nullable|boolean',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
             Log::error('saveTransaction validation failed', ['errors' => $e->errors()]);
@@ -321,13 +345,14 @@ class TransactionController extends Controller
             foreach ($validated['items'] as $item) {
                 $product = $productMap[$item['product_id']] ?? null;
                 if (!$product) continue;
-                $extra = $item['extra_charge'] ?? 0;
+                $extra = floatval($item['extra_charge'] ?? 0);
                 $total += ($product->price + $extra) * $item['quantity'];
             }
 
             $transaction = Transaction::create([
                 'branch_id'      => Branch::currentId($request),
                 'user_id'        => Auth::id(),
+                'table_id'       => $request->input('table_id'),
                 'customer_name'  => $validated['customer_name'] ?? 'Tamu',
                 'order_type'     => $validated['order_type'] ?? 'dine_in',
                 'payment_method' => 'pending',
@@ -338,10 +363,25 @@ class TransactionController extends Controller
                 'kitchen_status' => 'saved',
             ]);
 
+            // Ensure transaction ID is properly populated (fixes Libsql/Turso driver returning 0 for lastInsertId)
+            if (empty($transaction->id) || (int) $transaction->id <= 0) {
+                try {
+                    $row = DB::selectOne('SELECT last_insert_rowid() AS id');
+                    $lastId = $row ? (is_object($row) ? ($row->id ?? 0) : ($row['id'] ?? 0)) : 0;
+                    if ($lastId > 0) {
+                        $transaction->id = (int) $lastId;
+                    } else {
+                        $transaction->id = (int) DB::table('transactions')->where('user_id', Auth::id())->max('id');
+                    }
+                } catch (\Throwable $e) {
+                    $transaction->id = (int) DB::table('transactions')->where('user_id', Auth::id())->max('id');
+                }
+            }
+
             foreach ($validated['items'] as $item) {
                 $product = $productMap[$item['product_id']] ?? null;
                 if (!$product) continue;
-                $extra = $item['extra_charge'] ?? 0;
+                $extra = floatval($item['extra_charge'] ?? 0);
                 TransactionItem::create([
                     'transaction_id' => $transaction->id,
                     'product_id'     => $item['product_id'],
@@ -349,6 +389,7 @@ class TransactionController extends Controller
                     'unit_price'     => $product->price + $extra,
                     'subtotal'       => ($product->price + $extra) * $item['quantity'],
                     'notes'          => $item['notes'] ?? null,
+                    'extra_charge'   => $extra,
                 ]);
             }
 

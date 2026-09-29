@@ -80,6 +80,45 @@ $app = require_once __DIR__ . '/../bootstrap/app.php';
 
 if (class_exists(\Libsql\Laravel\LibsqlServiceProvider::class)) {
     $app->register(\Libsql\Laravel\LibsqlServiceProvider::class);
+
+    // Ensure last_insert_rowid is correctly fetched when inserting records on Turso
+    $app->resolving('db', function ($db) {
+        $db->extend('libsql', function ($config, $name) {
+            $config = config('database.connections.libsql');
+            $config['name'] = $name;
+            if (!isset($config['driver'])) {
+                $config['driver'] = 'libsql';
+            }
+
+            $connector = new \Libsql\Laravel\Database\LibsqlConnector();
+            $dbConn = $connector->connect($config);
+
+            $connection = new class($dbConn, $config['database'] ?? ':memory:', $config['prefix'], $config) extends \Libsql\Laravel\Database\LibsqlConnection {
+                public function getDefaultPostProcessor(): \Libsql\Laravel\Database\LibsqlQueryProcessor
+                {
+                    return new class extends \Libsql\Laravel\Database\LibsqlQueryProcessor {
+                        public function processInsertGetId(\Illuminate\Database\Query\Builder $query, $sql, $values, $sequence = null)
+                        {
+                            $query->getConnection()->insert($sql, $values);
+
+                            $id = $query->getConnection()->getPdo()->lastInsertId($sequence);
+                            if (empty($id) || (int) $id === 0) {
+                                $row = $query->getConnection()->selectOne('SELECT last_insert_rowid() AS id');
+                                $id = $row ? (is_object($row) ? ($row->id ?? 0) : ($row['id'] ?? 0)) : 0;
+                            }
+
+                            return is_numeric($id) ? (int) $id : $id;
+                        }
+                    };
+                }
+            };
+
+            app()->instance(\Libsql\Laravel\Database\LibsqlConnection::class, $connection);
+            $connection->createReadPdo($config);
+
+            return $connection;
+        });
+    });
 }
 
 $app->handleRequest(\Illuminate\Http\Request::capture());
