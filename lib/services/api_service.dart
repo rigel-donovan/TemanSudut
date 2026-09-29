@@ -80,11 +80,14 @@ class ApiService {
     return '$baseUrl/images/$path';
   }
 
+  String? lastErrorMessage;
+
   Future<Map<String, dynamic>?> login(String email, String password) async {
+    lastErrorMessage = null;
     try {
       final response = await _dio.post(
         '/login',
-        data: {'email': email, 'password': password},
+        data: {'email': email.trim(), 'password': password},
       );
       developer.log('Login Success Response: ${response.data}');
       return response.data;
@@ -92,8 +95,21 @@ class ApiService {
       if (e is DioException) {
         developer.log('Failed to login (Dio): ${e.message}');
         developer.log('Response Body: ${e.response?.data}');
+        if (e.response?.data is Map && e.response?.data['message'] != null) {
+          final msg = e.response?.data['message'].toString() ?? '';
+          if (msg == 'Invalid login credentials') {
+            lastErrorMessage = 'Email atau password tidak sesuai.';
+          } else {
+            lastErrorMessage = msg;
+          }
+        } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.receiveTimeout) {
+          lastErrorMessage = 'Koneksi ke server timeout. Silakan periksa jaringan Anda.';
+        } else {
+          lastErrorMessage = 'Gagal terhubung ke server (${e.response?.statusCode ?? 'Koneksi error'}).';
+        }
       } else {
         developer.log('Failed to login (Unknown): $e');
+        lastErrorMessage = 'Terjadi kesalahan sistem: $e';
       }
       return null;
     }

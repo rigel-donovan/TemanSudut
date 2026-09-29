@@ -502,7 +502,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (_emailCtrl.text.isEmpty || _passCtrl.text.isEmpty) {
+    final email = _emailCtrl.text.trim();
+    final password = _passCtrl.text;
+
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Email dan password harus diisi')),
       );
@@ -511,14 +514,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    bool success = await auth.login(_emailCtrl.text, _passCtrl.text);
+    bool success = await auth.login(email, password);
 
     if (mounted) {
       setState(() => _isLoading = false);
       if (!success) {
+        final errorMsg = auth.errorMessage ?? 'Login gagal. Silakan cek kembali akun Anda.';
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Login gagal. Silakan cek kembali akun Anda.'),
+          SnackBar(
+            content: Text(errorMsg),
             backgroundColor: Colors.redAccent,
           ),
         );

@@ -23,6 +23,8 @@ class AuthProvider with ChangeNotifier {
   String get role => _role;
   bool get isOwner => _role == 'owner';
   bool get isCashier => _role == 'cashier';
+  String? _errorMessage;
+  String? get errorMessage => _errorMessage;
 
   List<Branch> get branches => _branches;
   Branch? get activeBranch => _activeBranch;
@@ -61,9 +63,10 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> login(String email, String password) async {
+    _errorMessage = null;
     developer.log('Attempting login for: $email');
     try {
-      final response = await _apiService.login(email, password);
+      final response = await _apiService.login(email.trim(), password);
       if (response != null && response['access_token'] != null) {
         developer.log('Login success, parsing user data...');
         _token = response['access_token'];
@@ -110,9 +113,11 @@ class AuthProvider with ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        developer.log('Login response was null or missing token.');
+        _errorMessage = _apiService.lastErrorMessage ?? 'Email atau password tidak sesuai.';
+        developer.log('Login failed: $_errorMessage');
       }
     } catch (e) {
+      _errorMessage = 'Terjadi kesalahan sistem: $e';
       developer.log('Login Exception: $e');
     }
     return false;
