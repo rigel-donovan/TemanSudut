@@ -63,7 +63,7 @@ class RawMaterial extends Model
         $stockBefore = (float) $material->stock;
         $stockAfter = $stockBefore + $quantity;
 
-        $material->update(['stock' => $stockAfter]);
+        $material->updateQuietly(['stock' => $stockAfter]);
 
         StockLog::create([
             'raw_material_id' => $rawMaterialId,
