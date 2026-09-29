@@ -1,4 +1,4 @@
-﻿import 'category.dart';
+import 'category.dart';
 
 class Product {
   final int id;
@@ -25,8 +25,8 @@ class Product {
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
-      id: json['id'],
-      categoryId: json['category_id'] ?? 0,
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      categoryId: json['category_id'] is int ? json['category_id'] : int.tryParse(json['category_id']?.toString() ?? '0') ?? 0,
       name: json['name'] ?? 'Unknown',
       description: json['description'] ?? '',
       price: double.tryParse(json['price'].toString()) ?? 0.0,

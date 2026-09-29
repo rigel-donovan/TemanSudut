@@ -1639,7 +1639,8 @@ class OrdersTab extends StatelessWidget {
                                                                 title:
                                                                     'Gagal Membuat Pesanan',
                                                                 message:
-                                                                    'Terjadi kesalahan. Coba lagi.',
+                                                                    cart.lastCheckoutError ??
+                                                                        'Terjadi kesalahan. Coba lagi.',
                                                                 type: PopupType
                                                                     .error,
                                                               );
@@ -1768,7 +1769,8 @@ class OrdersTab extends StatelessWidget {
                                                                   : 'Gagal Menyimpan',
                                                               message: ok
                                                                   ? 'Pesanan disimpan ke History > Tersimpan.'
-                                                                  : 'Terjadi kesalahan. Coba lagi.',
+                                                                  : (cart.lastCheckoutError ??
+                                                                      'Terjadi kesalahan. Coba lagi.'),
                                                               type: ok
                                                                   ? PopupType
                                                                         .success

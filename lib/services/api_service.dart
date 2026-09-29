@@ -14,7 +14,7 @@ class ApiService {
   factory ApiService() => _instance;
 
   // === URL SERVER ===
-  static const String baseUrl = 'https://backend-teal-five-fgiqlez5wk.vercel.app/api';
+  static const String baseUrl = 'https://temansudut.vercel.app/api';
   // ========================================
 
   late final Dio _dio;
@@ -27,6 +27,10 @@ class ApiService {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
         },
+        connectTimeout: const Duration(seconds: 20),
+        receiveTimeout: const Duration(seconds: 20),
+        followRedirects: true,
+        maxRedirects: 5,
       ),
     );
 
@@ -253,17 +257,36 @@ class ApiService {
       developer.log('=== SAVE TRANSACTION RESPONSE ===');
       developer.log('Status: ${response.statusCode}');
       developer.log('Data: ${response.data}');
-      return response.data ?? {'success': false};
+      if (response.data is Map) {
+        return Map<String, dynamic>.from(response.data);
+      }
+      return {'success': response.statusCode == 200 || response.statusCode == 201};
     } catch (e) {
       developer.log('=== SAVE TRANSACTION ERROR ===');
+      String errMsg = 'Gagal menyimpan pesanan';
       if (e is DioException) {
         developer.log('Status: ${e.response?.statusCode}');
         developer.log('Response data: ${e.response?.data}');
         developer.log('Message: ${e.message}');
+        final resData = e.response?.data;
+        if (resData is Map) {
+          if (resData['error'] != null) {
+            errMsg = resData['error'].toString();
+          } else if (resData['message'] != null) {
+            errMsg = resData['message'].toString();
+          }
+          if (resData['details'] is Map) {
+            final details = (resData['details'] as Map)
+                .values
+                .expand((x) => x is List ? x : [x])
+                .join(', ');
+            if (details.isNotEmpty) errMsg = '$errMsg: $details';
+          }
+        }
       } else {
         developer.log('Error: $e');
       }
-      return {'success': false, 'error': e.toString()};
+      return {'success': false, 'error': errMsg};
     }
   }
 
@@ -296,14 +319,30 @@ class ApiService {
         '/transactions/saved/$id/activate',
         data: payload,
       );
-      return response.data ?? {'success': false};
-    } catch (e) {
-      if (e is DioException) {
-        developer.log('Activate saved error: ${e.response?.data}');
-        final data = e.response?.data;
-        if (data is Map) return Map<String, dynamic>.from(data);
+      if (response.data is Map) {
+        return Map<String, dynamic>.from(response.data);
       }
-      return {'success': false, 'error': e.toString()};
+      return {'success': response.statusCode == 200};
+    } catch (e) {
+      developer.log('=== ACTIVATE SAVED ERROR ===');
+      String errMsg = 'Gagal memproses pesanan';
+      List<dynamic> details = [];
+      if (e is DioException) {
+        developer.log('Status: ${e.response?.statusCode}');
+        developer.log('Response: ${e.response?.data}');
+        final resData = e.response?.data;
+        if (resData is Map) {
+          if (resData['error'] != null) {
+            errMsg = resData['error'].toString();
+          } else if (resData['message'] != null) {
+            errMsg = resData['message'].toString();
+          }
+          if (resData['details'] is List) {
+            details = resData['details'];
+          }
+        }
+      }
+      return {'success': false, 'error': errMsg, 'details': details};
     }
   }
 
@@ -372,16 +411,34 @@ class ApiService {
       final response = await _dio.post('/transactions', data: transactionData);
       return {'success': response.statusCode == 201};
     } catch (e) {
-      if (e is DioException && e.response?.statusCode == 422) {
+      if (e is DioException) {
         final data = e.response?.data;
+        String errMsg = 'Gagal membuat transaksi';
+        List<dynamic> details = [];
+        if (data is Map) {
+          if (data['error'] != null) {
+            errMsg = data['error'].toString();
+          } else if (data['message'] != null) {
+            errMsg = data['message'].toString();
+          }
+          if (data['details'] is List) {
+            details = data['details'];
+          } else if (data['errors'] is Map) {
+            details = (data['errors'] as Map)
+                .values
+                .expand((x) => x is List ? x : [x])
+                .toList();
+          }
+        }
+        developer.log('Create transaction DioException: $errMsg, details: $details');
         return {
           'success': false,
-          'error': data?['message'] ?? 'Stok bahan baku tidak mencukupi',
-          'details': data?['details'] ?? [],
+          'error': errMsg,
+          'details': details,
         };
       }
       developer.log('Failed to create transaction: $e');
-      return {'success': false, 'error': 'Gagal membuat transaksi'};
+      return {'success': false, 'error': 'Gagal membuat transaksi: $e'};
     }
   }
 

@@ -309,6 +309,8 @@ class CartProvider with ChangeNotifier {
       clearCart();
       return true;
     }
+    _lastCheckoutError = result['error']?.toString() ?? 'Gagal menyimpan pesanan';
+    notifyListeners();
     return false;
   }
 

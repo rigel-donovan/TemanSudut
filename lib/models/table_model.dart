@@ -1,4 +1,4 @@
-﻿class TableModel {
+class TableModel {
   final int id;
   final String name;
   final String status;
@@ -7,9 +7,9 @@
 
   factory TableModel.fromJson(Map<String, dynamic> json) {
     return TableModel(
-      id: json['id'],
-      name: json['name'],
-      status: json['status'],
+      id: json['id'] is int ? json['id'] : int.tryParse(json['id']?.toString() ?? '0') ?? 0,
+      name: json['name']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
     );
   }
 }
