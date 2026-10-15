@@ -90,17 +90,10 @@ class AuthProvider with ChangeNotifier {
           _branches = [Branch.defaultBranch];
         }
 
-        // If user has only 1 branch, select it automatically
+        // If user has only 1 branch, select it automatically.
+        // Otherwise, force branch selection at login.
         if (_branches.length == 1) {
           await setActiveBranch(_branches.first, notify: false);
-        } else if (_branches.isNotEmpty && _activeBranch != null) {
-          // Check if previously active branch is still in branches list
-          final found = _branches.where((b) => b.id == _activeBranch!.id).firstOrNull;
-          if (found != null) {
-            await setActiveBranch(found, notify: false);
-          } else {
-            _activeBranch = null;
-          }
         } else {
           _activeBranch = null;
         }
@@ -132,6 +125,15 @@ class AuthProvider with ChangeNotifier {
     if (notify) {
       notifyListeners();
     }
+  }
+
+  Future<void> clearActiveBranch() async {
+    _activeBranch = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('active_branch_id');
+    await prefs.remove('active_branch_name');
+    await CacheService.invalidateAll();
+    notifyListeners();
   }
 
   Future<void> switchBranch(Branch branch) async {

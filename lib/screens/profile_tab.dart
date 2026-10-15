@@ -5,7 +5,7 @@ import '../providers/locale_provider.dart';
 import '../providers/notification_prefs_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/popup_notification.dart';
-import '../widgets/branch_selector_sheet.dart';
+import '../widgets/line_popup.dart';
 
 class ProfileTab extends StatelessWidget {
   const ProfileTab({super.key});
@@ -830,11 +830,22 @@ class ProfileTab extends StatelessWidget {
                         auth.activeBranchName,
                         () {
                           if (auth.isOwner || auth.branches.length > 1) {
-                            BranchSelectorSheet.show(context);
+                            LinePopup.showDual(
+                              context,
+                              title: 'Ganti Cabang Bertugas?',
+                              description:
+                                  'Anda akan dialihkan ke layar pemilihan cabang. Pastikan transaksi atau sesi kasir saat ini sudah selesai.',
+                              dismissText: 'Batal',
+                              affirmText: 'Ganti Cabang',
+                              affirmColor: const Color(0xFF5D4037),
+                              onAffirm: () async {
+                                await auth.clearActiveBranch();
+                              },
+                            );
                           }
                         },
                         trailing: (auth.isOwner || auth.branches.length > 1)
-                            ? 'Ubah'
+                            ? 'Ganti'
                             : null,
                       ),
                       _div(),

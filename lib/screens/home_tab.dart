@@ -10,7 +10,6 @@ import '../widgets/stock_alert_dialog.dart';
 import '../widgets/line_popup.dart';
 import '../widgets/popup_notification.dart';
 import '../utils/app_animations.dart';
-import '../widgets/branch_selector_sheet.dart';
 
 class HomeTab extends StatefulWidget {
   const HomeTab({super.key});
@@ -231,43 +230,6 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
             ),
           ),
         ),
-        SizedBox(width: 16),
-        // Branch badge
-        Consumer<AuthProvider>(
-          builder: (context, auth, _) => InkWell(
-            onTap: (auth.isOwner || auth.branches.length > 1)
-                ? () => BranchSelectorSheet.show(context)
-                : null,
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey[200]!),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.storefront_rounded, size: 16, color: Color(0xFF5D4037)),
-                  SizedBox(width: 6),
-                  Text(
-                    auth.activeBranchName,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF5D4037),
-                    ),
-                  ),
-                  if (auth.isOwner || auth.branches.length > 1) ...[
-                    SizedBox(width: 4),
-                    Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF5D4037)),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
         SizedBox(width: 8),
         // Sync icon
         IconButton(
@@ -334,32 +296,22 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                       ),
                     ),
                     Consumer<AuthProvider>(
-                      builder: (context, auth, _) => InkWell(
-                        onTap: (auth.isOwner || auth.branches.length > 1)
-                            ? () => BranchSelectorSheet.show(context)
-                            : null,
-                        borderRadius: BorderRadius.circular(10),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2.0),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.location_on, size: 13, color: Color(0xFF5D4037)),
-                              SizedBox(width: 3),
-                              Text(
-                                auth.activeBranchName,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Color(0xFF5D4037),
-                                  fontWeight: FontWeight.w600,
-                                ),
+                      builder: (context, auth, _) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.location_on, size: 13, color: Color(0xFF5D4037)),
+                            const SizedBox(width: 3),
+                            Text(
+                              auth.activeBranchName,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF5D4037),
+                                fontWeight: FontWeight.w600,
                               ),
-                              if (auth.isOwner || auth.branches.length > 1) ...[
-                                SizedBox(width: 2),
-                                Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: Color(0xFF5D4037)),
-                              ],
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
