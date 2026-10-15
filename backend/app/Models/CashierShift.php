@@ -34,7 +34,7 @@ class CashierShift extends Model
 
     public function getCurrentCashAttribute()
     {
-        $cashSales = Transaction::where('user_id', $this->user_id)
+        $cashSales = Transaction::where('branch_id', $this->branch_id)
             ->where('created_at', '>=', $this->opened_at)
             ->where(function($q) {
                 if ($this->closed_at) {

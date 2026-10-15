@@ -325,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       await auth.setActiveBranch(Branch.defaultBranch);
                       if (mounted) {
                         final cart = Provider.of<CartProvider>(context, listen: false);
-                        await cart.refreshAll();
+                        await cart.refreshAll(branchId: Branch.defaultBranch.id);
                         setState(() => _isLoading = false);
                       }
                     },
@@ -363,7 +363,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     await auth.setActiveBranch(branch);
                     if (mounted) {
                       final cart = Provider.of<CartProvider>(context, listen: false);
-                      await cart.refreshAll();
+                      await cart.refreshAll(branchId: branch.id);
                       setState(() => _isLoading = false);
                     }
                   },

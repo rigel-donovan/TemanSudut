@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
+import '../services/api_service.dart';
 import '../utils/app_format.dart';
 import 'line_popup.dart';
 import 'branch_selector_sheet.dart';
@@ -348,7 +349,7 @@ void _showCloseShiftDialog(BuildContext context, CartProvider cart) {
                         content: Text(
                           success
                               ? 'Kasir berhasil ditutup.'
-                              : 'Gagal menutup kasir. Coba lagi.',
+                              : (ApiService().lastErrorMessage ?? 'Gagal menutup kasir. Coba lagi.'),
                         ),
                         backgroundColor: success ? Colors.green : Colors.red,
                       ),

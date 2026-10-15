@@ -65,7 +65,7 @@ class Branch extends Model
     public static function currentId(?\Illuminate\Http\Request $request = null): int
     {
         $request = $request ?? request();
-        $branchId = $request->header('X-Branch-Id') ?? $request->query('branch_id');
+        $branchId = $request->header('X-Branch-Id') ?? $request->input('branch_id') ?? $request->query('branch_id');
         if ($branchId) {
             return (int) $branchId;
         }

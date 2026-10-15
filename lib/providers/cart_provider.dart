@@ -66,25 +66,31 @@ class CartProvider with ChangeNotifier {
     checkShiftStatus();
   }
 
-  Future<void> checkShiftStatus() async {
+  Future<void> checkShiftStatus({int? branchId}) async {
     _isLoadingShift = true;
     notifyListeners();
-    _currentShift = await _apiService.getCurrentShift();
-    _isShiftOpen = _currentShift != null;
-    _isLoadingShift = false;
-    notifyListeners();
+    try {
+      _currentShift = await _apiService.getCurrentShift(branchId: branchId);
+      _isShiftOpen = _currentShift != null;
+    } catch (e) {
+      _currentShift = null;
+      _isShiftOpen = false;
+    } finally {
+      _isLoadingShift = false;
+      notifyListeners();
+    }
   }
 
-  Future<bool> openShift(double amount) async {
-    bool success = await _apiService.openShift(amount);
+  Future<bool> openShift(double amount, {int? branchId}) async {
+    bool success = await _apiService.openShift(amount, branchId: branchId);
     if (success) {
-      await checkShiftStatus();
+      await checkShiftStatus(branchId: branchId);
     }
     return success;
   }
 
-  Future<bool> closeShift(double amount) async {
-    bool success = await _apiService.closeShift(endingCash: amount);
+  Future<bool> closeShift(double amount, {int? branchId}) async {
+    bool success = await _apiService.closeShift(endingCash: amount, branchId: branchId);
     if (success) {
       _isShiftOpen = false;
       _currentShift = null;
@@ -165,13 +171,16 @@ class CartProvider with ChangeNotifier {
     await _fetchProducts();
   }
 
-  Future<void> refreshAll() async {
+  Future<void> refreshAll({int? branchId}) async {
     await CacheService.invalidateAll();
     _allProducts = [];
     _categories = [];
     _selectedCategory = null;
     clearCart();
-    await _fetchProducts();
+    await Future.wait([
+      _fetchProducts(),
+      checkShiftStatus(branchId: branchId),
+    ]);
     notifyListeners();
   }
 

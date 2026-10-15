@@ -12,9 +12,10 @@ class ShiftController extends Controller
     public function current(Request $request)
     {
         $branchId = Branch::currentId($request);
-        $shift = CashierShift::where('user_id', $request->user()->id)
+        $shift = CashierShift::with('user:id,name')
             ->where('branch_id', $branchId)
             ->where('status', 'open')
+            ->latest('opened_at')
             ->first();
 
         return response()->json([
@@ -27,18 +28,18 @@ class ShiftController extends Controller
     {
         $request->validate([
             'starting_cash' => 'required|numeric|min:0',
+            'branch_id' => 'nullable|integer',
         ]);
 
         $branchId = Branch::currentId($request);
-        $activeShift = CashierShift::where('user_id', $request->user()->id)
-            ->where('branch_id', $branchId)
+        $activeShift = CashierShift::where('branch_id', $branchId)
             ->where('status', 'open')
             ->first();
 
         if ($activeShift) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Anda masih memiliki shift yang terbuka di cabang ini.'
+                'message' => 'Cabang ini sudah memiliki shift kasir yang sedang aktif.'
             ], 400);
         }
 
@@ -52,7 +53,7 @@ class ShiftController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Shift berhasil dibuka.',
+            'message' => 'Shift kasir berhasil dibuka.',
             'data' => $shift
         ]);
     }
@@ -61,18 +62,19 @@ class ShiftController extends Controller
     {
         $request->validate([
             'ending_cash' => 'nullable|numeric|min:0',
+            'branch_id' => 'nullable|integer',
         ]);
 
         $branchId = Branch::currentId($request);
-        $activeShift = CashierShift::where('user_id', $request->user()->id)
-            ->where('branch_id', $branchId)
+        $activeShift = CashierShift::where('branch_id', $branchId)
             ->where('status', 'open')
+            ->latest('opened_at')
             ->first();
 
         if (!$activeShift) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Tidak ada shift yang sedang terbuka.'
+                'message' => 'Tidak ada shift kasir yang sedang aktif di cabang ini.'
             ], 400);
         }
 
@@ -84,7 +86,7 @@ class ShiftController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Shift berhasil ditutup.',
+            'message' => 'Shift kasir berhasil ditutup.',
             'data' => $activeShift
         ]);
     }

@@ -14,6 +14,7 @@ import '../widgets/floating_bottom_nav.dart';
 import '../widgets/line_popup.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
+import '../services/api_service.dart';
 import '../widgets/stock_alert_dialog.dart';
 
 class MainNavScreen extends StatefulWidget {
@@ -257,14 +258,39 @@ class _MainNavScreenState extends State<MainNavScreen> {
                   letterSpacing: -0.5,
                 ),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 8),
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) => Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF5D4037).withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.storefront_rounded, size: 14, color: Color(0xFF5D4037)),
+                      const SizedBox(width: 6),
+                      Text(
+                        auth.activeBranchName,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF5D4037),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
               Text(
-                'Silakan masukkan modal awal (uang kembalian) untuk memulai shift.',
+                'Silakan masukkan modal awal (uang kembalian) untuk memulai shift di cabang ini.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.grey[600],
                   height: 1.5,
-                  fontSize: 15,
+                  fontSize: 14,
                 ),
               ),
               SizedBox(height: 32),
@@ -326,11 +352,10 @@ class _MainNavScreenState extends State<MainNavScreen> {
                           if (mounted) {
                             setState(() => _isOpeningShift = false);
                             if (!success) {
+                              final errorMsg = ApiService().lastErrorMessage ?? 'Gagal membuka kasir. Coba lagi.';
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(
-                                    'Gagal membuka kasir. Coba lagi.',
-                                  ),
+                                  content: Text(errorMsg),
                                   backgroundColor: Colors.red,
                                 ),
                               );

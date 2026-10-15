@@ -152,7 +152,7 @@ class BranchSelectorSheet extends StatelessWidget {
                                   context,
                                   listen: false,
                                 );
-                                await cart.refreshAll();
+                                await cart.refreshAll(branchId: branch.id);
                                 Navigator.of(context).pop();
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(

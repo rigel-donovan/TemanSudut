@@ -510,9 +510,14 @@ class ApiService {
     }
   }
 
-  Future<Map<String, dynamic>?> getCurrentShift() async {
+  Future<Map<String, dynamic>?> getCurrentShift({int? branchId}) async {
     try {
-      final response = await _dio.get('/shifts/current');
+      final prefs = await SharedPreferences.getInstance();
+      final targetBranchId = branchId ?? prefs.getInt('active_branch_id');
+      final response = await _dio.get(
+        '/shifts/current',
+        queryParameters: targetBranchId != null ? {'branch_id': targetBranchId} : null,
+      );
       if (response.data['status'] == 'success') {
         return response.data['data'];
       }
@@ -523,28 +528,46 @@ class ApiService {
     }
   }
 
-  Future<bool> openShift(double startingCash) async {
+  Future<bool> openShift(double startingCash, {int? branchId}) async {
+    lastErrorMessage = null;
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final targetBranchId = branchId ?? prefs.getInt('active_branch_id');
       final response = await _dio.post(
         '/shifts/open',
-        data: {'starting_cash': startingCash},
+        data: {
+          'starting_cash': startingCash,
+          if (targetBranchId != null) 'branch_id': targetBranchId,
+        },
       );
       return (response.statusCode == 200 || response.statusCode == 201) &&
           response.data['status'] == 'success';
     } catch (e) {
+      if (e is DioException) {
+        lastErrorMessage = e.response?.data?['message']?.toString();
+      }
       developer.log('Failed to open shift: $e');
       return false;
     }
   }
 
-  Future<bool> closeShift({double? endingCash}) async {
+  Future<bool> closeShift({double? endingCash, int? branchId}) async {
+    lastErrorMessage = null;
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final targetBranchId = branchId ?? prefs.getInt('active_branch_id');
       final response = await _dio.post(
         '/shifts/close',
-        data: {'ending_cash': endingCash},
+        data: {
+          'ending_cash': endingCash,
+          if (targetBranchId != null) 'branch_id': targetBranchId,
+        },
       );
       return response.statusCode == 200 && response.data['status'] == 'success';
     } catch (e) {
+      if (e is DioException) {
+        lastErrorMessage = e.response?.data?['message']?.toString();
+      }
       developer.log('Failed to close shift: $e');
       return false;
     }

@@ -534,8 +534,11 @@ class _HomeTabState extends State<HomeTab> with AutomaticKeepAliveClientMixin {
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Gagal menutup sesi kasir'),
+                                SnackBar(
+                                  content: Text(
+                                    ApiService().lastErrorMessage ??
+                                        'Gagal menutup sesi kasir',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
